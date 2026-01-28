@@ -282,7 +282,7 @@ def reset_logical_names_to_physical_for_data_connections(
     Args:
         semantic_model: The semantic data model to post-process. Modified in-place.
     """
-    tables = semantic_model.get("tables") or []
+    tables = semantic_model.tables or []
 
     for table in tables:
         base_table = table.get("base_table")

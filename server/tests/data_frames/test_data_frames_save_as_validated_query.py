@@ -118,24 +118,14 @@ async def test_save_data_frame_as_validated_query(
     )
 
     # Create a data frame from the semantic data model using SQL
+    from tests.data_frames.fixtures import KernelStub, UserStub
+
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
 
-    # Prepare Kernel stub bound to our agent/thread
-    class _KernelStub:
-        def __init__(self, thread, user_id: str, state):
-            self.thread = thread
-
-            class _User:
-                def __init__(self, user_id: str):
-                    self.user_id = user_id
-
-            self.user = _User(user_id)
-            self.agent = type("_Agent", (), {"extra": {}})()
-            self.thread_state = state
-
     state = Exp1State()
-    kernel_stub = _KernelStub(thread, await model_creator.get_user_id(), state)
+    user_stub = UserStub(user_id=await model_creator.get_user_id())
+    kernel_stub = KernelStub(thread, user_stub)
 
     # Initialize interface and create data frame via SQL
     interface = AgentServerDataFramesInterface()
@@ -371,24 +361,14 @@ async def test_get_validated_query_with_multiple_sdms(
     )
 
     # Create data frames from each semantic data model using SQL
+    from tests.data_frames.fixtures import KernelStub, UserStub
+
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
 
-    # Prepare Kernel stub bound to our agent/thread
-    class _KernelStub:
-        def __init__(self, thread, user_id: str, state):
-            self.thread = thread
-
-            class _User:
-                def __init__(self, user_id: str):
-                    self.user_id = user_id
-
-            self.user = _User(user_id)
-            self.agent = type("_Agent", (), {"extra": {}})()
-            self.thread_state = state
-
     state = Exp1State()
-    kernel_stub = _KernelStub(thread, await model_creator.get_user_id(), state)
+    user_stub = UserStub(user_id=await model_creator.get_user_id())
+    kernel_stub = KernelStub(thread, user_stub)
 
     # Initialize interface and create data frames via SQL
     interface = AgentServerDataFramesInterface()
@@ -521,23 +501,14 @@ async def test_validated_query_with_parameterization(
     )
 
     # Create a data frame with a SQL query containing literals
+    from tests.data_frames.fixtures import KernelStub, UserStub
+
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import AgentServerDataFramesInterface
 
-    class _KernelStub:
-        def __init__(self, thread, user_id: str, state):
-            self.thread = thread
-
-            class _User:
-                def __init__(self, user_id: str):
-                    self.user_id = user_id
-
-            self.user = _User(user_id)
-            self.agent = type("_Agent", (), {"extra": {}})()
-            self.thread_state = state
-
     state = Exp1State()
-    kernel_stub = _KernelStub(thread, await model_creator.get_user_id(), state)
+    user_stub = UserStub(user_id=await model_creator.get_user_id())
+    kernel_stub = KernelStub(thread, user_stub)
 
     # Initialize interface and create data frame via SQL with literals
     interface = AgentServerDataFramesInterface()

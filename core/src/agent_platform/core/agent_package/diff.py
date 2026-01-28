@@ -299,7 +299,7 @@ def _diff_semantic_data_models(
     deployed_list = deployed_sdms or []
 
     spec_names = {sdm.name for sdm in spec_list}
-    deployed_names = {sdm.get("name", "") for sdm in deployed_list}
+    deployed_names = {sdm.name or "" for sdm in deployed_list}
 
     # Find added SDMs (in spec but not in deployed)
     for name in spec_names - deployed_names:
@@ -325,7 +325,7 @@ def _diff_semantic_data_models(
 
     # Compare content for SDMs that exist in both
     if spec_sdms_content:
-        deployed_by_name = {sdm.get("name", ""): sdm for sdm in deployed_list}
+        deployed_by_name = {sdm.name or "": sdm for sdm in deployed_list}
         common_names = spec_names & deployed_names
 
         for name in common_names:
@@ -335,14 +335,14 @@ def _diff_semantic_data_models(
             if spec_content and deployed_content:
                 # Compare relevant fields only
                 spec_normalized = {
-                    "name": spec_content.get("name", ""),
-                    "description": spec_content.get("description", ""),
-                    "columns": spec_content.get("columns", []),
+                    "name": spec_content.name or "",
+                    "description": spec_content.description or "",
+                    "columns": spec_content.model_dump().get("columns", []),
                 }
                 deployed_normalized = {
-                    "name": deployed_content.get("name", ""),
-                    "description": deployed_content.get("description", ""),
-                    "columns": deployed_content.get("columns", []),
+                    "name": deployed_content.name or "",
+                    "description": deployed_content.description or "",
+                    "columns": deployed_content.model_dump().get("columns", []),
                 }
                 if spec_normalized != deployed_normalized:
                     changes.append(

@@ -162,27 +162,28 @@ def test_save_and_retrieve_parameterized_verified_query(
     logger.info("[OK] Parameterized verified query saved successfully")
 
     # Retrieve and verify
+    # get_semantic_data_model returns a SemanticDataModel Pydantic object, use attribute access
     retrieved_model = verified_queries_agent_client.get_semantic_data_model(semantic_data_model_id)
-    assert "verified_queries" in retrieved_model
-    assert len(retrieved_model["verified_queries"]) == 1
+    assert retrieved_model.verified_queries is not None
+    assert len(retrieved_model.verified_queries) == 1
 
-    saved_query = retrieved_model["verified_queries"][0]
-    assert saved_query["name"] == "ai systems by domain and year"
-    assert "parameters" in saved_query
-    assert len(saved_query["parameters"]) == 2
+    saved_query = retrieved_model.verified_queries[0]
+    assert saved_query.name == "ai systems by domain and year"
+    assert saved_query.parameters is not None
+    assert len(saved_query.parameters) == 2
 
-    param_names = {p["name"] for p in saved_query["parameters"]}
+    param_names = {p.name for p in saved_query.parameters}
     assert param_names == {"domain", "year"}
 
-    domain_param = next(p for p in saved_query["parameters"] if p["name"] == "domain")
-    assert domain_param["data_type"] == "string"
-    assert domain_param["example_value"] == "Language"
-    assert domain_param["description"] == "Domain to filter by"
+    domain_param = next(p for p in saved_query.parameters if p.name == "domain")
+    assert domain_param.data_type == "string"
+    assert domain_param.example_value == "Language"
+    assert domain_param.description == "Domain to filter by"
 
-    year_param = next(p for p in saved_query["parameters"] if p["name"] == "year")
-    assert year_param["data_type"] == "integer"
-    assert year_param["example_value"] == 2022
-    assert year_param["description"] == "Year to filter by"
+    year_param = next(p for p in saved_query.parameters if p.name == "year")
+    assert year_param.data_type == "integer"
+    assert year_param.example_value == 2022
+    assert year_param.description == "Year to filter by"
 
     logger.info("[OK] Parameterized verified query retrieved correctly")
 

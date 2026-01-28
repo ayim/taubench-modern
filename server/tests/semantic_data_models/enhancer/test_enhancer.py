@@ -11,6 +11,8 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.storage.postgres import PostgresStorage
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
+pytest_plugins = ["server.tests.storage_fixtures"]
+
 
 @pytest.fixture
 def mock_storage_with_fk_inspection(monkeypatch):
@@ -136,11 +138,13 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
         }
     ]
 
-    semantic_model_example: SemanticDataModel = {
-        "name": "Sales Data",
-        "description": "This semantic model can be used for asking questions over the sales data.",
-        "tables": tables_example,
-    }
+    semantic_model_example: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": "Sales Data",
+            "description": "This semantic model can be used for asking questions over the sales data.",
+            "tables": tables_example,
+        }
+    )
 
     semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(semantic_model_example)
 
@@ -169,14 +173,14 @@ def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regres
     data_regression.check(semantic_data_model_for_llm.model_dump(), basename="changed_for_llm")
 
     update_semantic_data_model_with_semantic_data_model_from_llm(semantic_model_example, semantic_data_model_for_llm)
-    data_regression.check(semantic_model_example, basename="updated_from_llm")
+    data_regression.check(semantic_model_example.model_dump(), basename="updated_from_llm")
 
     # Recreating it for the LLM should give the same result
     semantic_data_model_for_llm = create_semantic_data_model_for_llm_from_semantic_data_model(semantic_model_example)
     data_regression.check(semantic_data_model_for_llm.model_dump(), basename="changed_for_llm")
 
     update_semantic_data_model_with_semantic_data_model_from_llm(semantic_model_example, semantic_data_model_for_llm)
-    data_regression.check(semantic_model_example, basename="updated_from_llm")
+    data_regression.check(semantic_model_example.model_dump(), basename="updated_from_llm")
 
 
 @pytest.mark.asyncio
@@ -263,8 +267,8 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry(mock_storage_
 
         # Verify that the model was NOT enhanced since text responses are not accepted
         # The enhancer returns the original model unchanged on failure
-        original_table_name = semantic_model["tables"][0].get("name")  # type: ignore[index]
-        enhanced_table_name = enhanced_model["tables"][0].get("name")  # type: ignore[index]
+        original_table_name = semantic_model.tables[0].get("name")
+        enhanced_table_name = enhanced_model.tables[0].get("name")
 
         assert original_table_name == enhanced_table_name, (
             f"Expected model to remain unchanged when text response is returned, "
@@ -334,7 +338,7 @@ async def test_enhance_semantic_data_model_with_tool_call(mock_storage_with_fk_i
         files_info=[],
     )
     # Save the original table name for later comparison
-    original_table_name = semantic_model["tables"][0].get("name")  # type: ignore[index]
+    original_table_name = semantic_model.tables[0].get("name")
     assert original_table_name is not None
     assert original_table_name == "ai_systems"
 
@@ -425,10 +429,10 @@ async def test_enhance_semantic_data_model_with_tool_call(mock_storage_with_fk_i
 
         # Check if the model was actually enhanced
         # Original has table name "ai_systems", enhanced should have "ai_systems_enhanced"
-        assert semantic_model.get("tables") is not None
-        assert enhanced_model.get("tables") is not None
+        assert semantic_model.tables is not None
+        assert enhanced_model.tables is not None
 
-        enhanced_table_name = enhanced_model["tables"][0].get("name")  # type: ignore[index]
+        enhanced_table_name = enhanced_model.tables[0].get("name")
 
         if original_table_name == enhanced_table_name:
             # The model was NOT enhanced - the retry didn't work
@@ -444,7 +448,7 @@ async def test_enhance_semantic_data_model_with_tool_call(mock_storage_with_fk_i
         )
 
         # Verify column was enhanced with description/synonyms from valid response
-        dimensions = enhanced_model["tables"][0].get("dimensions")  # type: ignore[index]
+        dimensions = enhanced_model.tables[0].get("dimensions")
         assert dimensions is not None
         assert len(dimensions) > 0
         enhanced_column = dimensions[0]
@@ -644,11 +648,11 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         )
         # After generation: LogicalTable.name = base_table.table = "sd_raw_tbl"
         # Simulate LLM changing the logical name to a friendly name
-        semantic_model["tables"][0]["name"] = "sales_data_table"  # type: ignore[index]
+        semantic_model.tables[0]["name"] = "sales_data_table"
 
         # Reset should restore logical name to match physical name (base_table.table)
         reset_logical_names_to_physical_for_data_connections(semantic_model)
-        assert semantic_model["tables"][0]["name"] == "sd_raw_tbl"  # type: ignore[index]
+        assert semantic_model.tables[0]["name"] == "sd_raw_tbl"
 
     @pytest.mark.asyncio
     async def test_resets_column_names_for_dimensions_facts_time_dimensions(self, mock_storage_with_fk_inspection):
@@ -693,7 +697,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
 
         # After generation: column.name = column.expr = physical name
         # Simulate LLM changing logical column names to friendly names
-        table = semantic_model["tables"][0]  # type: ignore[index]
+        table = semantic_model.tables[0]
         dimensions = table.get("dimensions")
         facts = table.get("facts")
         time_dims = table.get("time_dimensions")
@@ -746,7 +750,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         )
 
         # Manually add a metric (generator doesn't create metrics automatically)
-        table = semantic_model["tables"][0]  # type: ignore[index]
+        table = semantic_model.tables[0]
         table["metrics"] = [
             {
                 "name": "Total_Energy",  # LLM-generated friendly name
@@ -798,7 +802,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         )
 
         # LLM generates clean database-style logical names
-        table = semantic_model["tables"][0]  # type: ignore[index]
+        table = semantic_model.tables[0]
         table["name"] = "sales_data_q1_2024"  # Clean logical table name
         dimensions = table.get("dimensions")
         assert dimensions is not None
@@ -853,13 +857,13 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
         )
 
         # LLM generates friendly names for DC table, clean DB-style for file table
-        dc_tbl = semantic_model["tables"][0]  # type: ignore[index]
+        dc_tbl = semantic_model.tables[0]
         dc_tbl["name"] = "CustomerData"  # Friendly logical name
         dc_dims = dc_tbl.get("dimensions")
         assert dc_dims is not None
         dc_dims[0]["name"] = "CustomerName"  # Friendly logical name
 
-        file_tbl = semantic_model["tables"][1]  # type: ignore[index]
+        file_tbl = semantic_model.tables[1]
         file_tbl["name"] = "products_inventory"  # Clean DB-style logical name
         file_dims = file_tbl.get("dimensions")
         assert file_dims is not None
@@ -998,7 +1002,7 @@ async def test_enhancer_duplicate_name_gets_counter_appended(
 
     # Verify the API properly handled the duplicate name by appending a counter
     result_model = response.semantic_model
-    result_name = result_model.get("name")
+    result_name = result_model.name
 
     assert result_name == f"{existing_model_name} (1)", (
         f"Expected API to append (1) to duplicate name, got '{result_name}'"

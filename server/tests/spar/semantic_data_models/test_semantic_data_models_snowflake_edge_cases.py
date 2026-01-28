@@ -271,15 +271,15 @@ def test_generate_semantic_model_with_edge_cases(
 
     # Verify model was generated
     assert result is not None
-    assert "semantic_model" in result
-    semantic_model = result["semantic_model"]
+    assert result.semantic_model is not None
+    semantic_model = result.semantic_model
 
     # Verify model contains tables
-    assert "tables" in semantic_model
-    assert len(semantic_model["tables"]) == len(EDGE_CASE_TABLES)
+    assert semantic_model.tables is not None
+    assert len(semantic_model.tables) == len(EDGE_CASE_TABLES)
 
     # Verify tables exist (column names might be renamed by LLM)
-    table_names = {table["name"] for table in semantic_model["tables"]}
+    table_names = {table.get("name") for table in semantic_model.tables}
 
     # Check that we have tables with the expected base names (LLM may rename them)
     # Just verify the model was generated successfully with tables
@@ -324,10 +324,10 @@ def created_edge_case_model_id(
     )
 
     result = client.generate_semantic_data_model(payload.model_dump())
-    semantic_model = result["semantic_model"]
+    semantic_model = result.semantic_model
 
     # Create (persist) the semantic data model
-    created_model = client.create_semantic_data_model({"semantic_model": semantic_model})
+    created_model = client.create_semantic_data_model({"semantic_model": semantic_model.model_dump()})
     return created_model["semantic_data_model_id"]
 
 

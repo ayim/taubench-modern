@@ -21,6 +21,9 @@ if TYPE_CHECKING:
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.core.payloads.data_connection import DataConnection
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+    )
 
 # Mark as SPAR and semantic data model tests
 pytestmark = [pytest.mark.spar, pytest.mark.semantic_data_models]
@@ -65,7 +68,7 @@ def mysql_json_semantic_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     mysql_json_agent: str,
     engine: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """Generate semantic data model including JSON edge case tables."""
     if engine != "mysql":
         pytest.skip("MySQL-specific fixture")
@@ -146,13 +149,13 @@ def mysql_json_semantic_model(
 
 
 def test_mysql_json_tables_loaded(
-    mysql_json_semantic_model: dict[str, Any],
+    mysql_json_semantic_model: GenerateSemanticDataModelResponse,
 ) -> None:
     """Test that all JSON tables are present in the semantic model."""
-    assert "semantic_model" in mysql_json_semantic_model
-    semantic_model = mysql_json_semantic_model["semantic_model"]
+    assert mysql_json_semantic_model.semantic_model is not None
+    semantic_model = mysql_json_semantic_model.semantic_model
 
-    table_names = [table["base_table"]["table"] for table in semantic_model["tables"]]
+    table_names = [table["base_table"].get("table") for table in semantic_model.tables]
 
     # Verify all JSON tables are present
     expected_tables = [
@@ -211,7 +214,7 @@ def test_mysql_json_columns_detected(
 @pytest.fixture(scope="module")
 def created_mysql_json_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    mysql_json_semantic_model: dict[str, Any],
+    mysql_json_semantic_model: GenerateSemanticDataModelResponse,
     engine: str,
 ) -> str:
     """Create the MySQL JSON semantic data model and return its ID."""
@@ -219,7 +222,9 @@ def created_mysql_json_model_id(
         pytest.skip("MySQL-specific fixture")
 
     client, _ = agent_server_client_with_data_connection
-    created_model = client.create_semantic_data_model(mysql_json_semantic_model)
+    created_model = client.create_semantic_data_model(
+        {"semantic_model": mysql_json_semantic_model.semantic_model.model_dump()}
+    )
     return created_model["semantic_data_model_id"]
 
 

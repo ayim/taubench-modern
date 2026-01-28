@@ -89,7 +89,7 @@ class PromptThread(Prompt):
 def _get_data_connection_table_names(semantic_model: SemanticDataModel) -> set[str]:
     """Extract names of tables that are backed by data connections."""
     data_connection_tables: set[str] = set()
-    tables = semantic_model.get("tables") or []
+    tables = semantic_model.tables or []
     for table in tables:
         base_table = table.get("base_table")
         if base_table and base_table.get("data_connection_id"):

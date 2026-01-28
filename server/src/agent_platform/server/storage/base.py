@@ -20,7 +20,7 @@ from structlog.stdlib import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_dump_sdm
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
     ExecutionState,
@@ -2368,8 +2368,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
         won't change (so, references tables will not be updated, just the semantic model itself)."""
         semantic_data_models = self._get_table("semantic_data_model")
 
-        # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
-        semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+        # Convert SemanticDataModel to dict with mode="json" to serialize datetime objects
+        semantic_model_clean = SemanticDataModel.model_validate(semantic_model).model_dump(mode="json")
 
         # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
         # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
@@ -2400,8 +2400,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Note: there's currently no validation at all here!
         async with self._write_connection() as conn:
-            # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
-            semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+            # Convert SemanticDataModel to dict with mode="json" to serialize datetime objects
+            semantic_model_clean = SemanticDataModel.model_validate(semantic_model).model_dump(mode="json")
 
             # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
             # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
@@ -2516,8 +2516,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 verified_queries, semantic_data_model_id
             )
 
-        # Return as dict (TypedDict is just a type annotation, compatible with dict)
-        return dict(typing.cast(SemanticDataModel, semantic_model_dict))
+        # Return as dict - callers should use SemanticDataModel.model_validate() if needed
+        return semantic_model_dict
 
     async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
         """Delete a semantic data model by ID."""
@@ -3061,12 +3061,15 @@ class BaseStorage(AbstractStorage, CommonMixin):
                             verified_queries, model_id
                         )
 
+                    # Convert dict to SemanticDataModel BaseModel
+                    semantic_model_obj = SemanticDataModel.model_validate(semantic_model)
+
                     updated_at = row["updated_at"]
                     if isinstance(updated_at, datetime):
                         updated_at = updated_at.isoformat()
 
                     models_by_id[model_id] = {
-                        "semantic_data_model": semantic_model,
+                        "semantic_data_model": semantic_model_obj,
                         "semantic_data_model_id": model_id,
                         "agent_ids": set(),
                         "thread_ids": set(),

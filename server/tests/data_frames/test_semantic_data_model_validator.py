@@ -12,7 +12,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.semantic_data_model_validator import (
-        SemanticDataModelValidator,
+        ValidationResult,
     )
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
@@ -184,17 +184,29 @@ class _SemanticDataModelValidatorChecker:
         description: str = "Test semantic model",
     ) -> "SemanticDataModel":
         """Build a semantic data model payload."""
-        return typing.cast(
-            "SemanticDataModel",
+        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+        return SemanticDataModel.model_validate(
             {
                 "name": name,
                 "description": description,
                 "tables": tables,
-            },
+            }
         )
 
-    async def validate_model(self, semantic_model: "SemanticDataModel") -> "SemanticDataModelValidator":
-        """Run validation and return validator."""
+    def extract_references(self, semantic_model: "SemanticDataModel"):
+        """Extract references from a semantic data model."""
+        from agent_platform.core.data_frames.semantic_data_model_validation import (
+            validate_semantic_model_payload_and_extract_references,
+        )
+
+        return validate_semantic_model_payload_and_extract_references(semantic_model)
+
+    async def validate_model(self, semantic_model: "SemanticDataModel") -> "ValidationResult":
+        """Run validation and return ValidationResult."""
+        from agent_platform.core.data_frames.semantic_data_model_validation import (
+            validate_semantic_model_payload_and_extract_references,
+        )
         from agent_platform.server.data_frames.semantic_data_model_validator import (
             SemanticDataModelValidator,
         )
@@ -202,14 +214,15 @@ class _SemanticDataModelValidatorChecker:
         assert self.user is not None
         assert self.thread is not None
 
+        references = validate_semantic_model_payload_and_extract_references(semantic_model)
         validator = SemanticDataModelValidator(
             semantic_data_model=semantic_model,
+            references=references,
             thread_id=self.thread.thread_id,
             storage=self.sqlite_storage,
             user=self.user,
         )
-        await validator.validate()
-        return validator
+        return await validator.validate()
 
 
 @pytest.fixture
@@ -252,9 +265,11 @@ def test_add_validation_message_at_model_level(validator_checker):
             }
         ],
     )
+    references = validator_checker.extract_references(sample_model)
 
     validator = SemanticDataModelValidator(
         semantic_data_model=sample_model,
+        references=references,
         thread_id=validator_checker.thread.thread_id,
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
@@ -265,12 +280,14 @@ def test_add_validation_message_at_model_level(validator_checker):
         level=ValidationMessageLevel.ERROR,
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
-    validator._attach_validation_message(validation_message)
+    validator._add_validation_message(validation_message)
 
-    assert len(validator._errors) == 1
-    error = next(iter(validator._errors))
-    assert error["message"] == "Model level error"
-    assert error["level"] == "error"
+    assert len(validator._located_messages) == 1
+    located_msg = validator._located_messages[0]
+    assert located_msg.message["message"] == "Model level error"
+    assert located_msg.message["level"] == "error"
+    assert located_msg.logical_table_name is None
+    assert located_msg.logical_column_name is None
 
 
 def test_add_validation_message_at_table_level(validator_checker):
@@ -282,6 +299,7 @@ def test_add_validation_message_at_table_level(validator_checker):
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
+        ValidationResult,
     )
 
     sample_model = validator_checker.build_semantic_model(
@@ -302,9 +320,11 @@ def test_add_validation_message_at_table_level(validator_checker):
             }
         ],
     )
+    references = validator_checker.extract_references(sample_model)
 
     validator = SemanticDataModelValidator(
         semantic_data_model=sample_model,
+        references=references,
         thread_id=validator_checker.thread.thread_id,
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
@@ -315,12 +335,20 @@ def test_add_validation_message_at_table_level(validator_checker):
         level=ValidationMessageLevel.ERROR,
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
-    validator._attach_validation_message(validation_message, logical_table_name="sales_data")
+    validator._add_validation_message(validation_message, logical_table_name="sales_data")
 
-    assert len(validator._errors) == 1
-    validated_model = validator._validated_semantic_data_model
-    assert validated_model is not None
-    tables = validated_model.get("tables") or []
+    assert len(validator._located_messages) == 1
+    located_msg = validator._located_messages[0]
+    assert located_msg.logical_table_name == "sales_data"
+    assert located_msg.logical_column_name is None
+
+    # Test that ValidationResult correctly attaches the error
+    result = ValidationResult(
+        semantic_data_model=sample_model,
+        _located_messages=validator._located_messages,
+    )
+    sdm_with_errors = result.semantic_data_model_with_errors()
+    tables = sdm_with_errors.tables or []
     sales_table = next(t for t in tables if t.get("name") == "sales_data")
     assert "errors" in sales_table
     errors = sales_table.get("errors") or []
@@ -336,6 +364,7 @@ def test_add_validation_message_at_column_level(validator_checker):
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
+        ValidationResult,
     )
 
     sample_model = validator_checker.build_semantic_model(
@@ -356,9 +385,11 @@ def test_add_validation_message_at_column_level(validator_checker):
             }
         ],
     )
+    references = validator_checker.extract_references(sample_model)
 
     validator = SemanticDataModelValidator(
         semantic_data_model=sample_model,
+        references=references,
         thread_id=validator_checker.thread.thread_id,
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
@@ -369,14 +400,22 @@ def test_add_validation_message_at_column_level(validator_checker):
         level=ValidationMessageLevel.ERROR,
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
-    validator._attach_validation_message(
+    validator._add_validation_message(
         validation_message, logical_table_name="sales_data", logical_column_name="product"
     )
 
-    assert len(validator._errors) == 1
-    validated_model = validator._validated_semantic_data_model
-    assert validated_model is not None
-    tables = validated_model.get("tables") or []
+    assert len(validator._located_messages) == 1
+    located_msg = validator._located_messages[0]
+    assert located_msg.logical_table_name == "sales_data"
+    assert located_msg.logical_column_name == "product"
+
+    # Test that ValidationResult correctly attaches the error
+    result = ValidationResult(
+        semantic_data_model=sample_model,
+        _located_messages=validator._located_messages,
+    )
+    sdm_with_errors = result.semantic_data_model_with_errors()
+    tables = sdm_with_errors.tables or []
     sales_table = next(t for t in tables if t.get("name") == "sales_data")
     dimensions = sales_table.get("dimensions") or []
     product_dim = next(d for d in dimensions if d.get("name") == "product")
@@ -394,15 +433,25 @@ def test_add_warning_vs_error(validator_checker):
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
+        ValidationResult,
     )
 
     sample_model = validator_checker.build_semantic_model(
         name="Test Model",
-        tables=[],
+        tables=[
+            {
+                "name": "dummy_table",
+                "base_table": {"table": "dummy"},
+                "dimensions": [],
+                "facts": [],
+            }
+        ],
     )
+    references = validator_checker.extract_references(sample_model)
 
     validator = SemanticDataModelValidator(
         semantic_data_model=sample_model,
+        references=references,
         thread_id=validator_checker.thread.thread_id,
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
@@ -413,103 +462,110 @@ def test_add_warning_vs_error(validator_checker):
         level=ValidationMessageLevel.ERROR,
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
-    validator._attach_validation_message(error_msg)
+    validator._add_validation_message(error_msg)
 
     warning_msg = ValidationMessage(
         message="This is a warning",
         level=ValidationMessageLevel.WARNING,
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
-    validator._attach_validation_message(warning_msg)
+    validator._add_validation_message(warning_msg)
 
-    assert len(validator._errors) == 2
-    errors_list = list(validator._errors)
-    error_entry = next(e for e in errors_list if e["level"] == "error")
-    warning_entry = next(e for e in errors_list if e["level"] == "warning")
+    assert len(validator._located_messages) == 2
 
-    assert error_entry["message"] == "This is an error"
-    assert warning_entry["message"] == "This is a warning"
+    # Test via ValidationResult
+    result = ValidationResult(
+        semantic_data_model=sample_model,
+        _located_messages=validator._located_messages,
+    )
+    assert len(result.errors) == 1
+    assert len(result.warnings) == 1
+    assert result.errors[0]["message"] == "This is an error"
+    assert result.warnings[0]["message"] == "This is a warning"
 
 
-def test_errors_and_warnings_properties(validator_checker):
-    """Test the errors and warnings properties."""
+def test_validation_result_errors_and_warnings_properties(validator_checker):
+    """Test the errors and warnings properties on ValidationResult."""
     from agent_platform.core.data_frames.semantic_data_model_types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
-        SemanticDataModelValidator,
+        ValidationResult,
+        _LocatedValidationMessage,
     )
 
     sample_model = validator_checker.build_semantic_model(
         name="Test Model",
-        tables=[],
+        tables=[
+            {
+                "name": "dummy_table",
+                "base_table": {"table": "dummy"},
+                "dimensions": [],
+                "facts": [],
+            }
+        ],
     )
 
-    validator = SemanticDataModelValidator(
+    # Create located messages
+    located_messages = [
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Error 1",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Error 2",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Warning 1",
+                level=ValidationMessageLevel.WARNING,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Warning 2",
+                level=ValidationMessageLevel.WARNING,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Warning 3",
+                level=ValidationMessageLevel.WARNING,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+    ]
+
+    result = ValidationResult(
         semantic_data_model=sample_model,
-        thread_id=validator_checker.thread.thread_id,
-        storage=validator_checker.sqlite_storage,
-        user=validator_checker.user,
+        _located_messages=located_messages,
     )
-
-    # Before validation, accessing properties should raise error
-    with pytest.raises(ValueError, match="Validation has not been run"):
-        _ = validator.errors
-
-    with pytest.raises(ValueError, match="Validation has not been run"):
-        _ = validator.warnings
-
-    # Add mixed validation messages
-    validator._attach_validation_message(
-        ValidationMessage(
-            message="Error 1",
-            level=ValidationMessageLevel.ERROR,
-            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
-        )
-    )
-    validator._attach_validation_message(
-        ValidationMessage(
-            message="Error 2",
-            level=ValidationMessageLevel.ERROR,
-            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
-        )
-    )
-    validator._attach_validation_message(
-        ValidationMessage(
-            message="Warning 1",
-            level=ValidationMessageLevel.WARNING,
-            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
-        )
-    )
-    validator._attach_validation_message(
-        ValidationMessage(
-            message="Warning 2",
-            level=ValidationMessageLevel.WARNING,
-            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
-        )
-    )
-    validator._attach_validation_message(
-        ValidationMessage(
-            message="Warning 3",
-            level=ValidationMessageLevel.WARNING,
-            kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
-        )
-    )
-    validator._validation_ran = True
 
     # Test errors property
-    errors = validator.errors
+    errors = result.errors
     assert len(errors) == 2
     assert all(e["level"] == "error" for e in errors)
     assert {e["message"] for e in errors} == {"Error 1", "Error 2"}
 
     # Test warnings property
-    warnings = validator.warnings
+    warnings = result.warnings
     assert len(warnings) == 3
     assert all(w["level"] == "warning" for w in warnings)
     assert {w["message"] for w in warnings} == {"Warning 1", "Warning 2", "Warning 3"}
+
+    # Test is_valid property
+    assert not result.is_valid  # has errors
 
 
 def test_add_validation_message_column_without_table_raises_error(validator_checker):
@@ -525,11 +581,20 @@ def test_add_validation_message_column_without_table_raises_error(validator_chec
 
     sample_model = validator_checker.build_semantic_model(
         name="Test Model",
-        tables=[],
+        tables=[
+            {
+                "name": "dummy_table",
+                "base_table": {"table": "dummy"},
+                "dimensions": [],
+                "facts": [],
+            }
+        ],
     )
+    references = validator_checker.extract_references(sample_model)
 
     validator = SemanticDataModelValidator(
         semantic_data_model=sample_model,
+        references=references,
         thread_id=validator_checker.thread.thread_id,
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
@@ -541,35 +606,90 @@ def test_add_validation_message_column_without_table_raises_error(validator_chec
         kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
     )
     with pytest.raises(ValueError, match=r"logical_table_name.*required"):
-        validator._attach_validation_message(validation_message, logical_column_name="product")
+        validator._add_validation_message(validation_message, logical_column_name="product")
 
 
-def test_properties_before_validation_raise_error(validator_checker):
-    """Test that properties raise ValueError before validation runs."""
+def test_validation_result_is_valid_with_no_errors():
+    """Test that ValidationResult.is_valid returns True when there are no errors."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
-        SemanticDataModelValidator,
+        ValidationResult,
+        _LocatedValidationMessage,
     )
 
-    sample_model = validator_checker.build_semantic_model(
-        name="Test Model",
-        tables=[],
+    sample_model = SemanticDataModel.model_validate(
+        {
+            "name": "Test",
+            "tables": [{"name": "t", "base_table": {"table": "x"}, "dimensions": [], "facts": []}],
+        }
     )
 
-    validator = SemanticDataModelValidator(
+    # Only warnings, no errors
+    located_messages = [
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Warning only",
+                level=ValidationMessageLevel.WARNING,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+    ]
+
+    result = ValidationResult(
         semantic_data_model=sample_model,
-        thread_id=validator_checker.thread.thread_id,
-        storage=validator_checker.sqlite_storage,
-        user=validator_checker.user,
+        _located_messages=located_messages,
     )
 
-    with pytest.raises(ValueError, match="Validation has not been run"):
-        _ = validator.errors
+    assert result.is_valid  # warnings don't affect validity
+    assert len(result.warnings) == 1
+    assert len(result.errors) == 0
 
-    with pytest.raises(ValueError, match="Validation has not been run"):
-        _ = validator.is_valid
 
-    with pytest.raises(ValueError, match="Validation has not been run"):
-        _ = validator.semantic_data_model_with_errors
+def test_validation_result_caches_sdm_with_errors():
+    """Test that ValidationResult caches the SDM with errors."""
+    from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
+        ValidationMessage,
+        ValidationMessageKind,
+        ValidationMessageLevel,
+    )
+    from agent_platform.server.data_frames.semantic_data_model_validator import (
+        ValidationResult,
+        _LocatedValidationMessage,
+    )
+
+    sample_model = SemanticDataModel.model_validate(
+        {
+            "name": "Test",
+            "tables": [{"name": "t", "base_table": {"table": "x"}, "dimensions": [], "facts": []}],
+        }
+    )
+
+    located_messages = [
+        _LocatedValidationMessage(
+            message=ValidationMessage(
+                message="Error",
+                level=ValidationMessageLevel.ERROR,
+                kind=ValidationMessageKind.VALIDATION_EXECUTION_ERROR,
+            )
+        ),
+    ]
+
+    result = ValidationResult(
+        semantic_data_model=sample_model,
+        _located_messages=located_messages,
+    )
+
+    # Call twice - should return same instance
+    sdm1 = result.semantic_data_model_with_errors()
+    sdm2 = result.semantic_data_model_with_errors()
+
+    assert sdm1 is sdm2  # same instance (cached)
 
 
 # ==================== Data Connection Validation Tests ====================
@@ -612,10 +732,10 @@ async def test_data_connection_validation_success(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -640,11 +760,11 @@ async def test_data_connection_not_found(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
-    error_messages = [e["message"] for e in validator.errors]
+    assert not result.is_valid
+    assert len(result.errors) > 0
+    error_messages = [e["message"] for e in result.errors]
     assert any("non-existent-connection-id" in msg and "not found" in msg for msg in error_messages)
 
 
@@ -679,11 +799,11 @@ async def test_data_connection_table_not_found(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
-    error_messages = [e["message"] for e in validator.errors]
+    assert not result.is_valid
+    assert len(result.errors) > 0
+    error_messages = [e["message"] for e in result.errors]
     assert any("non_existent_table" in msg.lower() for msg in error_messages)
 
 
@@ -718,11 +838,11 @@ async def test_data_connection_column_not_found(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
-    error_messages = [e["message"] for e in validator.errors]
+    assert not result.is_valid
+    assert len(result.errors) > 0
+    error_messages = [e["message"] for e in result.errors]
     assert any("non_existent_col" in msg for msg in error_messages)
 
 
@@ -761,11 +881,11 @@ async def test_data_connection_table_level_validation_error(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
     # Should not crash and should report an error
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
+    assert not result.is_valid
+    assert len(result.errors) > 0
 
 
 # ==================== File Reference Validation Tests ====================
@@ -805,10 +925,10 @@ async def test_file_reference_validation_success(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -837,14 +957,14 @@ async def test_file_reference_not_found(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
     # Should be valid - file not found is just a warning
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
     # Should have warning for file not found
-    warnings = validator.warnings
+    warnings = result.warnings
     assert len(warnings) > 0
     warning_messages = [w["message"] for w in warnings]
     assert any("non_existent_file.csv" in msg and "not found" in msg for msg in warning_messages)
@@ -886,11 +1006,11 @@ async def test_file_reference_column_not_found(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
-    assert len(validator.errors) > 0
-    error_messages = [e["message"] for e in validator.errors]
+    assert not result.is_valid
+    assert len(result.errors) > 0
+    error_messages = [e["message"] for e in result.errors]
     assert any("Category" in msg and "not found" in msg for msg in error_messages)
 
 
@@ -929,11 +1049,11 @@ async def test_file_reference_sheet_name_matching(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
     # Should be valid - found the right sheet with the right column
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 # ==================== Edge Cases and Special Scenarios ====================
@@ -963,12 +1083,12 @@ async def test_unresolved_file_references_create_warnings(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
     # Should still be valid since unresolved refs are warnings
-    assert validator.is_valid
-    assert len(validator.errors) == 0
-    warnings = validator.warnings
+    assert result.is_valid
+    assert len(result.errors) == 0
+    warnings = result.warnings
     assert len(warnings) > 0
     assert any("unresolved file reference" in w["message"].lower() for w in warnings)
 
@@ -994,11 +1114,12 @@ async def test_validate_returns_semantic_model_with_errors(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
-    result = validator.semantic_data_model_with_errors
+    result = await validator_checker.validate_model(semantic_model)
+    sdm_with_errors = result.semantic_data_model_with_errors()
 
-    assert "tables" in result
-    assert not validator.is_valid
+    # result is now a SemanticDataModel BaseModel, check tables attribute
+    assert sdm_with_errors.tables is not None
+    assert not result.is_valid
 
 
 @pytest.mark.asyncio
@@ -1036,11 +1157,11 @@ async def test_multiple_validation_errors(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert not validator.is_valid
+    assert not result.is_valid
     # Should have multiple errors (one for each missing column)
-    assert len(validator.errors) >= 3
+    assert len(result.errors) >= 3
 
 
 @pytest.mark.asyncio
@@ -1096,10 +1217,10 @@ async def test_validation_with_multiple_tables(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -1159,10 +1280,10 @@ async def test_mixed_data_connection_and_file_references(validator_checker):
         ],
     )
 
-    validator = await validator_checker.validate_model(semantic_model)
+    result = await validator_checker.validate_model(semantic_model)
 
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 # ==================== Optional Thread ID Tests ====================
@@ -1204,19 +1325,21 @@ async def test_validation_without_thread_id_data_connections_only(validator_chec
             }
         ],
     )
+    references = validator_checker.extract_references(semantic_model)
 
     # Validate without thread_id
     validator = SemanticDataModelValidator(
         semantic_data_model=semantic_model,
+        references=references,
         thread_id=None,  # No thread context
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
     )
-    await validator.validate()
+    result = await validator.validate()
 
     # Should be valid since data connections don't require thread_id
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
 
 @pytest.mark.asyncio
@@ -1254,22 +1377,24 @@ async def test_validation_without_thread_id_file_references_fail(validator_check
             }
         ],
     )
+    references = validator_checker.extract_references(semantic_model)
 
     # Validate without thread_id
     validator = SemanticDataModelValidator(
         semantic_data_model=semantic_model,
+        references=references,
         thread_id=None,  # No thread context
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
     )
-    await validator.validate()
+    result = await validator.validate()
 
     # Should be valid - file can't be resolved without thread_id is just a warning
-    assert validator.is_valid
-    assert len(validator.errors) == 0
+    assert result.is_valid
+    assert len(result.errors) == 0
 
     # Should have warning since file can't be resolved without thread_id
-    warnings = validator.warnings
+    warnings = result.warnings
     assert len(warnings) > 0
     warning_messages = [w["message"] for w in warnings]
     assert any("cannot be resolved and validated without thread ID" in msg for msg in warning_messages)
@@ -1332,25 +1457,27 @@ async def test_validation_without_thread_id_mixed_sources(validator_checker):
             },
         ],
     )
+    references = validator_checker.extract_references(semantic_model)
 
     # Validate without thread_id
     validator = SemanticDataModelValidator(
         semantic_data_model=semantic_model,
+        references=references,
         thread_id=None,  # No thread context
         storage=validator_checker.sqlite_storage,
         user=validator_checker.user,
     )
-    await validator.validate()
+    result = await validator.validate()
 
     # Should be valid - file not found without thread_id is just a warning
-    assert validator.is_valid
+    assert result.is_valid
 
     # Should have no errors (data connection is valid)
-    errors = validator.errors
+    errors = result.errors
     assert len(errors) == 0
 
     # Should have warnings for the file reference that couldn't be resolved
-    warnings = validator.warnings
+    warnings = result.warnings
     assert len(warnings) > 0
     warning_messages = [w["message"] for w in warnings]
     assert any("cannot be resolved and validated without thread ID" in msg for msg in warning_messages)

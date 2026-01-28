@@ -202,15 +202,15 @@ def test_mysql_basic_query_generation(
 
     # Verify the result
     assert result is not None
-    assert "semantic_model" in result
+    assert result.semantic_model is not None
 
-    semantic_model = result["semantic_model"]
-    assert semantic_model["name"] is not None
-    assert "tables" in semantic_model
-    assert len(semantic_model["tables"]) > 0
+    semantic_model = result.semantic_model
+    assert semantic_model.name is not None
+    assert semantic_model.tables is not None
+    assert len(semantic_model.tables) > 0
 
     # Verify expected tables are present
-    table_names = [table["base_table"]["table"] for table in semantic_model["tables"]]
+    table_names = [table["base_table"].get("table") for table in semantic_model.tables]
     assert "customers" in table_names
     assert "orders" in table_names
     assert "products" in table_names

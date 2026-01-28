@@ -67,19 +67,16 @@ def sample_sdms() -> list[dict[str, Any]]:
     """Sample semantic data models for testing."""
     return [
         {
-            "id": "sdm-001",
             "name": "sales_data",
             "description": "Sales data model",
             "tables": [],
         },
         {
-            "id": "sdm-002",
             "name": "customer_data",
             "description": "Customer data model",
             "tables": [],
         },
         {
-            "id": "sdm-003",
             "name": "inventory_data",
             "description": "Inventory data model",
             "tables": [],
@@ -96,49 +93,41 @@ def mock_data_frame_tools():
 @pytest.fixture
 def simple_sdm_with_engine() -> tuple[SemanticDataModel, str]:
     """A simple semantic data model with DuckDB engine."""
-    return cast(
-        tuple[SemanticDataModel, str],
-        (
+    sdm = SemanticDataModel(
+        name="test_model",
+        description="A test model",
+        tables=[
             {
-                "name": "test_model",
-                "description": "A test model",
-                "tables": [
-                    {
-                        "name": "users",
-                        "description": "User table",
-                        "dimensions": [
-                            {"name": "user_id", "expr": "user_id", "data_type": "INTEGER"},
-                            {"name": "username", "expr": "username", "data_type": "VARCHAR"},
-                        ],
-                    }
+                "name": "users",
+                "description": "User table",
+                "base_table": {"table": "users"},
+                "dimensions": [
+                    {"name": "user_id", "expr": "user_id", "data_type": "INTEGER"},
+                    {"name": "username", "expr": "username", "data_type": "VARCHAR"},
                 ],
-            },
-            "duckdb",
-        ),
+            }
+        ],
     )
+    return (sdm, "duckdb")
 
 
 @pytest.fixture
 def snowflake_sdm_with_variant() -> tuple[SemanticDataModel, str]:
     """Snowflake SDM with VARIANT columns."""
-    return cast(
-        tuple[SemanticDataModel, str],
-        (
+    sdm = SemanticDataModel(
+        name="snowflake_products",
+        tables=[
             {
-                "name": "snowflake_products",
-                "tables": [
-                    {
-                        "name": "products",
-                        "dimensions": [
-                            {"name": "product_id", "expr": "product_id", "data_type": "INTEGER"},
-                            {"name": "metadata", "expr": "metadata", "data_type": "VARIANT"},
-                        ],
-                    }
+                "name": "products",
+                "base_table": {"table": "products"},
+                "dimensions": [
+                    {"name": "product_id", "expr": "product_id", "data_type": "INTEGER"},
+                    {"name": "metadata", "expr": "metadata", "data_type": "VARIANT"},
                 ],
-            },
-            "snowflake",
-        ),
+            }
+        ],
     )
+    return (sdm, "snowflake")
 
 
 @pytest.mark.asyncio
@@ -229,62 +218,6 @@ async def test_handles_empty_sdm_list(mock_storage):
     assert result is None
     mock_storage.get_agent_semantic_data_model_ids.assert_called_once_with(agent_id)
     mock_storage.get_semantic_data_model.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_handles_sdm_with_missing_name_field(mock_storage):
-    """Should handle SDMs that don't have a 'name' field."""
-    # Arrange
-    agent_id = "agent-123"
-    sdm_name = "test_model"
-
-    mock_storage.get_agent_semantic_data_model_ids.return_value = [
-        "sdm-001",
-        "sdm-002",
-        "sdm-003",
-    ]
-
-    # Some SDMs missing the 'name' field, last one has it
-    mock_storage.get_semantic_data_model.side_effect = [
-        {"id": "sdm-001", "description": "No name field"},
-        {"id": "sdm-002"},  # No name field
-        {"id": "sdm-003", "name": "test_model"},
-    ]
-
-    # Act
-    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
-
-    # Assert
-    assert result is not None
-    sdm_id, target_sdm = result
-    assert sdm_id == "sdm-003"
-    assert mock_storage.get_semantic_data_model.call_count == 3
-
-
-@pytest.mark.asyncio
-async def test_handles_sdm_with_none_name(mock_storage):
-    """Should handle SDMs where 'name' field is None."""
-    # Arrange
-    agent_id = "agent-123"
-    sdm_name = "valid_model"
-
-    mock_storage.get_agent_semantic_data_model_ids.return_value = [
-        "sdm-001",
-        "sdm-002",
-    ]
-
-    mock_storage.get_semantic_data_model.side_effect = [
-        {"id": "sdm-001", "name": None},  # None name
-        {"id": "sdm-002", "name": "valid_model"},
-    ]
-
-    # Act
-    result = await _find_sdm_by_name(mock_storage, agent_id, sdm_name)
-
-    # Assert
-    assert result is not None
-    sdm_id, target_sdm = result
-    assert sdm_id == "sdm-002"
 
 
 class TestLegacySqlStrategy:

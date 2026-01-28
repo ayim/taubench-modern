@@ -223,9 +223,6 @@ def _get_sql_generation_instructions(
 
     # Add database-specific guidance for each model
     for model, engine in models_and_engines:
-        if not isinstance(model, dict):
-            continue
-
         if engine == "snowflake":
             snowflake_guidance = _get_snowflake_variant_guidance(model)
             if snowflake_guidance:
@@ -261,7 +258,7 @@ def _get_postgres_json_guidance(model: SemanticDataModel) -> str:
     """
     json_columns = []
     jsonb_columns = []
-    tables = model.get("tables", [])
+    tables = model.tables or []
 
     # Scan for JSON/JSONB columns in the semantic data model
     if tables:
@@ -321,7 +318,7 @@ def _get_snowflake_variant_guidance(model: SemanticDataModel) -> str:
     variant_columns = []
     array_columns = []
     object_columns = []
-    tables = model.get("tables", [])
+    tables = model.tables or []
 
     # Scan for Snowflake-specific column types in the semantic data model
     if tables:
@@ -408,7 +405,7 @@ def _get_mysql_json_guidance(model: SemanticDataModel) -> str:
         A formatted guidance string if JSON columns are found, empty string otherwise
     """
     json_columns = []
-    tables = model.get("tables", [])
+    tables = model.tables or []
 
     # Scan for JSON columns in the semantic data model
     if tables:
@@ -562,16 +559,44 @@ If the tool indicates failure, you should inform the user of the failure, along 
 
         A sample of the newly created data frame is returned (specified by num_samples).
         """
+        from time import perf_counter
+
         assert self._data_frame_tools._create_data_frame_from_sql_impl is not None, (
             "create_df_from_sql_impl is required for SQL operations"
         )
-        return await self._data_frame_tools._create_data_frame_from_sql_impl(
+
+        # Start timing for query execution metrics
+        start_time = perf_counter()
+
+        # Get kernel for metrics (may be None if thread_state not initialized or doesn't have kernel)
+        kernel = self._data_frame_tools._thread_state.kernel if self._data_frame_tools._thread_state else None
+
+        result = await self._data_frame_tools._create_data_frame_from_sql_impl(
             sql_query=sql_query,
             new_data_frame_name=new_data_frame_name,
             new_data_frame_description=new_data_frame_description,
             num_samples=num_samples,
             semantic_data_model_name=semantic_data_model_name,
         )
+
+        # Record query execution metrics
+        if kernel is not None:
+            duration = perf_counter() - start_time
+            kernel.ctx.increment_counter("sdm.queries.executed.total")
+            # For metrics related to duration, only record agent + run ID.
+            # Thread ID does not make sense for duration metrics.
+            kernel.ctx.record_metric(
+                "sdm.query.execution.duration_seconds",
+                duration,
+                labels={
+                    "agent_id": kernel.agent.agent_id,
+                    "run_id": kernel.run.run_id,
+                    "semantic_data_model": semantic_data_model_name or "unknown",
+                    "status": result.get("status", "unknown"),
+                },
+            )
+
+        return result
 
     async def generate_sql(
         self,
@@ -587,6 +612,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
         If the status indicates needs_info, you should use the included information
         in the response to determine how to generate a more specific intent.
         """
+        from time import perf_counter
         from uuid import uuid4
 
         from agent_platform.core.payloads import InitiateStreamPayload
@@ -604,6 +630,17 @@ If the tool indicates failure, you should inform the user of the failure, along 
         kernel = self._data_frame_tools._thread_state.kernel
         storage = StorageService.get_instance()
         file_manager = FileManagerService.get_instance(storage=storage)
+
+        # Start timing for nl2sql cycle metrics
+        start_time = perf_counter()
+        kernel.ctx.increment_counter(
+            "sdm.nl2sql.cycles.total",
+            labels={
+                "agent_id": kernel.agent.agent_id,
+                "run_id": kernel.run.run_id,
+                "thread_id": kernel.thread.thread_id,
+            },
+        )
 
         # Find the SDM ID that matches the requested name
         sdm_result = await _find_sdm_by_name(storage, kernel.agent.agent_id, semantic_data_model_name)
@@ -627,6 +664,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
         )
 
         thread_id = str(uuid4())
+        status = "failure"  # Default to failure, update to success if completed
         try:
             # Create thread for the SQL generation agent
             sql_thread = Thread(
@@ -696,7 +734,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
             )
 
             # Extract result and create response with delegated thread metadata
-            return await _create_internal_tool_response_from_sql_thread(
+            result = await _create_internal_tool_response_from_sql_thread(
                 thread=thread,
                 storage=storage,
                 user_id=kernel.user.user_id,
@@ -707,6 +745,9 @@ If the tool indicates failure, you should inform the user of the failure, along 
                 ),
                 file_manager=file_manager,
             )
+
+            status = "success"
+            return result
 
         except Exception as e:
             logger.error(
@@ -719,6 +760,22 @@ If the tool indicates failure, you should inform the user of the failure, along 
                 exc_info=True,
             )
             raise e
+
+        finally:
+            # Record metrics consistently for both success and failure paths
+            duration = perf_counter() - start_time
+            # For metrics related to duration, only record agent + run ID.
+            # Thread ID does not make sense for duration metrics.
+            kernel.ctx.record_metric(
+                "sdm.nl2sql.generation.duration_seconds",
+                duration,
+                labels={
+                    "agent_id": kernel.agent.agent_id,
+                    "semantic_data_model": semantic_data_model_name,
+                    "status": status,
+                    "run_id": kernel.run.run_id,
+                },
+            )
 
 
 async def _create_internal_tool_response_from_sql_thread(
@@ -796,16 +853,16 @@ async def _find_sdm_by_name(
     Returns:
         A tuple of (SDM ID, SemanticDataModel) if found, or None otherwise.
     """
-    import typing
 
     # Get parent agent's SDMs
     agent_sdm_ids = await storage.get_agent_semantic_data_model_ids(agent_id)
 
     # Find the SDM ID that matches the requested name
     for sdm_id in agent_sdm_ids:
-        sdm = await storage.get_semantic_data_model(sdm_id)
-        if sdm.get("name") == semantic_data_model_name:
-            return sdm_id, typing.cast(SemanticDataModel, sdm)
+        sdm_data = await storage.get_semantic_data_model(sdm_id)
+        sdm = SemanticDataModel.model_validate(sdm_data)
+        if sdm.name == semantic_data_model_name:
+            return sdm_id, sdm
 
     return None
 

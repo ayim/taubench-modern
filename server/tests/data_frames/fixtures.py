@@ -1,4 +1,5 @@
 import typing
+from typing import Any
 
 from structlog import get_logger
 
@@ -11,10 +12,10 @@ logger = get_logger(__name__)
 
 
 class UserStub:
-    def __init__(self):
+    def __init__(self, user_id: str | None = None):
         from uuid import uuid4
 
-        self.user_id = str(uuid4())
+        self.user_id = user_id if user_id is not None else str(uuid4())
 
 
 class ThreadStub:
@@ -148,9 +149,41 @@ class StorageStub:
 
 
 class KernelStub:
-    def __init__(self, thread: ThreadStub, user: UserStub):
+    """Kernel stub for testing with proper metrics and thread_state support.
+
+    Provides a minimal kernel implementation that:
+    - Has a ctx property for metrics recording (no-op)
+    - Has an agent with agent_id for metric labels
+    - Has a run with run_id for metric labels
+    - Has a thread_state that exposes the kernel (UsesKernelMixin pattern)
+    """
+
+    def __init__(self, thread: ThreadStub | Any, user: UserStub | Any):
         self.thread = thread
         self.user = user
-        self.thread_state = None  # Add thread_state for new tools
         # Provide minimal agent attribute expected by interface
-        self.agent = type("_Agent", (), {"extra": {}})()
+        self.agent = type("_Agent", (), {"extra": {}, "agent_id": "test-agent-id"})()
+        # Provide minimal run attribute expected for metrics
+        self.run = type("_Run", (), {"run_id": "test-run-id"})()
+
+        # Add ctx for metrics (no-op implementations)
+        class _Ctx:
+            def increment_counter(self, *args, **kwargs):
+                pass
+
+            def record_metric(self, *args, **kwargs):
+                pass
+
+        self.ctx = _Ctx()
+
+        # Create thread_state that properly exposes kernel (follows UsesKernelMixin pattern)
+        class _ThreadState:
+            @property
+            def kernel(self):
+                return self._kernel
+
+            def attach_kernel(self, kernel):
+                self._kernel = kernel
+
+        self.thread_state = _ThreadState()
+        self.thread_state.attach_kernel(self)
