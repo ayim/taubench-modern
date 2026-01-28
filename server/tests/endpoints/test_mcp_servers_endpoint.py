@@ -724,5 +724,3 @@ def test_list_mcp_servers_with_partial_decryption_failure(client: TestClient, sa
         assert len(data) == 1
         assert "working-server-id" in data
         assert data["working-server-id"]["name"] == "working-server"
-
-
