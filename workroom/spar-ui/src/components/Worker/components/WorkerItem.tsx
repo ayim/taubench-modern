@@ -117,16 +117,21 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
     try {
       const messagesResult = await fetchThreadMessages();
 
-      if (messagesResult.error || !Array.isArray(messagesResult.data)) {
-        throw new Error('Failed to download');
+      if (messagesResult.error) {
+        throw messagesResult.error;
+      }
+
+      if (!Array.isArray(messagesResult.data)) {
+        throw new Error('Invalid thread messages format');
       }
 
       const markdownContent = getWorkItemMarkdown(workItem, messagesResult.data);
       const fileName = sanitizeFileName(displayName || workItem.work_item_id);
       downloadMarkdown(`${fileName}.md`, markdownContent);
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to download work item transcript';
       addSnackbar({
-        message: 'Failed to download work item transcript',
+        message,
         variant: 'danger',
       });
     }

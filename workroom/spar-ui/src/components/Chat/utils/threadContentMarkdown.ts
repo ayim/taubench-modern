@@ -9,6 +9,7 @@ import { formatThoughtTitle } from '../components/renderer/Thinking';
 import { safeParseJson } from '../../../lib/utils';
 
 type ThreadMessageContent = ThreadMessage['content'][number];
+type WorkItem = components['schemas']['WorkItem'];
 
 const EMOJI_MAP: {
   role: Record<ThreadMessage['role'], string>;
@@ -178,8 +179,6 @@ export const getThreadMakrdown = (threadId: string, messages: ThreadMessage[]): 
 
   return `# Conversation\n\n_ID: ${threadId}_\n${markdownBody}`;
 };
-
-type WorkItem = components['schemas']['WorkItem'];
 
 export const getWorkItemMarkdown = (workItem: WorkItem, messages: ThreadMessage[]): string => {
   const markdownBody = messages
