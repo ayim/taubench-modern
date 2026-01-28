@@ -87,7 +87,7 @@ export const getTenantWorkoomRedirect = ({
   };
 };
 
-export const getAlowedModelFromPlatform = (platform: ListPlatformsResponse[number]) => {
+export const getAllowedModelFromPlatform = (platform: ListPlatformsResponse[number]) => {
   // The allow list in platform.models is a map from <provider>: [<model1>, <model2>, ...]
   // We set this up with the flexibility to allow _more than a single model_ across _many providers_
   // in a platform (say use either OpenAI's gpt-5 or Anthropic's claude-4-5 on the Cortex platform)

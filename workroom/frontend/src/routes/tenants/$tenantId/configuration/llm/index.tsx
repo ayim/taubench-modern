@@ -5,7 +5,7 @@ import { Dialog, Button, useSnackbar } from '@sema4ai/components';
 import { usePlatformsQuery } from '@sema4ai/spar-ui/queries';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
 import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
-import { getAlowedModelFromPlatform } from '~/lib/utils';
+import { getAllowedModelFromPlatform } from '~/lib/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   component: RouteComponent,
@@ -53,7 +53,7 @@ function RouteComponent() {
         id: p.platform_id as string,
         name: p.name,
         platform: p.kind,
-        model: getAlowedModelFromPlatform(p),
+        model: getAllowedModelFromPlatform(p),
         createdAt: p.created_at || '',
       }));
   }, [data, queryClient, tenantId]);

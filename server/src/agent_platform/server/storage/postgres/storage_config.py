@@ -19,8 +19,8 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
             configs = []
             for row in rows:
                 row_dict = dict(row)
-                if isinstance(row_dict["config_value"], dict):
-                    row_dict["config_value"] = json.dumps(row_dict["config_value"])
+                # Postgres JSONB auto-parses JSON, but Config.model_validate expects a JSON string
+                row_dict["config_value"] = json.dumps(row_dict["config_value"])
                 configs.append(Config.model_validate(row_dict))
             return configs
 
@@ -32,7 +32,7 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 """SELECT
                 *
                 FROM v2.agent_config
-                WHERE config_type = %(config_type) AND namespace = %(namespace)s""",
+                WHERE config_type = %(config_type)s AND namespace = %(namespace)s""",
                 {"config_type": config_type, "namespace": namespace},
             )
 
@@ -40,8 +40,8 @@ class PostgresStorageConfigMixin(CursorMixin, CommonMixin):
                 raise ConfigNotFoundError(config_type)
 
             row_dict = dict(row)
-            if isinstance(row_dict["config_value"], dict):
-                row_dict["config_value"] = json.dumps(row_dict["config_value"])
+            # Postgres JSONB auto-parses JSON, but Config.model_validate expects a JSON string
+            row_dict["config_value"] = json.dumps(row_dict["config_value"])
             return Config.model_validate(row_dict)
 
     async def set_config(self, config_type: ConfigType, current_value: JSONValue, *, namespace: str = "global"):
