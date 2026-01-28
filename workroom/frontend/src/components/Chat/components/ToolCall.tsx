@@ -162,7 +162,7 @@ const isActionServerToolCall = (content: ThreadToolUsageContent) => {
 };
 
 export const ToolCall: FC<Props> = ({ content }) => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const { enabled: showActionLogs } = useFeatureFlag(FeatureFlag.showActionLogs);
   const { addSnackbar } = useSnackbar();
   const { mutateAsync, isPending } = useShowActionLogsMutation({});

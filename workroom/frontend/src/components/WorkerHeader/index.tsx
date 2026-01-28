@@ -61,7 +61,7 @@ const WorkItemsToggle = () => {
 
 export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
   const navigate = useNavigate();
-  const { agentId, tenantId } = useParams({ strict: false });
+  const { agentId = '', tenantId = '' } = useParams({ strict: false });
 
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
 

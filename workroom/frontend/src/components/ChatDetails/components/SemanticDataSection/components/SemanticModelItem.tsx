@@ -49,7 +49,7 @@ const Item = styled(Box)`
 `;
 
 export const SemanticModelItem: FC<Props> = ({ model }) => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});

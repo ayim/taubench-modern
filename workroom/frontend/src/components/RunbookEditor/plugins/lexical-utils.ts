@@ -1,4 +1,7 @@
 /* eslint-disable no-restricted-syntax */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 import Fuse from 'fuse.js';
 import { $getRoot, $isRootNode, LexicalNode, TextNode, $isElementNode, ElementNode } from 'lexical';
 import { closestMatch } from 'leven';

@@ -11,7 +11,7 @@ import { authorizeOAuthProvider } from '~/utils/oAuth';
 import { DetailsDialog } from './components/DetailsDialog';
 
 export const OAuth: FC = () => {
-  const { agentId } = useParams({ strict: false });
+  const { agentId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId' });
   const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
 
   const [detailsProvider, setDetailsProvider] = useState<{ provider: OAuthProvider; scopes: string[] } | undefined>(

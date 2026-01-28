@@ -21,7 +21,7 @@ const sidebarInitializer = (setSidebarWidth: (width: number) => void): void => {
 };
 
 const DataFrameCallback: FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const { agentId, threadId, workItemId, tenantId } = useParams({ strict: false });
+  const { agentId = '', threadId = '', workItemId = '', tenantId = '' } = useParams({ strict: false });
 
   const { refetch } = useDataFramesQuery({ threadId }, { enabled: false });
   const navigate = useNavigate();

@@ -26,7 +26,7 @@ const getOAuthProviderIcon = (provider: OAuthProvider): React.ReactNode | null =
 };
 
 export const OAuthProviderSection = ({ agentOAuthState }: { agentOAuthState: AgentOAuthProviderState[] }) => {
-  const { agentId } = useParams({ strict: false });
+  const { agentId = '' } = useParams({ strict: false });
   const { addSnackbar } = useSnackbar();
 
   const { mutate: deleteAgentOAuth } = useDeleteAgentOAuthMutation({ agentId });

@@ -45,7 +45,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
 };
 
 export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payload: { data: choices }, messageId }) => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
 
   /**
    * Use only cached messages without fetching

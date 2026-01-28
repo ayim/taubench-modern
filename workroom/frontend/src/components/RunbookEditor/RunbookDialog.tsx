@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Box, Button, Dialog, Typography } from '@sema4ai/components';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
+import { InitialConfigType, LexicalComposer } from '@lexical/react/LexicalComposer';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
@@ -148,7 +148,7 @@ const DialogContent: FC<Props> = ({ onClose, value }) => {
 
 export const RunbookDialog: FC<Props> = ({ onClose, value }) => {
   return (
-    <LexicalComposer initialConfig={editorConfig}>
+    <LexicalComposer initialConfig={editorConfig as InitialConfigType}>
       <DialogContent onClose={onClose} value={value} />
     </LexicalComposer>
   );

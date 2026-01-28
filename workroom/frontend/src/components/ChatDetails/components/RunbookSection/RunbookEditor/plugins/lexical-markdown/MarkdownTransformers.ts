@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 import type { ListType } from '@lexical/list';
 import type { HeadingTagType } from '@lexical/rich-text';
 

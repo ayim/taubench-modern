@@ -40,7 +40,7 @@ const WorkItemSearchButton = styled(Button)<{ $expanded: boolean }>`
 `;
 
 export const WorkerList: FC = () => {
-  const { agentId } = useParams({ strict: false });
+  const { agentId = '' } = useParams({ strict: false });
   const [workItemFilterText, setWorkItemFilterText] = useState('');
   const debouncedFilterText = useDebounce(workItemFilterText, 250);
 

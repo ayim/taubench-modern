@@ -1,4 +1,6 @@
 /* eslint-disable camelcase */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import { JSX, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

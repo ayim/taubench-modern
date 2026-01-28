@@ -39,7 +39,7 @@ const SearchInput = styled(Input)`
 `;
 
 export const ThreadSearch = () => {
-  const { threadId } = useParams({ strict: false });
+  const { threadId = '' } = useParams({ strict: false });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data: messages } = useThreadMessagesQuery({ threadId });

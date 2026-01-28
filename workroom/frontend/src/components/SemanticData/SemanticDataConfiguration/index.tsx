@@ -41,7 +41,7 @@ type Props = {
 
 export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId, initialStep }) => {
   const [modelId, setModelId] = useState<string | undefined>(initialModelId);
-  const { agentId } = useParams({ strict: false });
+  const { agentId = '' } = useParams({ strict: false });
   const confirmCloseAction = useConfirmAction(
     {
       title: 'Are you sure?',

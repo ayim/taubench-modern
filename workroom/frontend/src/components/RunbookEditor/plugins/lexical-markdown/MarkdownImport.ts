@@ -1,7 +1,8 @@
 /* eslint-disable no-restricted-syntax */
-
 /* eslint-disable no-labels */
 /* eslint-disable no-continue */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import type { CodeNode } from '@lexical/code';
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';

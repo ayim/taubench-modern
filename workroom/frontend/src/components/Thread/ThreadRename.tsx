@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const ThreadRename: FC<Props> = ({ onClose }) => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const { data: threads } = useThreadsQuery({ agentId });
   const { mutate: updateThread } = useUpdateThreadMutation({ agentId });
   const { addSnackbar } = useSnackbar();

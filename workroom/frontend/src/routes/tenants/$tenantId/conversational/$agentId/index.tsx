@@ -4,7 +4,6 @@ import { streamManager } from '~/hooks/useMessageStream';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
-import { isValidRoute } from '~/lib/utils';
 import { agentQueryOptions } from '~/queries/agents';
 import { getThreadQueryOptions, listThreadsQueryOptions } from '~/queries/thread';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
@@ -49,11 +48,12 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
      */
     const searchParams = new URLSearchParams(location.search);
     const initialThreadMessage = searchParams.get('initial_thread_message')?.trim();
+    const threadView = searchParams.get('threadView')?.trim();
 
-    const targetRoute = `/tenants/$tenantId/conversational/$agentId/$threadId/${searchParams.get('threadView')?.trim() || ''}`;
-    const threadRoute = isValidRoute(targetRoute)
-      ? targetRoute
-      : '/tenants/$tenantId/conversational/$agentId/$threadId';
+    const threadRoute =
+      threadView && ['chat-details', 'data-frames', 'conversation-guides', 'evaluations', 'files'].includes(threadView)
+        ? `/tenants/$tenantId/conversational/$agentId/$threadId/${threadView}`
+        : '/tenants/$tenantId/conversational/$agentId/$threadId';
 
     const startWebsocketStream = async (aId: string) => {
       const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId: aId });

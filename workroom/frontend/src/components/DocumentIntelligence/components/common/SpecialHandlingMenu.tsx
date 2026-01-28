@@ -63,8 +63,8 @@ export const SpecialHandlingMenu: FC<SpecialHandlingMenuProps> = ({
 
   return (
     <Popover trigger={poptrigger} minWidth={450} placement="bottom-start">
-      <Box className="hover:!bg-transparent !cursor-default !p-0" onClick={(e) => e.stopPropagation()}>
-        <Box padding="$16" minWidth="400px" maxWidth="500px" onClick={(e) => e.stopPropagation()}>
+      <Box className="hover:!bg-transparent !cursor-default !p-0" onClick={(e: MouseEvent) => e.stopPropagation()}>
+        <Box padding="$16" minWidth="400px" maxWidth="500px" onClick={(e: MouseEvent) => e.stopPropagation()}>
           {/* Header */}
           <Box display="flex" alignItems="center" justifyContent="space-between" marginBottom="$16">
             <Typography id="special-handling-instructions" fontSize="$18" fontWeight="bold" color="content.primary">

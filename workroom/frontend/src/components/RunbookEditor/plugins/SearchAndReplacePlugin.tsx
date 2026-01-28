@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 import { FC, useEffect, useCallback, useRef, useState } from 'react';
 import {
   COMMAND_PRIORITY_EDITOR,

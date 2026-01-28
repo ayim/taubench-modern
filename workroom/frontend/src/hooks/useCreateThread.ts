@@ -8,7 +8,7 @@ import { NEW_CHAT_STARTING_MSG } from '../lib/constants';
 export const useCreateThread = () => {
   const navigate = useNavigate();
   const { addSnackbar } = useSnackbar();
-  const { agentId, tenantId } = useParams({ strict: false });
+  const { agentId = '', tenantId = '' } = useParams({ strict: false });
   const { data: threads } = useThreadsQuery({ agentId });
   const { data: agent } = useAgentQuery({ agentId });
   const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });

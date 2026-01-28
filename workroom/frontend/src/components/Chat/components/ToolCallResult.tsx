@@ -16,7 +16,7 @@ type Props = {
 };
 
 export const ToolCallResult: FC<Props> = ({ content, isDone }) => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const [isCreateVerifiedQueryDialogOpen, setIsCreateVerifiedQueryDialogOpen] = useState(false);
 
   const isError = content.status === 'failed';

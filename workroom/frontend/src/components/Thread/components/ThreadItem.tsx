@@ -64,7 +64,7 @@ const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, create
 };
 
 export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
-  const { agentId, threadId: activeThreadId, tenantId } = useParams({ strict: false });
+  const { agentId = '', threadId: activeThreadId = '', tenantId = '' } = useParams({ strict: false });
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread, isSuccess: isManualThreadRenameSuccess } = useUpdateThreadMutation({ agentId });
   const { refetch: fetchThreadMessages } = useThreadMessagesQuery({ threadId: activeThreadId }, { enabled: false });

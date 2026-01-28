@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { DragEvent, FC, useEffect, useState } from 'react';
 import z from 'zod';
 import { Dialog, Box, Typography, Form, Input, Button, Progress } from '@sema4ai/components';
 import { IconPlus, IconTrash, IconMenu } from '@sema4ai/icons';
@@ -77,17 +77,17 @@ export const UpsertSectionDialog: FC<UpsertSectionDialogProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
+  const handleDragStart = (e: DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+  const handleDrop = (e: DragEvent, targetIndex: number) => {
     e.preventDefault();
 
     if (draggedIndex === null || draggedIndex === targetIndex) {
@@ -184,9 +184,9 @@ export const UpsertSectionDialog: FC<UpsertSectionDialogProps> = ({
                   gap="$8"
                   padding="$8"
                   draggable
-                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragStart={(e: DragEvent) => handleDragStart(e, index)}
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
+                  onDrop={(e: DragEvent) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
                   style={{
                     opacity: draggedIndex === index ? 0.5 : 1,

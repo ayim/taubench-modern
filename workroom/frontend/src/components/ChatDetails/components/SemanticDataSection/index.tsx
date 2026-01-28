@@ -17,7 +17,7 @@ type Props = {
 
 export const SemanticDataSection = ({ titleBadge }: Props) => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const { data: semanticDataModelsWithoutValidation, isLoading } = useAgentSemanticDataQuery({ agentId });
   const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery({ agentId, threadId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(FeatureFlag.semanticDataModels);

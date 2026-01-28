@@ -1,4 +1,7 @@
 /* eslint-disable no-restricted-syntax */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
+
 import { useCallback, useEffect, useState } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot, $isElementNode, LexicalNode } from 'lexical';

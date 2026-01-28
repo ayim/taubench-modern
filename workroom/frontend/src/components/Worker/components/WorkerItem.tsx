@@ -78,10 +78,10 @@ const shouldPollForWorkItemUpdates = (workItem: WorkItem) => {
 
 export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => {
   const {
-    agentId,
+    agentId = '',
     threadId: threadIdFromParams,
     workItemId: workItemIdFromParams,
-    tenantId,
+    tenantId = '',
   } = useParams({ strict: false });
   const navigate = useNavigate();
 

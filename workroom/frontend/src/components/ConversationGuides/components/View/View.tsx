@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { DragEvent, FC, useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { Box, Button, Typography, Menu, Divider, Progress } from '@sema4ai/components';
 import {
@@ -28,7 +28,7 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [draggedSectionIndex, setDraggedSectionIndex] = useState<number | null>(null);
 
-  const { threadId } = useParams({ strict: false });
+  const { threadId = '' } = useParams({ strict: false });
 
   const allowEditing = editMode !== 'readOnly';
 
@@ -203,9 +203,9 @@ export const ConversationGuidesView: FC<ConversationGuidesViewProps> = ({ agentI
           {questionGroups.map((questionGroup, groupIndex) => (
             <Box
               draggable={isReorderMode}
-              onDragStart={isReorderMode ? (e) => handleSectionDragStart(e, groupIndex) : undefined}
+              onDragStart={isReorderMode ? (e: DragEvent) => handleSectionDragStart(e, groupIndex) : undefined}
               onDragOver={isReorderMode ? handleSectionDragOver : undefined}
-              onDrop={isReorderMode ? (e) => handleSectionDrop(e, groupIndex) : undefined}
+              onDrop={isReorderMode ? (e: DragEvent) => handleSectionDrop(e, groupIndex) : undefined}
               onDragEnd={isReorderMode ? handleSectionDragEnd : undefined}
               style={{
                 opacity: draggedSectionIndex === groupIndex ? 0.5 : 1,

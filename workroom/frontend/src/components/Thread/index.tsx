@@ -8,7 +8,7 @@ import { ThreadsList } from './components/ThreadsList/ThreadsList';
 import { Chat } from '../Chat';
 
 export const Thread: FC = () => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
 
   const { ...agentQueryState } = useAgentQuery({ agentId });
   const { data: thread } = useThreadQuery({ threadId });

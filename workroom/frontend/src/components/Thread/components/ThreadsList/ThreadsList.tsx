@@ -41,7 +41,7 @@ const ThreadSearchButton = styled(Button)<{ $expanded: boolean }>`
 `;
 
 export const ThreadsList: FC = () => {
-  const { agentId, threadId } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const { data: threads, isLoading, refetch: refetchThreads } = useThreadsQuery({ agentId });
 
   /**

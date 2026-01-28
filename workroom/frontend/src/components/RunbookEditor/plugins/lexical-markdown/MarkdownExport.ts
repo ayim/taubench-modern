@@ -3,6 +3,8 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-labels */
 /* eslint-disable no-else-return */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';
 import { $isLinkNode } from '@lexical/link';

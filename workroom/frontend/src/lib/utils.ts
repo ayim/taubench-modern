@@ -1,9 +1,7 @@
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { ListPlatformsResponse } from '~/queries/platforms';
 import { UserTenant } from '~/queries/tenants';
-import { FileRouteTypes } from '~/routeTree.gen';
 import { getBasePath } from '~/utils/base';
-import { router } from '~/components/providers/Router';
 
 export const snakeCaseToCamelCase = (str: string): string => {
   return str
@@ -171,16 +169,6 @@ export const downloadJSON = (
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-};
-
-/**
- * Check if a string is valid route path
- *
- * @example
- * isValidRoute('/tenants/$tenantId/conversational/$agentId') // true
- */
-export const isValidRoute = (route?: string): route is FileRouteTypes['to'] => {
-  return !!router.flatRoutes.find((curr) => curr.fullPath === route || curr.fullPath === `${route}/`);
 };
 
 export const getPublicApiEndpointUrl = ({ origin, tenantId }: { origin: string; tenantId: string }): string =>

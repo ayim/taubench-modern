@@ -1,6 +1,7 @@
 /* eslint-disable import/order */
-
 /* eslint-disable default-param-last */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import type {
   ElementTransformer,

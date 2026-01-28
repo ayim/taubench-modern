@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { FC, useMemo } from 'react';
 import { Avatar, Box, Button, EmptyState, List, Typography } from '@sema4ai/components';
 import { Link, ErrorComponentProps } from '@tanstack/react-router';
@@ -6,8 +7,9 @@ import { TRPCClientError } from '@trpc/client';
 import errorIllustration from '~/assets/error.svg';
 import { RequestError } from '~/lib/Error';
 import { useTenantId } from '~/hooks/tenant';
+import { InferrableClientTypes } from '@trpc/server/unstable-core-do-not-import';
 
-type ExpectedError = RequestError | TRPCClientError<unknown> | Error;
+type ExpectedError = RequestError | TRPCClientError<InferrableClientTypes> | Error;
 
 type ParsedExpectedError = {
   httpStatus: number | null;

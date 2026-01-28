@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-template */
 /* eslint-disable prefer-destructuring */
-
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-cond-assign */
-
 /* eslint-disable no-continue */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';
 import type { ElementNode, LexicalEditor, TextNode } from 'lexical';

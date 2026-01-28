@@ -78,7 +78,7 @@ const ThreadsToggle = () => {
 
 export const ThreadHeader: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const { agentId, threadId, tenantId } = useParams({ strict: false });
+  const { agentId = '', threadId = '', tenantId = '' } = useParams({ strict: false });
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
   const { onNewThread, isCreatingThread } = useCreateThread();
   const { enabled: isChatInteractive } = useFeatureFlag(FeatureFlag.agentChatInput);

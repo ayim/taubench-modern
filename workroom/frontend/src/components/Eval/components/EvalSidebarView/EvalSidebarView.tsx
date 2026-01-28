@@ -11,7 +11,7 @@ export interface EvalSidebarViewProps {
 }
 
 export const EvalSidebarView: FC<EvalSidebarViewProps> = ({ agentId }) => {
-  const { threadId } = useParams({ strict: false });
+  const { threadId = '' } = useParams({ strict: false });
   const { data: messages = [] } = useThreadMessagesQuery({ threadId });
 
   const sidebar = useEvalSidebar({

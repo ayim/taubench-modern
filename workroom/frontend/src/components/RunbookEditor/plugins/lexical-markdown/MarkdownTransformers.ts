@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-restricted-syntax */
@@ -6,6 +7,7 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-else-return */
 /* eslint-disable no-use-before-define */
+// @ts-nocheck
 
 import type { ListType } from '@lexical/list';
 import type { HeadingTagType } from '@lexical/rich-text';

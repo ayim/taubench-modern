@@ -16,7 +16,7 @@ const SubView = styled.section`
 `;
 
 export const Worker: FC = () => {
-  const { agentId, workItemId, threadId } = useParams({ strict: false });
+  const { agentId = '', workItemId = '', threadId = '' } = useParams({ strict: false });
 
   const { ...agentQueryState } = useAgentQuery({ agentId });
 
