@@ -41,16 +41,11 @@ export const headerTypeSelectItems = [
   { value: 'secret', label: 'Secret' },
 ] as const;
 
-export const mcpUrlSchema = z
-  .string()
-  .optional()
-  .transform((val) => (val?.trim() ? val.trim() : undefined));
-
 const baseMcpServerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: mcpServerTypeSchema.default('generic_mcp'),
   transport: mcpTransportSchema.default('auto'),
-  url: mcpUrlSchema,
+  url: z.string().trim().min(1, 'URL is required'),
   headersKV: z.array(headerEntrySchema).default([]),
   authentication_type: mcpAuthenticationTypeSchema.default('none'),
   client_credentials: mcpClientCredentialsPartialSchema.optional(),
