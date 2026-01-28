@@ -140,7 +140,7 @@ describe('buildCreateMcpServerPayload', () => {
   });
 
   it('builds payload for sema4ai action server', () => {
-    const input: NewMcpServerFormValues = { ...baseInput, type: 'sema4ai_action_server' };
+    const input: NewMcpServerFormValues = { ...baseInput, type: 'generic_mcp' };
     const result = buildCreateMcpServerPayload(input);
     expect(result.type).toBe('sema4ai_action_server');
   });
@@ -197,7 +197,7 @@ describe('buildUpdateMcpServerPayload', () => {
   const baseOriginal = { force_serial_tool_calls: false, env: {} };
 
   it('builds payload for URL-based server', () => {
-    const result = buildUpdateMcpServerPayload(baseInput, baseOriginal, { isHostedWithMetadata: false });
+    const result = buildUpdateMcpServerPayload(baseInput, baseOriginal);
     expect(result).toEqual({
       name: 'Test Server',
       type: 'generic_mcp',
@@ -211,36 +211,6 @@ describe('buildUpdateMcpServerPayload', () => {
       cwd: null,
       env: {},
     });
-  });
-
-  it('builds payload for stdio transport', () => {
-    const input: EditMcpServerFormValues = {
-      ...baseInput,
-      transport: 'stdio',
-      command: '/usr/local/bin/mcp-server',
-      argsText: '--flag value',
-      cwd: '/home/user',
-    };
-    const original = { force_serial_tool_calls: true, env: { PATH: '/usr/bin' } };
-    const result = buildUpdateMcpServerPayload(input, original, { isHostedWithMetadata: false });
-
-    expect(result.url).toBeNull();
-    expect(result.command).toBe('/usr/local/bin/mcp-server');
-    expect(result.args).toEqual(['--flag', 'value']);
-    expect(result.cwd).toBe('/home/user');
-    expect(result.env).toEqual({ PATH: '/usr/bin' });
-    expect(result.force_serial_tool_calls).toBe(true);
-  });
-
-  it('splits argsText by whitespace', () => {
-    const input: EditMcpServerFormValues = {
-      ...baseInput,
-      transport: 'stdio',
-      command: 'cmd',
-      argsText: '  --flag   value  --other  ',
-    };
-    const result = buildUpdateMcpServerPayload(input, baseOriginal, { isHostedWithMetadata: false });
-    expect(result.args).toEqual(['--flag', 'value', '--other']);
   });
 });
 
@@ -258,7 +228,7 @@ describe('buildValidationPayload', () => {
   const baseOriginal = { force_serial_tool_calls: false, env: {} };
 
   it('builds validation payload with undefined values instead of null', () => {
-    const result = buildValidationPayload(baseInput, baseOriginal, { isHostedWithMetadata: false });
+    const result = buildValidationPayload(baseInput, baseOriginal);
     expect(result).toEqual({
       name: 'Test Server',
       type: 'generic_mcp',
@@ -272,24 +242,6 @@ describe('buildValidationPayload', () => {
       cwd: undefined,
       env: {},
     });
-  });
-
-  it('builds validation payload for stdio transport', () => {
-    const input: EditMcpServerFormValues = {
-      ...baseInput,
-      transport: 'stdio',
-      command: '/usr/local/bin/mcp-server',
-      argsText: '--flag value',
-      cwd: '/home/user',
-    };
-    const original = { force_serial_tool_calls: false, env: { PATH: '/usr/bin' } };
-    const result = buildValidationPayload(input, original, { isHostedWithMetadata: false });
-
-    expect(result.url).toBeUndefined();
-    expect(result.command).toBe('/usr/local/bin/mcp-server');
-    expect(result.args).toEqual(['--flag', 'value']);
-    expect(result.cwd).toBe('/home/user');
-    expect(result.env).toEqual({ PATH: '/usr/bin' });
   });
 });
 
@@ -432,24 +384,6 @@ describe('editMcpServerFormSchema', () => {
     };
     const result = editMcpServerFormSchema.safeParse(input);
     expect(result.success).toBe(true);
-  });
-
-  it('allows stdio fields', () => {
-    const input = {
-      name: 'Test Server',
-      type: 'generic_mcp',
-      transport: 'stdio',
-      command: '/usr/local/bin/mcp-server',
-      argsText: '--flag value',
-      cwd: '/home/user',
-    };
-    const result = editMcpServerFormSchema.safeParse(input);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.command).toBe('/usr/local/bin/mcp-server');
-      expect(result.data.argsText).toBe('--flag value');
-      expect(result.data.cwd).toBe('/home/user');
-    }
   });
 
   it('validates OAuth2 client credentials when selected', () => {

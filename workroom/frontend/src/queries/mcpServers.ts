@@ -1,16 +1,7 @@
-import { useMutation } from '@tanstack/react-query';
 import type { ServerRequest, ServerResponse } from '@sema4ai/agent-server-interface';
-
-import { useSparUIContext } from '../api/context';
 import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
-import { AgentPackageInspectionResponse } from './agentPackageInspection';
 
-export type ListMcpServersResponse = ServerResponse<'get', '/api/v2/mcp-servers/'>;
-type McpServerCreateInput = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
-export type McpServerCreateResponse = ServerResponse<'post', '/api/v2/mcp-servers/'>;
-
-const mcpServersQueryKey = () => ['mcp-servers'];
-
+export const mcpServersQueryKey = () => ['mcp-servers'];
 export const mcpServerQueryKey = (mcpServerId: string) => ['mcp-server', mcpServerId];
 
 export const mcpServersQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
@@ -54,6 +45,8 @@ export const getMCPServerQueryOptions = createSparQueryOptions<{ mcpServerId: st
 );
 
 export const useMcpServerQuery = createSparQuery(getMCPServerQueryOptions);
+
+type McpServerCreateInput = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
 
 export const useCreateMcpServerMutation = createSparMutation<object, { body: McpServerCreateInput }>()(
   ({ agentAPIClient, queryClient }) => ({
@@ -136,50 +129,8 @@ export const useDeleteMcpServerMutation = createSparMutation<object, { mcpServer
   }),
 );
 
-/**
- * Create Hosted MCP Server mutation (with file upload)
- *
- * This mutation uploads an agent package ZIP file and creates a hosted MCP server.
- * Only available in Workroom (not Studio).
- */
-
-export const useCreateHostedMcpServerMutation = createSparMutation<
-  object,
-  {
-    name: string;
-    file: File;
-    headers?: McpServerCreateInput['headers'];
-    mcpServerMetadata: AgentPackageInspectionResponse;
-  }
->()(({ agentAPIClient, queryClient }) => ({
-  mutationFn: async ({ name, file, headers, mcpServerMetadata }) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('name', name);
-    if (headers) {
-      formData.append('headers', JSON.stringify(headers));
-    }
-    if (mcpServerMetadata) {
-      formData.append('mcp_server_metadata', JSON.stringify(mcpServerMetadata));
-    }
-
-    const response = await agentAPIClient.agentFetch('post', '/api/v2/mcp-servers/mcp-servers-hosted', {
-      body: formData as never,
-    });
-
-    if (!response.success) {
-      throw new QueryError(response.message || 'Failed to create hosted MCP server', {
-        code: response.code,
-        resource: ResourceType.McpServer,
-      });
-    }
-
-    return response.data;
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: mcpServersQueryKey() });
-  },
-}));
+export type McpServerCreateResponse = ServerResponse<'post', '/api/v2/mcp-servers/'>;
+export type { McpServerCreateInput };
 
 export const useValidateMcpServerCapabilitiesMutation = createSparMutation<
   object,
@@ -206,80 +157,3 @@ export const useValidateMcpServerCapabilitiesMutation = createSparMutation<
     return response.data;
   },
 }));
-
-type HostedMcpUploadResult = {
-  file: File;
-  data: NonNullable<AgentPackageInspectionResponse>;
-};
-
-export type UseHostedMcpUploadResult = {
-  file: File | null;
-  inspectionData: NonNullable<AgentPackageInspectionResponse> | null;
-  isPending: boolean;
-  error: QueryError | null;
-  handleDrop: (files: File[]) => Promise<HostedMcpUploadResult | null>;
-  reset: () => void;
-};
-
-export const useHostedMcpUpload = (): UseHostedMcpUploadResult => {
-  const { agentAPIClient } = useSparUIContext();
-
-  const mutation = useMutation<HostedMcpUploadResult, QueryError, File>({
-    mutationFn: async (droppedFile: File) => {
-      const isZip = droppedFile.name.toLowerCase().endsWith('.zip');
-      if (!isZip) {
-        throw new QueryError('File type is not valid. Only ZIP files are allowed.');
-      }
-
-      const formData = new FormData();
-      formData.append('package_zip_file', droppedFile, droppedFile.name);
-      formData.append('name', droppedFile.name.replace(/\.zip$/i, ''));
-      formData.append('description', 'Agent package uploaded from UI');
-
-      const response = await agentAPIClient.agentFetch('post', '/api/v2/package/inspect/agent', {
-        params: {},
-        body: formData as never,
-      });
-
-      if (!response.success) {
-        throw new QueryError(response.message || 'Failed to inspect agent package', {
-          code: response.code,
-          resource: ResourceType.Agent,
-        });
-      }
-
-      const result = response.data;
-      if (result?.status === 'failure' || !result?.data) {
-        throw new QueryError('Failed to inspect agent package: no data returned', {
-          resource: ResourceType.Agent,
-        });
-      }
-
-      return { file: droppedFile, data: result.data };
-    },
-  });
-
-  const handleDrop = async (files: File[]): Promise<HostedMcpUploadResult | null> => {
-    if (files.length > 1) {
-      const error = new QueryError('Only one file can be uploaded at a time. Please select a single ZIP file.');
-      mutation.reset();
-      return Promise.reject(error);
-    }
-
-    const droppedFile = files[0];
-    if (!droppedFile) {
-      return null;
-    }
-
-    return mutation.mutateAsync(droppedFile);
-  };
-
-  return {
-    file: mutation.data?.file ?? null,
-    inspectionData: mutation.data?.data ?? null,
-    isPending: mutation.isPending,
-    error: mutation.error,
-    handleDrop,
-    reset: mutation.reset,
-  };
-};

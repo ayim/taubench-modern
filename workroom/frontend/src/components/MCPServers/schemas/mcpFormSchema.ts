@@ -7,34 +7,26 @@ import {
   refineClientCredentials,
 } from './mcpAuthSchema';
 
-export type McpServerType = 'generic_mcp' | 'sema4ai_action_server' | 'hosted';
-type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
+export type McpServerType = 'generic_mcp';
 
 /**
  * Transport types for MCP servers
  */
-export const mcpTransportSchema = z.enum(['auto', 'streamable-http', 'sse', 'stdio']);
+export const mcpTransportSchema = z.enum(['auto', 'streamable-http', 'sse']);
 export type MCPTransport = z.infer<typeof mcpTransportSchema>;
 
 export const SERVER_TYPE_LABELS: Record<McpServerType, string> = {
   generic_mcp: 'Generic MCP',
-  sema4ai_action_server: 'Sema4 Action Server',
-  hosted: 'Hosted Action Server',
 };
 
-export const TRANSPORT_OPTIONS_BASE = [
+export const TRANSPORT_OPTIONS = [
   { value: 'auto', label: 'Auto (Default)' },
   { value: 'streamable-http', label: 'Streamable HTTP' },
   { value: 'sse', label: 'Server-Sent Events (SSE)' },
 ] as const;
 
-export const TRANSPORT_OPTIONS_WITH_STDIO = [
-  ...TRANSPORT_OPTIONS_BASE,
-  { value: 'stdio', label: 'Standard I/O (STDIO)' },
-] as const;
-
-export const mcpServerTypeWithHostedSchema = z.enum(['generic_mcp', 'sema4ai_action_server', 'hosted']);
-export type MCPServerTypeWithHosted = z.infer<typeof mcpServerTypeWithHostedSchema>;
+export const mcpServerTypeSchema = z.enum(['generic_mcp']);
+export type MCPServerTypeSchema = z.infer<typeof mcpServerTypeSchema>;
 
 export const headerEntrySchema = z.object({
   key: z.string().min(1, 'Key is required'),
@@ -49,58 +41,28 @@ export const headerTypeSelectItems = [
   { value: 'secret', label: 'Secret' },
 ] as const;
 
-export const mcpUrlSchema = z
-  .string()
-  .optional()
-  .transform((val) => (val?.trim() ? val.trim() : undefined));
+export const mcpUrlSchema = z.string().min(1, 'URL is required');
 
 const baseMcpServerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  type: mcpServerTypeWithHostedSchema.default('generic_mcp'),
+  type: mcpServerTypeSchema.default('generic_mcp'),
   transport: mcpTransportSchema.default('auto'),
   url: mcpUrlSchema,
   headersKV: z.array(headerEntrySchema).default([]),
-  agentPackageSecrets: z.record(z.string(), z.string()).optional(),
   authentication_type: mcpAuthenticationTypeSchema.default('none'),
   client_credentials: mcpClientCredentialsPartialSchema.optional(),
 });
 
-export const newMcpServerFormSchema = baseMcpServerFormSchema
-  .extend({
-    agentPackageFile: z.instanceof(File).optional(),
-  })
-  .superRefine((values, ctx) => {
-    if (values.type === 'hosted') {
-      if (!values.agentPackageFile && !values.url) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['url'],
-          message: 'Action Server URL is required when no agent package is uploaded',
-        });
-      }
-    } else if (values.transport !== 'stdio' && !values.url) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['url'],
-        message: 'URL is required for this transport',
-      });
-    }
-
-    refineClientCredentials(values, ctx);
-  });
+export const newMcpServerFormSchema = baseMcpServerFormSchema.superRefine((values, ctx) => {
+  refineClientCredentials(values, ctx);
+});
 
 export type NewMcpServerFormInput = z.input<typeof newMcpServerFormSchema>;
 export type NewMcpServerFormValues = z.output<typeof newMcpServerFormSchema>;
 
-export const editMcpServerFormSchema = baseMcpServerFormSchema
-  .extend({
-    command: z.string().optional(),
-    argsText: z.string().optional(),
-    cwd: z.string().optional(),
-  })
-  .superRefine((values, ctx) => {
-    refineClientCredentials(values, ctx);
-  });
+export const editMcpServerFormSchema = baseMcpServerFormSchema.superRefine((values, ctx) => {
+  refineClientCredentials(values, ctx);
+});
 
 export type EditMcpServerFormInput = z.input<typeof editMcpServerFormSchema>;
 export type EditMcpServerFormValues = z.output<typeof editMcpServerFormSchema>;
@@ -236,42 +198,22 @@ const buildOAuthConfigForUpdate = (input: McpServerFormValues): OAuthConfigUpdat
   }
 };
 
-const getAgentPackageSecretEntries = (agentPackageSecrets: Record<string, string> | undefined): HeaderEntry[] => {
-  return (
-    Object.entries(agentPackageSecrets ?? {})
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      .filter(([_, value]) => value && value.trim() !== '')
-      .map(([key, value]) => ({ key, value, type: 'secret' as const }))
-  );
-};
-
 type CreateMcpServerBody = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
 
 export const buildCreateMcpServerPayload = (input: NewMcpServerFormValues): CreateMcpServerBody => {
-  let headerEntries = input.headersKV;
-
-  if (input.type === 'hosted' && input.agentPackageSecrets) {
-    const secretEntries = getAgentPackageSecretEntries(input.agentPackageSecrets);
-    headerEntries = [...headerEntries, ...secretEntries];
-  }
-
-  const headers = formHeadersToApiHeaders(headerEntries);
-  const transport = input.type === 'hosted' ? 'streamable-http' : input.transport;
-  const url = input.type === 'hosted' && input.agentPackageFile ? 'TODO' : input.url;
-  const apiType = input.type === 'hosted' ? 'sema4ai_action_server' : input.type;
-
   return {
     name: input.name,
-    type: apiType,
-    transport,
-    url,
+    type: input.type,
+    transport: input.transport,
+    url: input.url,
     force_serial_tool_calls: false,
-    headers,
+    headers: formHeadersToApiHeaders(input.headersKV),
     oauth_config: buildOAuthConfig(input),
   };
 };
 
 type McpServerApiType = 'generic_mcp' | 'sema4ai_action_server';
+type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
 
 type McpServerCorePayload = {
   name: string;
@@ -292,36 +234,26 @@ type CreateMcpServerPayload = ServerRequest<'post', '/api/v2/mcp-servers/', 'req
 const buildMcpServerCorePayload = (
   input: EditMcpServerFormValues,
   original: { force_serial_tool_calls: McpServer['force_serial_tool_calls']; env: McpServer['env'] },
-  options: { isHostedWithMetadata: boolean },
 ): McpServerCorePayload => {
-  const allEntries =
-    options.isHostedWithMetadata && input.agentPackageSecrets
-      ? [...input.headersKV, ...getAgentPackageSecretEntries(input.agentPackageSecrets)]
-      : input.headersKV;
-
-  const isStdio = input.transport === 'stdio';
-  const apiType: McpServerApiType = input.type === 'hosted' ? 'sema4ai_action_server' : input.type;
-
   return {
     name: input.name,
-    type: apiType,
+    type: input.type,
     transport: input.transport,
-    url: isStdio ? undefined : input.url,
-    headers: formHeadersToApiHeaders(allEntries),
+    url: input.url,
+    headers: formHeadersToApiHeaders(input.headersKV),
     force_serial_tool_calls: original.force_serial_tool_calls,
-    command: isStdio ? input.command : undefined,
-    args: isStdio ? input.argsText?.split(/\s+/).filter(Boolean) : undefined,
-    cwd: isStdio ? input.cwd : undefined,
-    env: isStdio ? original.env : {},
+    command: undefined,
+    args: undefined,
+    cwd: undefined,
+    env: {},
   };
 };
 
 export const buildUpdateMcpServerPayload = (
   input: EditMcpServerFormValues,
   original: { force_serial_tool_calls: McpServer['force_serial_tool_calls']; env: McpServer['env'] },
-  options: { isHostedWithMetadata: boolean },
 ): UpdateMcpServerPayload => {
-  const core = buildMcpServerCorePayload(input, original, options);
+  const core = buildMcpServerCorePayload(input, original);
 
   return {
     name: core.name,
@@ -341,9 +273,8 @@ export const buildUpdateMcpServerPayload = (
 export const buildValidationPayload = (
   input: EditMcpServerFormValues,
   original: { force_serial_tool_calls: McpServer['force_serial_tool_calls']; env: McpServer['env'] },
-  options: { isHostedWithMetadata: boolean },
 ): CreateMcpServerPayload => {
-  const core = buildMcpServerCorePayload(input, original, options);
+  const core = buildMcpServerCorePayload(input, original);
 
   return {
     name: core.name,
