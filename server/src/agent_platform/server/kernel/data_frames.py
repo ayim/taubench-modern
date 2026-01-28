@@ -269,7 +269,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
 
             # Extract verified queries from this semantic data model
             semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
-            sdm_name = semantic_data_model.get("name", "")
+            sdm_name = semantic_data_model.name or ""
 
             # Determine SQL dialect for this SDM
             # Uses data connection engine, or 'duckdb' for file-based SDMs (CSV/Excel)
@@ -277,7 +277,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
                 semantic_data_model_and_refs.references, self._data_connection_id_to_engine
             )
 
-            verified_queries = semantic_data_model.get("verified_queries")
+            verified_queries = semantic_data_model.verified_queries
             if verified_queries:
                 for verified_query in verified_queries:
                     # Use a unique key combining SDM name and query name to handle duplicates across SDMs
@@ -626,7 +626,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             payload.append(
                 {
                     "semantic_data_model_id": info["semantic_data_model_id"],
-                    "semantic_data_model": info["semantic_data_model"],
+                    "semantic_data_model": info["semantic_data_model"].model_dump(),
                     "agent_ids": sorted(info["agent_ids"]),
                     "thread_ids": sorted(info["thread_ids"]),
                     "updated_at": info["updated_at"],
@@ -900,6 +900,7 @@ class _DataFrameTools:
             semantic_data_model_name=semantic_data_model_name,
             dialect=dialect,
             sql_executor_callback=self._create_data_frame_from_sql_impl,
+            thread_state=self._thread_state,
         )
 
     async def create_data_frame_from_file(

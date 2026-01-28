@@ -109,7 +109,8 @@ async def test_generate_semantic_data_model_with_data_connection(data_regression
         include_metadata=False,
     )
 
-    data_regression.check(result)
+    # Convert Pydantic model to dict for YAML serialization
+    data_regression.check(result.model_dump(exclude_none=True))
 
 
 @pytest.mark.asyncio
@@ -150,7 +151,8 @@ async def test_generate_semantic_data_model_with_file(data_regression):
         include_metadata=False,
     )
 
-    data_regression.check(result)
+    # Convert Pydantic model to dict for YAML serialization
+    data_regression.check(result.model_dump(exclude_none=True))
 
 
 @pytest.mark.asyncio
@@ -189,7 +191,8 @@ async def test_generate_semantic_data_model_with_numeric_columns(data_regression
         include_metadata=False,
     )
 
-    data_regression.check(result)
+    # Convert Pydantic model to dict for YAML serialization
+    data_regression.check(result.model_dump(exclude_none=True))
 
 
 @pytest.mark.asyncio
@@ -228,7 +231,8 @@ async def test_generate_semantic_data_model_with_time_columns(data_regression, m
         include_metadata=False,
     )
 
-    data_regression.check(result)
+    # Convert Pydantic model to dict for YAML serialization
+    data_regression.check(result.model_dump(exclude_none=True))
 
 
 @pytest.mark.asyncio
@@ -295,11 +299,9 @@ async def test_generate_semantic_data_model_with_metadata(mock_storage):
     )
 
     # Verify metadata was created
-    assert "metadata" in result
-    assert result["metadata"] is not None
-    assert "input_data_connection_snapshots" in result["metadata"]
-
-    snapshots = result["metadata"]["input_data_connection_snapshots"]
+    assert result.metadata is not None
+    snapshots = result.metadata.get("input_data_connection_snapshots")
+    assert snapshots is not None
     assert isinstance(snapshots, list)
     assert len(snapshots) == 1
 
@@ -353,7 +355,7 @@ async def test_generate_semantic_data_model_with_metadata(mock_storage):
     )
 
     # Verify no metadata was created
-    assert "metadata" not in result_no_metadata or result_no_metadata.get("metadata") is None
+    assert result_no_metadata.metadata is None
 
 
 @pytest.mark.asyncio
@@ -449,11 +451,9 @@ async def test_generate_semantic_data_model_with_file_metadata():
     )
 
     # Verify metadata was created for file
-    assert "metadata" in result
-    assert result["metadata"] is not None
-    assert "input_data_connection_snapshots" in result["metadata"]
-
-    snapshots = result["metadata"]["input_data_connection_snapshots"]
+    assert result.metadata is not None
+    snapshots = result.metadata.get("input_data_connection_snapshots")
+    assert snapshots is not None
     assert isinstance(snapshots, list)
     assert len(snapshots) == 1
 

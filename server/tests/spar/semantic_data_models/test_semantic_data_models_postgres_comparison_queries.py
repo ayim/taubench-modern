@@ -57,6 +57,9 @@ if TYPE_CHECKING:
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.core.payloads.data_connection import DataConnection
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+    )
 
 # Module-level pytest marks
 # - spar: requires agent server to be running
@@ -245,7 +248,7 @@ def agent_for_comparison_queries(
 def comparison_semantic_data_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_comparison_queries: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Generate a semantic data model from the comparison_v1_v2 table.
 
@@ -305,70 +308,70 @@ def comparison_semantic_data_model(
 
 
 def test_comparison_semantic_data_model_structure(
-    comparison_semantic_data_model: dict[str, Any],
+    comparison_semantic_data_model: GenerateSemanticDataModelResponse,
 ):
     """Test that the comparison semantic data model has the expected structure and column types."""
     # Verify the result
     assert comparison_semantic_data_model is not None
-    assert "semantic_model" in comparison_semantic_data_model
+    assert comparison_semantic_data_model.semantic_model is not None
 
-    semantic_model = comparison_semantic_data_model["semantic_model"]
+    semantic_model = comparison_semantic_data_model.semantic_model
 
     # Verify basic model properties
-    assert semantic_model["name"] is not None
-    assert semantic_model["description"] is not None
+    assert semantic_model.name is not None
+    assert semantic_model.description is not None
 
     # Verify the comparison_v1_v2 table is present
-    assert "tables" in semantic_model
-    tables = semantic_model["tables"]
+    assert semantic_model.tables is not None
+    tables = semantic_model.tables
     assert len(tables) == 1, "Expected exactly one table (comparison_v1_v2)"
 
     table = tables[0]
-    assert table["base_table"]["table"] == "comparison_v1_v2"
+    assert table["base_table"].get("table") == "comparison_v1_v2"
 
     # Verify table has description and synonyms
-    assert table["description"] is not None, "Expected description for comparison_v1_v2 table"
-    assert table["synonyms"] is not None, "Expected synonyms for comparison_v1_v2 table"
+    assert table.get("description") is not None, "Expected description for comparison_v1_v2 table"
+    assert table.get("synonyms") is not None, "Expected synonyms for comparison_v1_v2 table"
 
     # Collect all columns
-    dimensions = table.get("dimensions", [])
-    facts = table.get("facts", [])
-    time_dimensions = table.get("time_dimensions", [])
-    metrics = table.get("metrics", [])
+    dimensions = table.get("dimensions") or []
+    facts = table.get("facts") or []
+    time_dimensions = table.get("time_dimensions") or []
+    metrics = table.get("metrics") or []
 
-    all_columns = dimensions + facts + time_dimensions + metrics
+    all_columns = list(dimensions) + list(facts) + list(time_dimensions) + list(metrics)
 
     # Verify we have columns
     assert len(all_columns) > 0, "Expected columns in the table"
 
     # Verify each column has required properties
     for column in all_columns:
-        assert column["name"] is not None, f"Expected name for column {column}"
-        assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-        col_name = column["name"]
-        assert column["description"] is not None, f"Expected description for column {col_name}"
-        assert column["synonyms"] is not None, f"Expected synonyms for column {col_name}"
+        assert column.get("name") is not None, f"Expected name for column {column}"
+        assert column.get("expr") is not None, f"Expected expr for column {column.get('name')}"
+        col_name = column.get("name")
+        assert column.get("description") is not None, f"Expected description for column {col_name}"
+        assert column.get("synonyms") is not None, f"Expected synonyms for column {col_name}"
 
     # Verify we have facts (numeric columns)
     assert len(facts) > 0, "Expected facts (numeric columns) in the model"
-    fact_names = [f["name"] for f in facts]
+    fact_names = [f.get("name") for f in facts]
     print(f"Facts found: {fact_names}")
 
     # Verify we have time_dimensions (timestamp columns)
     assert len(time_dimensions) > 0, "Expected time_dimensions (timestamp columns) in the model"
-    time_dim_names = [td["name"] for td in time_dimensions]
+    time_dim_names = [td.get("name") for td in time_dimensions]
     print(f"Time dimensions found: {time_dim_names}")
 
     # Verify we have dimensions (text columns)
     assert len(dimensions) > 0, "Expected dimensions (text columns) in the model"
-    dimension_names = [d["name"] for d in dimensions]
+    dimension_names = [d.get("name") for d in dimensions]
     print(f"Dimensions found: {dimension_names}")
 
 
 @pytest.fixture(scope="module")
 def created_comparison_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    comparison_semantic_data_model: dict[str, Any],
+    comparison_semantic_data_model: GenerateSemanticDataModelResponse,
 ) -> str:
     """
     Create the comparison semantic data model in the agent server.
@@ -379,7 +382,9 @@ def created_comparison_model_id(
     client, _ = agent_server_client_with_data_connection
 
     # Create the semantic data model
-    created_model = client.create_semantic_data_model(comparison_semantic_data_model)
+    created_model = client.create_semantic_data_model(
+        {"semantic_model": comparison_semantic_data_model.semantic_model.model_dump()}
+    )
     return created_model["semantic_data_model_id"]
 
 

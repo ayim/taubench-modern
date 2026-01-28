@@ -84,11 +84,15 @@ def example_semantic_model() -> SemanticDataModel:
         "filters": [],
     }
 
-    return {
-        "name": "Sales Model",
-        "description": "A test semantic model",
-        "tables": [table],
-    }
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
+    return SemanticDataModel.model_validate(
+        {
+            "name": "Sales Model",
+            "description": "A test semantic model",
+            "tables": [table],
+        }
+    )
 
 
 class TestValidateAndParseLLMResponse:
@@ -205,7 +209,7 @@ class TestUpdateTableColumns:
         )
 
         # Create LLM model with changed category
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
 
         llm_column = ColumnForLLM(
@@ -226,8 +230,8 @@ class TestUpdateTableColumns:
         )
 
         llm_model = SemanticDataModelForLLM(
-            name=example_semantic_model["name"],
-            description=example_semantic_model["description"],
+            name=example_semantic_model.name,
+            description=example_semantic_model.description,
             tables=[llm_table],
         )
 
@@ -238,7 +242,7 @@ class TestUpdateTableColumns:
         )
 
         # Verify column moved from dimensions to facts
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert len(updated_table.get("dimensions", [])) == 0
         # Should have original fact plus the moved dimension
         facts = updated_table.get("facts", [])
@@ -260,7 +264,7 @@ class TestUpdateTableColumns:
             SemanticDataModelForLLM,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
 
         # Create LLM columns - one should be filtered out
@@ -288,8 +292,8 @@ class TestUpdateTableColumns:
         )
 
         llm_model = SemanticDataModelForLLM(
-            name=example_semantic_model["name"],
-            description=example_semantic_model["description"],
+            name=example_semantic_model.name,
+            description=example_semantic_model.description,
             tables=[llm_table],
         )
 
@@ -301,7 +305,7 @@ class TestUpdateTableColumns:
         )
 
         # Verify only first column was updated
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["dimensions"][0]["description"] == "Updated description"
         # Second column (fact) should not be updated
         assert updated_table["facts"][0]["description"] != "Updated fact description"
@@ -318,7 +322,7 @@ class TestUpdateTableColumns:
             SemanticDataModelForLLM,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
 
         # LLM changes the logical name but expr stays the same (stable identifier)
@@ -340,8 +344,8 @@ class TestUpdateTableColumns:
         )
 
         llm_model = SemanticDataModelForLLM(
-            name=example_semantic_model["name"],
-            description=example_semantic_model["description"],
+            name=example_semantic_model.name,
+            description=example_semantic_model.description,
             tables=[llm_table],
         )
 
@@ -354,7 +358,7 @@ class TestUpdateTableColumns:
         )
 
         # Verify column was updated despite name change
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         updated_column = updated_table["dimensions"][0]
         assert updated_column["description"] == "New enhanced description"
         assert updated_column["synonyms"] == ["enhanced_synonym"]
@@ -372,7 +376,7 @@ class TestUpdateTableColumns:
             SemanticDataModelForLLM,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
 
         llm_column = ColumnForLLM(
@@ -393,8 +397,8 @@ class TestUpdateTableColumns:
         )
 
         llm_model = SemanticDataModelForLLM(
-            name=example_semantic_model["name"],
-            description=example_semantic_model["description"],
+            name=example_semantic_model.name,
+            description=example_semantic_model.description,
             tables=[llm_table],
         )
 
@@ -403,7 +407,7 @@ class TestUpdateTableColumns:
             llm_model,
         )
 
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["dimensions"][0]["description"] == "New description"
         assert updated_table["dimensions"][0]["synonyms"] == ["new_synonym1", "new_synonym2"]
 
@@ -419,7 +423,7 @@ class TestUpdateTableColumns:
             SemanticDataModelForLLM,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
 
         # Create LLM column with non-existent expr
         llm_column = ColumnForLLM(
@@ -438,8 +442,8 @@ class TestUpdateTableColumns:
         )
 
         llm_model = SemanticDataModelForLLM(
-            name=example_semantic_model["name"],
-            description=example_semantic_model["description"],
+            name=example_semantic_model.name,
+            description=example_semantic_model.description,
             tables=[llm_table],
         )
 
@@ -450,7 +454,7 @@ class TestUpdateTableColumns:
         )
 
         # Original columns should remain unchanged
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert len(updated_table["dimensions"]) == 1  # Original dimension still there
 
 
@@ -468,7 +472,7 @@ class TestUpdateTablesMetadata:
             TablesOutputSchema,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
 
         # The code uses schema as both database and schema for matching
         # So we need to use schema="public" (not database="sales")
@@ -489,7 +493,7 @@ class TestUpdateTablesMetadata:
             table_metadata,
         )
 
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["description"] == "Updated description"
         assert updated_table["synonyms"] == ["new_synonym"]
 
@@ -504,7 +508,7 @@ class TestUpdateTablesMetadata:
             TablesOutputSchema,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_description = table["description"]
 
         enhanced_table = LogicalTableMetadataForLLM(
@@ -526,7 +530,7 @@ class TestUpdateTablesMetadata:
         )
 
         # Table should not be updated
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["description"] == original_description
 
     def test_update_tables_metadata_handles_missing_table(self, example_semantic_model):
@@ -558,7 +562,7 @@ class TestUpdateTablesMetadata:
         )
 
         # Original table should remain unchanged
-        assert len(example_semantic_model["tables"]) == 1
+        assert len(example_semantic_model.tables) == 1
 
 
 class TestUpdateColumnsInSemanticModel:
@@ -574,7 +578,7 @@ class TestUpdateColumnsInSemanticModel:
             TableToColumnsOutputSchema,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
 
         enhanced_column = ColumnForLLM(
@@ -596,7 +600,7 @@ class TestUpdateColumnsInSemanticModel:
             table_to_columns,
         )
 
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["dimensions"][0]["description"] == "Enhanced description"
         assert updated_table["dimensions"][0]["synonyms"] == ["enhanced_synonym"]
 
@@ -610,7 +614,7 @@ class TestUpdateColumnsInSemanticModel:
             TableToColumnsOutputSchema,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
         original_dimension = table["dimensions"][0]
         original_fact = table["facts"][0]
 
@@ -634,7 +638,7 @@ class TestUpdateColumnsInSemanticModel:
             table_to_columns_to_enhance={table["name"]: [original_dimension["expr"]]},
         )
 
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert updated_table["dimensions"][0]["description"] == "Enhanced description"
         # Fact should not be updated
         assert updated_table["facts"][0]["description"] == original_fact["description"]
@@ -668,7 +672,7 @@ class TestUpdateColumnsInSemanticModel:
         )
 
         # Original table should remain unchanged
-        assert len(example_semantic_model["tables"]) == 1
+        assert len(example_semantic_model.tables) == 1
 
     def test_update_columns_handles_missing_column(self, example_semantic_model):
         """Verify graceful handling when column not found."""
@@ -680,7 +684,7 @@ class TestUpdateColumnsInSemanticModel:
             TableToColumnsOutputSchema,
         )
 
-        table = example_semantic_model["tables"][0]
+        table = example_semantic_model.tables[0]
 
         enhanced_column = ColumnForLLM(
             name="non_existent",
@@ -701,5 +705,5 @@ class TestUpdateColumnsInSemanticModel:
         )
 
         # Original columns should remain unchanged
-        updated_table = example_semantic_model["tables"][0]
+        updated_table = example_semantic_model.tables[0]
         assert len(updated_table["dimensions"]) == 1  # Original dimension still there

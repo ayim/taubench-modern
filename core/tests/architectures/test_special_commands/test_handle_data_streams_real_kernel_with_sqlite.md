@@ -73,11 +73,11 @@ Description: A test entity
       description: 'Test semantic data model: test_model'
       tables:
         - name: test_entity
-          description: A test entity
           base_table:
             database: test_db
             schema: test_schema
             table: test_table
+          description: A test entity
     agent_ids:
       - <uuid>
     thread_ids: []

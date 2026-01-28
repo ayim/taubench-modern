@@ -88,7 +88,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
             # Extract verified queries from this semantic data model
             semantic_data_model = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
-            verified_queries = semantic_data_model.get("verified_queries")
+            verified_queries = semantic_data_model.verified_queries
             if verified_queries:
                 for verified_query in verified_queries:
                     self._verified_queries[verified_query.name] = verified_query
@@ -106,60 +106,6 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         return False
 
-    # TODO copied from data_frames.py
-    def _semantic_data_models_with_engines(self) -> list[tuple[SemanticDataModel, str]]:
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-
-        models_and_engines: list[tuple[SemanticDataModel, str]] = []
-        if not self._semantic_data_models:
-            return models_and_engines
-
-        for semantic_data_model_and_refs in self._semantic_data_models:
-            try:
-                model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
-                new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
-
-                tables = new_model.get("tables", [])
-                if not tables:
-                    continue  # No tables, so skip
-                tables = [c.copy() for c in tables]
-                for table in tables:
-                    table.pop("base_table", None)
-                    # Don't show empty fields
-                    for k, v in list(table.items()):
-                        if not v:
-                            table.pop(k)
-                new_model["tables"] = tables
-
-                engine = self._infer_engine_for_semantic_model(semantic_data_model_and_refs)
-                models_and_engines.append((new_model, engine))
-            except Exception:
-                logger.exception(
-                    "Error creating semantic data model summary from semantic data model info",
-                    semantic_data_model_and_refs=semantic_data_model_and_refs,
-                )
-                continue
-
-        return models_and_engines
-
-    # TODO copied from data_frames.py
-    def _infer_engine_for_semantic_model(
-        self,
-        semantic_data_model_and_refs: SemanticDataModelAndReferences,
-    ) -> str:
-        data_connection_ids = semantic_data_model_and_refs.references.data_connection_ids
-        if data_connection_ids:
-            engines = {
-                self._data_connection_id_to_engine.get(data_connection_id) for data_connection_id in data_connection_ids
-            }
-            engines.discard(None)
-            if len(engines) == 1:
-                engine = engines.pop()
-                if engine:
-                    return engine
-        # Fallback to duckdb if we have multiple engines
-        return "duckdb"
-
     def _get_sdm_context(self, semantic_data_model_name: str) -> str:
         """Get the SDM context for a given semantic data model name using summarize_data_model.
 
@@ -169,12 +115,19 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         Returns:
             A formatted string with table schemas and column descriptions
         """
-        from agent_platform.server.kernel.semantic_data_model import summarize_data_model
+        from agent_platform.server.kernel.semantic_data_model import (
+            infer_engine_for_semantic_model,
+            summarize_data_model,
+        )
 
         for sdm_and_refs in self._semantic_data_models:
-            model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
-            if model.get("name") == semantic_data_model_name:
-                engine = self._infer_engine_for_semantic_model(sdm_and_refs)
+            model_data = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
+            model = SemanticDataModel.model_validate(model_data)
+            if model.name == semantic_data_model_name:
+                engine = infer_engine_for_semantic_model(
+                    sdm_and_refs.references,
+                    self._data_connection_id_to_engine,
+                )
                 return summarize_data_model(model, engine)
 
         raise ValueError(f"Semantic data model '{semantic_data_model_name}' not found")
@@ -187,7 +140,14 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             if self._sql_generation_strategy is None:
                 raise ValueError("SQL generation strategy is not initialized")
 
-            models_and_engines = self._semantic_data_models_with_engines()
+            from agent_platform.server.kernel.semantic_data_model import (
+                get_semantic_data_models_with_engines,
+            )
+
+            models_and_engines = get_semantic_data_models_with_engines(
+                self._semantic_data_models,
+                self._data_connection_id_to_engine,
+            )
             return dedent(f"""
             ## Semantic Data Models (tables available to be used in the \
             `{CREATE_DF_FROM_LOGICAL_SQL_TOOL_NAME}` tool):
@@ -387,7 +347,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         table_names: list[str] = []
         for sdm_and_refs in self._semantic_data_models:
             semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
-            for table in semantic_data_model.get("tables", []):
+            for table in semantic_data_model.tables or []:
                 name = table.get("name")
                 if name:
                     table_names.append(name)
@@ -456,13 +416,12 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         Returns None if the table is not found.
         """
-        import typing
 
         from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
         for sdm_and_refs in self._semantic_data_models:
             semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
-            for table in semantic_data_model.get("tables", []):
+            for table in semantic_data_model.tables or []:
                 if table.get("name") == table_name:
                     return self._extract_column_names_from_table(typing.cast(dict[str, Any], table))
         return None

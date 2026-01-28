@@ -9,11 +9,7 @@ from agent_platform.core.agent_package.handler.base import BasePackageHandler, Y
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
 from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
-from agent_platform.core.data_frames.semantic_data_model_types import (
-    SemanticDataModel,
-    model_dump_sdm,
-    model_validate_sdm,
-)
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 
 if TYPE_CHECKING:
@@ -211,7 +207,7 @@ class AgentPackageHandler(BasePackageHandler):
                 )
                 return None
 
-            sdm = model_validate_sdm(sdm_yaml)
+            sdm = SemanticDataModel.model_validate(sdm_yaml)
             return sdm
 
         except Exception as e:
@@ -379,7 +375,7 @@ class AgentPackageHandler(BasePackageHandler):
         import io
 
         yaml_buffer = io.StringIO()
-        YAMLHandler().writer.dump(model_dump_sdm(semantic_data_model), yaml_buffer)
+        YAMLHandler().writer.dump(semantic_data_model.model_dump(), yaml_buffer)
         await self.write_file(
             f"{AgentPackageConfig.semantic_data_models_dirname}/{filename}", yaml_buffer.getvalue().encode("utf-8")
         )

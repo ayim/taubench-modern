@@ -12,6 +12,7 @@ def unwrap_semantic_data_model_dicts(semantic_data_model_dicts: list[dict]) -> l
         if len(values) != 1:
             raise ValueError("Expected exactly one semantic data model per dict")
 
-        semantic_data_models.append(next(iter(values)))
+        sdm_data = next(iter(values))
+        semantic_data_models.append(SemanticDataModel.model_validate(sdm_data))
 
     return semantic_data_models

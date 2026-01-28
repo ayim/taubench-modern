@@ -215,7 +215,7 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
 
     # Convert tables
     llm_tables = []
-    tables = semantic_data_model.get("tables") or []
+    tables = semantic_data_model.tables or []
     for table in tables:
         base_table = table.get("base_table")
         if not base_table:
@@ -264,8 +264,8 @@ def create_semantic_data_model_for_llm_from_semantic_data_model(
 
     # Create the semantic data model for LLM
     return SemanticDataModelForLLM(
-        name=semantic_data_model.get("name") or "",
-        description=semantic_data_model.get("description"),
+        name=semantic_data_model.name or "",
+        description=semantic_data_model.description,
         tables=llm_tables,
     )
 

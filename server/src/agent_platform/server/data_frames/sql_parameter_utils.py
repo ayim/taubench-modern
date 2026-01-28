@@ -82,7 +82,7 @@ def enrich_parameter_descriptions_from_sdm(
     # Key is (table_name, column_name), value is description
     table_column_to_description: dict[tuple[str, str], str] = {}
 
-    tables = semantic_data_model.get("tables", [])
+    tables = semantic_data_model.tables or []
 
     for table in tables:
         table_name = table.get("name", "")

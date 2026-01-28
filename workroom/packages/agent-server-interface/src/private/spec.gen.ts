@@ -14075,6 +14075,14 @@ export const spec = {
                       type: 'boolean',
                     },
                     {
+                      type: 'string',
+                      format: 'date',
+                    },
+                    {
+                      type: 'string',
+                      format: 'date-time',
+                    },
+                    {
                       type: 'null',
                     },
                   ],
@@ -14933,6 +14941,14 @@ export const spec = {
                       type: 'boolean',
                     },
                     {
+                      type: 'string',
+                      format: 'date',
+                    },
+                    {
+                      type: 'string',
+                      format: 'date-time',
+                    },
+                    {
                       type: 'null',
                     },
                   ],
@@ -15417,16 +15433,7 @@ export const spec = {
       GenerateSemanticDataModelResponse: {
         properties: {
           semantic_model: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/SemanticDataModel',
-              },
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-            ],
-            title: 'Semantic Model',
+            $ref: '#/components/schemas/SemanticDataModel',
           },
         },
         type: 'object',
@@ -18471,6 +18478,14 @@ export const spec = {
                     },
                     {
                       type: 'boolean',
+                    },
+                    {
+                      type: 'string',
+                      format: 'date',
+                    },
+                    {
+                      type: 'string',
+                      format: 'date-time',
                     },
                     {
                       type: 'null',
@@ -22474,7 +22489,22 @@ export const spec = {
         properties: {
           name: {
             type: 'string',
+            minLength: 1,
             title: 'Name',
+            description:
+              'A descriptive name for this semantic model. Must be unique and follow the unquoted identifiers requirements. It also cannot conflict with Snowflake reserved keywords.',
+          },
+          id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Id',
+            description: 'The unique identifier of this semantic model.',
           },
           description: {
             anyOf: [
@@ -22486,6 +22516,8 @@ export const spec = {
               },
             ],
             title: 'Description',
+            description:
+              "A description of this semantic model, including details of what kind of analysis it's useful for.",
           },
           tables: {
             items: {
@@ -22493,6 +22525,7 @@ export const spec = {
             },
             type: 'array',
             title: 'Tables',
+            description: 'A list of logical tables in this semantic model.',
           },
           relationships: {
             anyOf: [
@@ -22507,13 +22540,23 @@ export const spec = {
               },
             ],
             title: 'Relationships',
+            description: 'A list of joins between logical tables.',
           },
           errors: {
-            items: {
-              $ref: '#/components/schemas/ValidationMessage',
-            },
-            type: 'array',
+            anyOf: [
+              {
+                items: {
+                  $ref: '#/components/schemas/ValidationMessage',
+                },
+                type: 'array',
+              },
+              {
+                type: 'null',
+              },
+            ],
             title: 'Errors',
+            description:
+              'Validation errors for this semantic data model, if any.',
           },
           verified_queries: {
             anyOf: [
@@ -22528,6 +22571,8 @@ export const spec = {
               },
             ],
             title: 'Verified Queries',
+            description:
+              'A list of validated queries that were saved from data frames created from SQL computations.',
           },
           metadata: {
             anyOf: [
@@ -22538,8 +22583,11 @@ export const spec = {
                 type: 'null',
               },
             ],
+            description:
+              'Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables.',
           },
         },
+        additionalProperties: false,
         type: 'object',
         required: ['name'],
         title: 'SemanticDataModel',
@@ -24993,6 +25041,14 @@ export const spec = {
                       type: 'boolean',
                     },
                     {
+                      type: 'string',
+                      format: 'date',
+                    },
+                    {
+                      type: 'string',
+                      format: 'date-time',
+                    },
+                    {
                       type: 'null',
                     },
                   ],
@@ -26038,16 +26094,7 @@ export const spec = {
             title: 'Semantic Data Model Id',
           },
           semantic_data_model: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/SemanticDataModel',
-              },
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-            ],
-            title: 'Semantic Data Model',
+            $ref: '#/components/schemas/SemanticDataModel',
           },
           errors: {
             items: {
