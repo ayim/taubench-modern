@@ -311,5 +311,4 @@ describe('application', () => {
       expect(response.body.data[0]).toHaveProperty('id', 'spar-test');
     });
   });
-
 });
