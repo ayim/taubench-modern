@@ -165,7 +165,6 @@ export const listUsers = authedProcedure(['users.read'])
           return 'email';
 
         case 'none':
-        case 'sema4-oidc-sso':
           throw new TRPCError(notAvailableForConfiguration({ feature: 'User management' }));
 
         default:

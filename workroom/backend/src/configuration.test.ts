@@ -40,26 +40,4 @@ describe('getConfiguration', () => {
 
     expect(configuration).toHaveProperty('auth.type', 'none');
   });
-
-  describe('workroom features', () => {
-    it('supports setting environment variable to `true`', () => {
-      process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES = 'true';
-
-      const configuration = getConfiguration();
-
-      expect(configuration.workroomMeta.features.settings).toHaveProperty('enabled', true);
-      expect(configuration.workroomMeta.features.mcpServersManagement).toHaveProperty('enabled', true);
-      expect(configuration.workroomMeta.features.documentIntelligence).toHaveProperty('enabled', true);
-    });
-
-    it('supports setting environment variable to `false`', () => {
-      process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES = 'false';
-
-      const configuration = getConfiguration();
-
-      expect(configuration.workroomMeta.features.settings).toHaveProperty('enabled', false);
-      expect(configuration.workroomMeta.features.mcpServersManagement).toHaveProperty('enabled', false);
-      expect(configuration.workroomMeta.features.documentIntelligence).toHaveProperty('enabled', false);
-    });
-  });
 });

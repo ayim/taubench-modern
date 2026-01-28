@@ -227,10 +227,6 @@
               "value": "http://localhost:8000"
             },
             {
-              "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES",
-              "value": "true"
-            },
-            {
               "name": "SEMA4AI_WORKROOM_PORT",
               "value": "8001"
             },

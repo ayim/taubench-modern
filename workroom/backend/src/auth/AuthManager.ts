@@ -1,7 +1,6 @@
 import { asResult, exhaustiveCheck, type Result } from '@sema4ai/shared-utils';
 import type { Configuration } from '../configuration.js';
 import { OIDCClient } from './OIDCClient.js';
-import { createGetACEUser, type GetACEUser, type UserFrom } from './sema4OIDC.js';
 import type { UserIdentity } from '../database/types/userIdentity.js';
 import { OIDCTokenClaims, type OIDCTokens } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
@@ -32,7 +31,6 @@ export class AuthManager {
   private configuration: Configuration;
   private monitoring: MonitoringContext;
 
-  private getACEUser: GetACEUser | null = null;
   private oidcClient: OIDCClient | null = null;
 
   public readonly refreshSemaphore: Semaphore<Result<{ userId: string }>>;
@@ -57,7 +55,6 @@ export class AuthManager {
 
     switch (this.configuration.auth.type) {
       case 'none':
-      case 'sema4-oidc-sso':
       case 'snowflake':
         return {
           success: false,
@@ -137,7 +134,6 @@ export class AuthManager {
   }): Promise<Result<OIDCTokens>> {
     switch (this.configuration.auth.type) {
       case 'none':
-      case 'sema4-oidc-sso':
       case 'snowflake':
         return {
           success: false,
@@ -219,7 +215,6 @@ export class AuthManager {
   > {
     switch (this.configuration.auth.type) {
       case 'none':
-      case 'sema4-oidc-sso':
       case 'snowflake':
         return {
           success: false,
@@ -314,7 +309,6 @@ export class AuthManager {
   }): Result<{ type: 'single'; url: string } | { type: 'intermediary'; intermediate: string; final: string }> {
     switch (this.configuration.auth.type) {
       case 'none':
-      case 'sema4-oidc-sso':
       case 'snowflake':
         return {
           success: false,
@@ -417,7 +411,6 @@ export class AuthManager {
         };
 
       case 'none':
-      case 'sema4-oidc-sso':
         return {
           success: false,
           error: {
@@ -436,17 +429,6 @@ export class AuthManager {
       case 'none':
       case 'snowflake':
         return { success: true, data: undefined };
-
-      case 'sema4-oidc-sso': {
-        const { getACEUser } = createGetACEUser({
-          configuration: this.configuration,
-          monitoring: this.monitoring,
-        });
-
-        this.getACEUser = getACEUser;
-
-        return { success: true, data: undefined };
-      }
 
       case 'oidc':
         try {
@@ -538,7 +520,6 @@ export class AuthManager {
           data: newTokens,
         };
       }
-      case 'sema4-oidc-sso':
       case 'none':
       case 'snowflake':
         this.monitoring.logger.error(
@@ -550,52 +531,6 @@ export class AuthManager {
           error: {
             code: 'invalid_configuration',
             message: `Failed refreshing tokens: Auth type not supported for token refresh: ${this.configuration.auth.type}`,
-          },
-        };
-
-      default:
-        exhaustiveCheck(this.configuration.auth);
-    }
-  }
-
-  async resolveUserId(userFrom: UserFrom): Promise<Result<string>> {
-    switch (this.configuration.auth.type) {
-      case 'sema4-oidc-sso': {
-        if (!this.getACEUser) {
-          this.monitoring.logger.error('Unexpected error resolving ACE user: Missing getACEUser function');
-
-          return {
-            success: false,
-            error: {
-              code: 'invalid_configuration',
-              message: 'Failed resolving ACE user: No getACEUser function defined',
-            },
-          };
-        }
-
-        const result = await this.getACEUser(userFrom);
-        if (!result.success) {
-          return result;
-        }
-
-        return {
-          success: true,
-          data: result.data.userId,
-        };
-      }
-
-      case 'none':
-      case 'snowflake':
-      case 'oidc':
-        this.monitoring.logger.error(
-          `Unexpected error resolving ACE user: Bad configuration: Auth type not supported for user resolution: ${this.configuration.auth.type}`,
-        );
-
-        return {
-          success: false,
-          error: {
-            code: 'invalid_configuration',
-            message: `Failed resolving ACE user: Auth type not supported for user resolution: ${this.configuration.auth.type}`,
           },
         };
 
