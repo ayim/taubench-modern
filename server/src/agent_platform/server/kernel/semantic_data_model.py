@@ -171,25 +171,16 @@ def get_semantic_data_models_with_engines(
 
     for semantic_data_model_and_refs in semantic_data_models:
         try:
-            model: SemanticDataModel = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
-            new_model: SemanticDataModel = typing.cast(SemanticDataModel, {x: y for x, y in model.items() if y})
+            model_data = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
+            model = SemanticDataModel.model_validate(model_data)
 
-            tables = new_model.get("tables", [])
-            if not tables:
+            if not model.tables:
                 continue  # No tables, so skip
-            tables = [c.copy() for c in tables]
-            for table in tables:
-                table.pop("base_table", None)
-                # Don't show empty fields
-                for k, v in list(table.items()):
-                    if not v:
-                        table.pop(k)
-            new_model["tables"] = tables
 
             engine = infer_engine_for_semantic_model(
                 semantic_data_model_and_refs.references, data_connection_id_to_engine
             )
-            models_and_engines.append((new_model, engine))
+            models_and_engines.append((model, engine))
         except Exception:
             logger.exception(
                 "Error creating semantic data model summary from semantic data model info",
@@ -226,12 +217,12 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     verified_queries: list[VerifiedQuery] = []
     result = []
 
-    # Make a copy to avoid mutating the input
-    model = model.copy()
+    # Convert to dict to avoid mutating the input Pydantic model
+    model_dict = model.model_dump()
 
     # Model header
-    name = model.pop("name", "Unnamed")
-    description = model.pop("description", "")
+    name = model_dict.pop("name", "Unnamed")
+    description = model_dict.pop("description", "")
 
     model_header = f"### Model: {name}"
     model_header += f"\nSQL dialect: {engine}"
@@ -240,7 +231,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     result.append(model_header)
 
     # Tables (structural information only)
-    tables = model.pop("tables", [])
+    tables = model_dict.pop("tables", [])
     if tables:
         for table in tables:
             if not isinstance(table, dict):
@@ -250,6 +241,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
             table_name = t.pop("name")
             if not table_name:
                 continue
+            t.pop("base_table", None)  # Don't display base_table details
             table_desc = t.pop("description", "")
 
             table_line = f"Table: {table_name}"
@@ -262,9 +254,9 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
                     result.append(indent(_format_table_field(k, v), " "))
 
     # Pop verified_queries to remove them from the model dict (not included in summary)
-    verified_queries.extend(model.pop("verified_queries", None) or ())
+    verified_queries.extend(model_dict.pop("verified_queries", None) or ())
     # Handle relationships - format conditionally based on feature flag
-    relationships = model.pop("relationships", [])
+    relationships = model_dict.pop("relationships", [])
     from agent_platform.server.constants import SystemConfig
 
     if SystemConfig.enable_relationship_guidance and relationships:
@@ -274,7 +266,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
             result.append(formatted_rels)
 
     # Handle what we haven't added yet (other fields)
-    for k, v in model.items():
+    for k, v in model_dict.items():
         if v:
             result.append(_format_table_field(k, v))
 

@@ -176,6 +176,7 @@ along with the error message."""
         semantic_data_model_name: str,
         dialect: str,
         sql_executor_callback,
+        thread_state,
     ) -> str:
         """Create a tool definition for executing a verified query and add it to the tools list.
 
@@ -258,13 +259,43 @@ along with the error message."""
 
             # Execute using callback
             # semantic_data_model_name is captured from closure - always uses the SDM this query belongs to
-            return await sql_executor_callback(
+            from time import perf_counter
+
+            start_time = perf_counter()
+
+            result = await sql_executor_callback(
                 sql_query=sql_with_params,
                 new_data_frame_name=new_data_frame_name,
                 new_data_frame_description=new_data_frame_description,
                 num_samples=num_samples,
                 semantic_data_model_name=semantic_data_model_name,
             )
+
+            # Record verified query execution metrics
+            duration = perf_counter() - start_time
+            kernel = thread_state.kernel
+            kernel.ctx.increment_counter(
+                "sdm.verified_queries.executed.total",
+                labels={
+                    "agent_id": kernel.agent.agent_id,
+                    "run_id": kernel.run.run_id,
+                    "thread_id": kernel.thread.thread_id,
+                },
+            )
+            # For metrics related to duration, only record agent + run ID.
+            # Thread ID does not make sense for duration metrics.
+            kernel.ctx.record_metric(
+                "sdm.verified_query.duration_seconds",
+                duration,
+                labels={
+                    "agent_id": kernel.agent.agent_id,
+                    "run_id": kernel.run.run_id,
+                    "query_name": verified_query.name,
+                    "semantic_data_model": semantic_data_model_name,
+                },
+            )
+
+            return result
 
         # Generate unique tool name by checking existing tools
         # At this point, _existing_tool_names includes base tools + SQL strategy tools

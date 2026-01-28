@@ -357,7 +357,6 @@ async def test_get_mcp_server_with_metadata_decryption_error(
     meta = await storage.get_mcp_server_with_metadata(server_id)
     assert meta.server.name == sample_mcp_server_http.name
     assert meta.source == MCPServerSource.API
-    assert meta.deployment_id is None
 
     # Mock _decrypt_config to fail
     with patch.object(storage, "_decrypt_config") as mock_decrypt:
@@ -446,14 +445,12 @@ async def test_list_mcp_servers_with_metadata(
     assert server1_meta.server.name == sample_mcp_server_http.name
     assert server1_meta.server.transport == sample_mcp_server_http.transport
     assert server1_meta.source == MCPServerSource.API
-    assert server1_meta.deployment_id is None
 
     # Check server 2 (FILE source)
     server2_meta = servers_with_metadata[server2_id]
     assert server2_meta.server.name == sample_mcp_server_stdio.name
     assert server2_meta.server.transport == sample_mcp_server_stdio.transport
     assert server2_meta.source == MCPServerSource.FILE
-    assert server2_meta.deployment_id is None
 
 
 async def test_get_mcp_server_with_metadata(
@@ -472,7 +469,6 @@ async def test_get_mcp_server_with_metadata(
     assert meta.server.transport == sample_mcp_server_http.transport
     assert meta.server.url == sample_mcp_server_http.url
     assert meta.server.headers == sample_mcp_server_http.headers
-    assert meta.deployment_id is None
 
     # Verify source
     assert meta.source == MCPServerSource.API

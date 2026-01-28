@@ -16,7 +16,6 @@ x-env-spar: &template-env-spar
     POSTGRES_USER: agents
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
-    SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL: http://mcp-runtime:8003
     # Workroom
     SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: true
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
@@ -28,8 +27,6 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
     SEMA4AI_WORKROOM_TENANT_ID: spar
     SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE: http://data-server
-    # MCP Runtime
-    SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE: http://mcp-runtime # use http://localhost if running run-server-hot-reload
 
 x-service-spar: &template-service-spar
     build:
@@ -110,42 +107,6 @@ services:
             retries: 6
             start_period: 60s
         restart: unless-stopped
-
-    mcp-runtime:
-        build:
-            context: .
-            dockerfile: ./workroom/mcp-runtime/Dockerfile
-            secrets:
-                - npmrc
-            # args:
-        environment:
-            <<: *template-env-spar
-        ports:
-            # API
-            - "8003:8003"
-        networks:
-            default:
-                aliases:
-                    - spar
-        volumes:
-            - mcp-runtime-data:/home/mcp-runtime/data
-            - ./tmp:/logs
-        command: ["/bin/sh", "-c", "node mcp-runtime/src/index.ts 2>&1 | tee /logs/mcp-runtime-$$(date +%Y-%m-%d-%H%M%S).log"]
-        depends_on:
-            postgres:
-                condition: service_healthy
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8003/api/health"]
-            interval: 5s
-            timeout: 5s
-            retries: 6
-            start_period: 60s
-        profiles:
-            - spar
-            - spar-no-auth # Deprecated: Will be removed in the futrue
-            - agent-server
-            - agent-server-no-auth # Deprecated: Will be removed in the futrue
-            - mcp-runtime
 
 #region Telemetry
     influx-db:
@@ -251,7 +212,6 @@ volumes:
     postgres_data:
     influx-data:
     influx-config:
-    mcp-runtime-data:
 
 secrets:
     npmrc:

@@ -1,22 +1,16 @@
-"""Unit tests for SemanticDataModel type functions.
+"""Unit tests for SemanticDataModel Pydantic model.
 
-This module tests the public API functions (model_dump, model_validate) and
-private helper functions for SemanticDataModel normalization and serialization.
+This module tests the SemanticDataModel Pydantic BaseModel functionality
+including model_dump, model_validate, and to_comparable_json methods.
 """
 
 import json
 from datetime import UTC, date, datetime
-from typing import cast
 
 import pytest
 
 from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
-    _normalize_for_comparison,
-    _strip_environment_specific_fields,
-    model_dump_sdm,
-    model_validate_sdm,
-    to_json_string_for_comparison,
 )
 
 # ============================================================================
@@ -27,8 +21,7 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
 @pytest.fixture
 def sample_sdm() -> SemanticDataModel:
     """Sample semantic data model for testing."""
-    return cast(
-        SemanticDataModel,
+    return SemanticDataModel.model_validate(
         {
             "name": "test_model",
             "description": "A test semantic model",
@@ -52,8 +45,7 @@ def sample_sdm() -> SemanticDataModel:
 @pytest.fixture
 def sdm_with_datetimes() -> SemanticDataModel:
     """Semantic data model with datetime objects (simulating YAML parsing)."""
-    return cast(
-        SemanticDataModel,
+    return SemanticDataModel.model_validate(
         {
             "name": "model_with_datetimes",
             "description": "Model with datetime objects",
@@ -85,8 +77,7 @@ def sdm_with_datetimes() -> SemanticDataModel:
 @pytest.fixture
 def sdm_with_environment_fields() -> SemanticDataModel:
     """Semantic data model with environment-specific fields."""
-    return cast(
-        SemanticDataModel,
+    return SemanticDataModel.model_validate(
         {
             "name": "model_with_env_fields",
             "description": "Model with environment-specific fields",
@@ -120,8 +111,7 @@ def sdm_with_environment_fields() -> SemanticDataModel:
 @pytest.fixture
 def sdm_with_metadata() -> SemanticDataModel:
     """Semantic data model with metadata field."""
-    return cast(
-        SemanticDataModel,
+    return SemanticDataModel.model_validate(
         {
             "name": "model_with_metadata",
             "description": "Model with metadata",
@@ -129,8 +119,17 @@ def sdm_with_metadata() -> SemanticDataModel:
             "metadata": {
                 "input_data_connection_snapshots": [
                     {
-                        "source_type": "data_connection",
-                        "data_connection_id": "conn-123",
+                        "kind": "data_connection",
+                        "inspection_result": {
+                            "tables": [],
+                            "inspected_at": "2024-01-01T00:00:00Z",
+                        },
+                        "inspection_request_info": {
+                            "data_connection_id": "conn-123",
+                            "data_connection_name": "test-connection",
+                            "data_connection_inspect_request": None,
+                        },
+                        "inspected_at": "2024-01-01T00:00:00Z",
                     }
                 ],
             },
@@ -144,11 +143,11 @@ def sdm_with_metadata() -> SemanticDataModel:
 
 
 class TestModelDump:
-    """Tests for model_dump() function."""
+    """Tests for SemanticDataModel.model_dump() method."""
 
     def test_model_dump_basic(self, sample_sdm: SemanticDataModel):
         """Test basic model_dump functionality."""
-        result = model_dump_sdm(sample_sdm)
+        result = sample_sdm.model_dump()
 
         assert isinstance(result, dict)
         assert result["name"] == "test_model"
@@ -157,8 +156,9 @@ class TestModelDump:
         assert result["tables"][0]["name"] == "users"
 
     def test_model_dump_with_datetimes(self, sdm_with_datetimes: SemanticDataModel):
-        """Test model_dump converts datetime objects to ISO strings."""
-        result = model_dump_sdm(sdm_with_datetimes)
+        """Test model_dump(mode='json') converts datetime objects to ISO strings."""
+        # Use mode="json" to serialize datetime objects to ISO strings
+        result = sdm_with_datetimes.model_dump(mode="json")
 
         # Verify datetime objects were converted to strings
         sample_values = result["tables"][0]["time_dimensions"][0]["sample_values"]
@@ -174,9 +174,8 @@ class TestModelDump:
         assert parsed["tables"][0]["time_dimensions"][0]["sample_values"][0] == sample_values[0]
 
     def test_model_dump_exclude_none(self):
-        """Test model_dump with exclude_none=True."""
-        sdm = cast(
-            SemanticDataModel,
+        """Test model_dump with exclude_none (default is True for SemanticDataModel)."""
+        sdm = SemanticDataModel.model_validate(
             {
                 "name": "test",
                 "description": None,
@@ -184,19 +183,18 @@ class TestModelDump:
             },
         )
 
-        # With exclude_none=False (default)
-        result_with_none = model_dump_sdm(sdm, exclude_none=False)
+        # With exclude_none=True (default for SemanticDataModel)
+        result_without_none = sdm.model_dump()
+        assert "description" not in result_without_none
+
+        # With exclude_none=False (explicit)
+        result_with_none = sdm.model_dump(exclude_none=False)
         assert "description" in result_with_none
         assert result_with_none["description"] is None
 
-        # With exclude_none=True
-        result_without_none = model_dump_sdm(sdm, exclude_none=True)
-        assert "description" not in result_without_none
-
     def test_model_dump_nested_datetimes(self):
         """Test model_dump handles nested datetime objects."""
-        sdm = cast(
-            SemanticDataModel,
+        sdm = SemanticDataModel.model_validate(
             {
                 "name": "test",
                 "tables": [
@@ -218,7 +216,8 @@ class TestModelDump:
             },
         )
 
-        result = model_dump_sdm(sdm)
+        # Use mode="json" to serialize datetime objects to ISO strings
+        result = sdm.model_dump(mode="json")
         sample_values = result["tables"][0]["dimensions"][0]["sample_values"]
         assert isinstance(sample_values[0], str)
         assert "2024-01-01" in sample_values[0]
@@ -226,7 +225,7 @@ class TestModelDump:
 
     def test_model_dump_preserves_structure(self, sample_sdm: SemanticDataModel):
         """Test model_dump preserves the structure of the SDM."""
-        result = model_dump_sdm(sample_sdm)
+        result = sample_sdm.model_dump()
 
         # Verify structure is preserved
         assert "name" in result
@@ -240,18 +239,18 @@ class TestModelDump:
 
     def test_model_dump_does_not_mutate_original(self, sample_sdm: SemanticDataModel):
         """Test model_dump does not mutate the original SDM."""
-        original_name = sample_sdm["name"]
-        original_tables = len(sample_sdm.get("tables", []))
+        original_name = sample_sdm.name
+        original_tables = len(sample_sdm.tables or [])
 
-        result = model_dump_sdm(sample_sdm)
+        result = sample_sdm.model_dump()
 
         # Modify result
         result["name"] = "modified"
         result["tables"].append({"name": "new_table"})
 
         # Verify original is unchanged
-        assert sample_sdm["name"] == original_name
-        assert len(sample_sdm.get("tables", [])) == original_tables
+        assert sample_sdm.name == original_name
+        assert len(sample_sdm.tables or []) == original_tables
 
 
 # ============================================================================
@@ -260,7 +259,7 @@ class TestModelDump:
 
 
 class TestModelValidate:
-    """Tests for model_validate() function."""
+    """Tests for SemanticDataModel.model_validate() class method."""
 
     def test_model_validate_basic(self):
         """Test basic model_validate functionality."""
@@ -276,12 +275,13 @@ class TestModelValidate:
             ],
         }
 
-        result = model_validate_sdm(data)
+        result = SemanticDataModel.model_validate(data)
 
-        assert isinstance(result, dict)
-        assert result["name"] == "test_model"
-        assert result.get("description") == "A test model"
-        assert len(result.get("tables", [])) == 1
+        assert isinstance(result, SemanticDataModel)
+        assert result.name == "test_model"
+        assert result.description == "A test model"
+        assert result.tables is not None
+        assert len(result.tables) == 1
 
     def test_model_validate_with_optional_fields(self):
         """Test model_validate with optional fields."""
@@ -289,201 +289,91 @@ class TestModelValidate:
             "name": "test",
             "tables": [],
             "verified_queries": [
-                {"name": "query1", "sql": "SELECT * FROM users"},
+                {
+                    "name": "query1",
+                    "nlq": "Get all users",
+                    "sql": "SELECT * FROM users",
+                    "verified_at": "2024-01-01T00:00:00Z",
+                    "verified_by": "user1",
+                },
             ],
         }
 
-        result = model_validate_sdm(data)
+        result = SemanticDataModel.model_validate(data)
 
-        assert result["name"] == "test"
-        assert "verified_queries" in result
-        verified_queries = result.get("verified_queries")
-        assert verified_queries is not None
-        assert len(verified_queries) == 1
+        assert result.name == "test"
+        assert result.verified_queries is not None
+        assert len(result.verified_queries) == 1
 
-    def test_model_validate_returns_typed_dict(self):
-        """Test that model_validate returns a dict that can be used as SemanticDataModel."""
+    def test_model_validate_returns_pydantic_model(self):
+        """Test that model_validate returns a SemanticDataModel instance."""
         data = {
             "name": "test",
             "tables": [],
         }
 
-        result = model_validate_sdm(data)
+        result = SemanticDataModel.model_validate(data)
 
-        # Should be able to access as dict (TypedDict behavior)
-        assert result["name"] == "test"
-        assert isinstance(result, dict)
-
-
-# ============================================================================
-# Tests for _strip_environment_specific_fields()
-# ============================================================================
-
-
-class TestStripEnvironmentSpecificFields:
-    """Tests for _strip_environment_specific_fields() function."""
-
-    def test_strip_data_connection_id(self, sdm_with_environment_fields: SemanticDataModel):
-        """Test that data_connection_id is stripped."""
-        result = _strip_environment_specific_fields(sdm_with_environment_fields)
-
-        tables = result.get("tables", [])
-        assert len(tables) > 0
-        # data_connection_id should be removed
-        assert "data_connection_id" not in tables[0]["base_table"]
-        # data_connection_name should be removed
-        assert "data_connection_name" not in tables[0]["base_table"]
-        # database and schema should be preserved
-        assert "database" in tables[0]["base_table"]
-        assert "schema" in tables[0]["base_table"]
-
-    def test_strip_file_reference(self, sdm_with_environment_fields: SemanticDataModel):
-        """Test that file references are stripped."""
-        result = _strip_environment_specific_fields(sdm_with_environment_fields)
-
-        # File reference table should have file_reference removed from base_table
-        tables = result.get("tables", [])
-        file_table = next(t for t in tables if t["name"] == "file_data")
-        assert "file_reference" not in file_table["base_table"]
-
-    def test_preserves_database_schema(self, sdm_with_environment_fields: SemanticDataModel):
-        """Test that database and schema are preserved (they're part of SDM definition)."""
-        result = _strip_environment_specific_fields(sdm_with_environment_fields)
-
-        # database and schema should be preserved
-        tables = result.get("tables", [])
-        assert len(tables) > 0
-        base_table = tables[0]["base_table"]
-        assert base_table.get("database") == "test_db"
-        assert base_table.get("schema") == "public"
-
-    def test_does_not_mutate_original(self, sdm_with_environment_fields: SemanticDataModel):
-        """Test that original SDM is not mutated."""
-        original_tables = sdm_with_environment_fields.get("tables", [])
-        assert len(original_tables) > 0
-        original_conn_id = original_tables[0]["base_table"].get("data_connection_id")
-
-        result = _strip_environment_specific_fields(sdm_with_environment_fields)
-
-        # Original should still have the field
-        original_tables = sdm_with_environment_fields.get("tables", [])
-        assert len(original_tables) > 0
-        assert original_tables[0]["base_table"].get("data_connection_id") == original_conn_id
-        # Result should not have it
-        result_tables = result.get("tables", [])
-        assert len(result_tables) > 0
-        assert "data_connection_id" not in result_tables[0]["base_table"]
-
-    def test_handles_missing_fields(self, sample_sdm: SemanticDataModel):
-        """Test that function handles SDMs without environment-specific fields."""
-        result = _strip_environment_specific_fields(sample_sdm)
-
-        # Should work without errors
-        assert result["name"] == sample_sdm["name"]
-        assert len(result.get("tables", [])) == len(sample_sdm.get("tables", []))
+        # Should be a Pydantic model with attribute access
+        assert result.name == "test"
+        assert isinstance(result, SemanticDataModel)
 
 
 # ============================================================================
-# Tests for _normalize_for_comparison()
+# Tests for to_comparable_json()
 # ============================================================================
 
 
-class TestNormalizeForComparison:
-    """Tests for _normalize_for_comparison() function."""
+class TestToComparableJson:
+    """Tests for SemanticDataModel.to_comparable_json() method."""
 
-    def test_normalize_strips_environment_fields(self, sdm_with_environment_fields: SemanticDataModel):
-        """Test that normalize strips environment-specific fields."""
-        result = _normalize_for_comparison(sdm_with_environment_fields)
-
-        # Environment-specific fields should be removed
-        tables = result.get("tables", [])
-        assert len(tables) > 0
-        assert "data_connection_id" not in tables[0]["base_table"]
-        assert "data_connection_name" not in tables[0]["base_table"]
-
-    def test_normalize_preserves_metadata_when_requested(self, sdm_with_metadata: SemanticDataModel):
-        """Test that normalize preserves metadata by default."""
-        result = _normalize_for_comparison(sdm_with_metadata, exclude_metadata=False)
-
-        # Metadata should be preserved
-        assert "metadata" in result
-        assert result["metadata"] is not None
-
-    def test_normalize_excludes_metadata_by_default(self, sdm_with_metadata: SemanticDataModel):
-        """Test that normalize excludes metadata by default."""
-        result = _normalize_for_comparison(sdm_with_metadata)
-
-        # Metadata should be removed
-        assert "metadata" not in result
-
-    def test_normalize_excludes_metadata_when_requested(self, sdm_with_metadata: SemanticDataModel):
-        """Test that normalize can exclude metadata."""
-        result = _normalize_for_comparison(sdm_with_metadata, exclude_metadata=True)
-
-        # Metadata should be removed
-        assert "metadata" not in result
-
-    def test_normalize_handles_empty_tables(self):
-        """Test normalize with SDM that has empty tables list."""
-        sdm = cast(SemanticDataModel, {"name": "test", "tables": []})
-
-        result = _normalize_for_comparison(sdm)
-
-        assert result["name"] == "test"
-        assert result.get("tables", []) == []
-
-
-# ============================================================================
-# Tests for _to_json_string_for_comparison()
-# ============================================================================
-
-
-class TestToJsonStringForComparison:
-    """Tests for _to_json_string_for_comparison() function."""
-
-    def test_to_json_string_basic(self, sample_sdm: SemanticDataModel):
+    def test_to_comparable_json_basic(self, sample_sdm: SemanticDataModel):
         """Test basic JSON string conversion."""
-        result = to_json_string_for_comparison(sample_sdm)
+        result = sample_sdm.to_comparable_json()
 
         assert isinstance(result, str)
         # Should be valid JSON
         parsed = json.loads(result)
         assert parsed["name"] == "test_model"
 
-    def test_to_json_string_is_sorted(self):
+    def test_to_comparable_json_is_sorted(self):
         """Test that JSON string is sorted for consistent comparison."""
-        sdm1 = cast(SemanticDataModel, {"name": "test", "description": "desc", "tables": []})
-        sdm2 = cast(SemanticDataModel, {"description": "desc", "name": "test", "tables": []})
+        sdm1 = SemanticDataModel.model_validate({"name": "test", "description": "desc", "tables": []})
+        sdm2 = SemanticDataModel.model_validate({"description": "desc", "name": "test", "tables": []})
 
-        # Even though fields are in different order, JSON strings should match
-        result1 = to_json_string_for_comparison(sdm1)
-        result2 = to_json_string_for_comparison(sdm2)
+        # Even though fields were defined in different order, JSON strings should match
+        result1 = sdm1.to_comparable_json()
+        result2 = sdm2.to_comparable_json()
 
         assert result1 == result2
 
-    def test_to_json_string_strips_environment_fields(self, sdm_with_environment_fields: SemanticDataModel):
+    def test_to_comparable_json_strips_environment_fields(self, sdm_with_environment_fields: SemanticDataModel):
         """Test that JSON string excludes environment-specific fields."""
-        result = to_json_string_for_comparison(sdm_with_environment_fields)
+        result = sdm_with_environment_fields.to_comparable_json()
 
         json.loads(result)
         # Should not contain environment-specific fields
         assert "data_connection_id" not in str(result)
+        assert "data_connection_name" not in str(result)
+        assert "file_reference" not in str(result)
 
-    def test_to_json_string_excludes_metadata_when_requested(self, sdm_with_metadata: SemanticDataModel):
-        """Test that JSON string can exclude metadata."""
-        result_with_metadata = to_json_string_for_comparison(sdm_with_metadata, exclude_metadata=False)
-        result_without_metadata = to_json_string_for_comparison(sdm_with_metadata, exclude_metadata=True)
+    def test_to_comparable_json_excludes_metadata_by_default(self, sdm_with_metadata: SemanticDataModel):
+        """Test that JSON string excludes metadata by default."""
+        result = sdm_with_metadata.to_comparable_json()
 
-        parsed_with = json.loads(result_with_metadata)
-        parsed_without = json.loads(result_without_metadata)
+        parsed = json.loads(result)
+        assert "metadata" not in parsed
 
-        assert "metadata" in parsed_with
-        assert "metadata" not in parsed_without
-        assert parsed_with["name"] == parsed_without["name"]  # Other fields should match
+    def test_to_comparable_json_includes_metadata_when_requested(self, sdm_with_metadata: SemanticDataModel):
+        """Test that JSON string can include metadata."""
+        result = sdm_with_metadata.to_comparable_json(exclude_metadata=False)
 
-    def test_to_json_string_handles_datetimes(self, sdm_with_datetimes: SemanticDataModel):
+        parsed = json.loads(result)
+        assert "metadata" in parsed
+
+    def test_to_comparable_json_handles_datetimes(self, sdm_with_datetimes: SemanticDataModel):
         """Test that JSON string handles datetime objects correctly."""
-        result = to_json_string_for_comparison(sdm_with_datetimes)
+        result = sdm_with_datetimes.to_comparable_json()
 
         # Should be valid JSON (datetimes converted to strings)
         parsed = json.loads(result)
@@ -491,20 +381,20 @@ class TestToJsonStringForComparison:
         assert isinstance(sample_values[0], str)
         assert "2024-10-16" in sample_values[0]
 
-    def test_to_json_string_consistent_for_same_sdm(self, sample_sdm: SemanticDataModel):
+    def test_to_comparable_json_consistent_for_same_sdm(self, sample_sdm: SemanticDataModel):
         """Test that same SDM produces same JSON string."""
-        result1 = to_json_string_for_comparison(sample_sdm)
-        result2 = to_json_string_for_comparison(sample_sdm)
+        result1 = sample_sdm.to_comparable_json()
+        result2 = sample_sdm.to_comparable_json()
 
         assert result1 == result2
 
-    def test_to_json_string_different_for_different_sdms(self):
+    def test_to_comparable_json_different_for_different_sdms(self):
         """Test that different SDMs produce different JSON strings."""
-        sdm1 = cast(SemanticDataModel, {"name": "model1", "tables": []})
-        sdm2 = cast(SemanticDataModel, {"name": "model2", "tables": []})
+        sdm1 = SemanticDataModel.model_validate({"name": "model1", "tables": []})
+        sdm2 = SemanticDataModel.model_validate({"name": "model2", "tables": []})
 
-        result1 = to_json_string_for_comparison(sdm1)
-        result2 = to_json_string_for_comparison(sdm2)
+        result1 = sdm1.to_comparable_json()
+        result2 = sdm2.to_comparable_json()
 
         assert result1 != result2
 
@@ -515,21 +405,20 @@ class TestToJsonStringForComparison:
 
 
 class TestIntegration:
-    """Integration tests for multiple functions working together."""
+    """Integration tests for SemanticDataModel Pydantic model."""
 
     def test_model_dump_and_validate_roundtrip(self, sample_sdm: SemanticDataModel):
         """Test that model_dump and model_validate work together."""
-        dumped = model_dump_sdm(sample_sdm)
-        validated = model_validate_sdm(dumped)
+        dumped = sample_sdm.model_dump()
+        validated = SemanticDataModel.model_validate(dumped)
 
-        assert validated["name"] == sample_sdm["name"]
-        assert validated.get("description") == sample_sdm.get("description")
-        assert len(validated.get("tables", [])) == len(sample_sdm.get("tables", []))
+        assert validated.name == sample_sdm.name
+        assert validated.description == sample_sdm.description
+        assert len(validated.tables or []) == len(sample_sdm.tables or [])
 
-    def test_normalize_and_compare_workflow(self):
+    def test_compare_workflow_with_to_comparable_json(self):
         """Test the workflow of normalizing and comparing SDMs."""
-        sdm1 = cast(
-            SemanticDataModel,
+        sdm1 = SemanticDataModel.model_validate(
             {
                 "name": "test",
                 "tables": [
@@ -546,8 +435,7 @@ class TestIntegration:
             },
         )
 
-        sdm2 = cast(
-            SemanticDataModel,
+        sdm2 = SemanticDataModel.model_validate(
             {
                 "name": "test",
                 "tables": [
@@ -565,7 +453,7 @@ class TestIntegration:
         )
 
         # After normalization, they should be equal (same semantic structure)
-        json1 = to_json_string_for_comparison(sdm1)
-        json2 = to_json_string_for_comparison(sdm2)
+        json1 = sdm1.to_comparable_json()
+        json2 = sdm2.to_comparable_json()
 
         assert json1 == json2, "SDMs with same semantic structure should match after normalization"

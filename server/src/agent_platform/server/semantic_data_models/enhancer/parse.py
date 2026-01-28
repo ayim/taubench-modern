@@ -187,12 +187,12 @@ def update_semantic_data_model_with_semantic_data_model_from_llm(
 
     # Update semantic model name and description
     if semantic_data_model_for_llm.name:
-        semantic_data_model["name"] = semantic_data_model_for_llm.name
+        semantic_data_model.name = semantic_data_model_for_llm.name
     if semantic_data_model_for_llm.description is not None:
-        semantic_data_model["description"] = semantic_data_model_for_llm.description
+        semantic_data_model.description = semantic_data_model_for_llm.description
 
     # Get existing tables from the semantic data model
-    existing_tables = semantic_data_model.get("tables") or []
+    existing_tables = semantic_data_model.tables or []
 
     # Create a mapping of (schema, table) -> existing table for quick lookup
     existing_table_map = {}
@@ -388,7 +388,7 @@ def update_tables_metadata_in_semantic_model(
         tables_to_enhance: Optional set of table names to enhance.
     """
     # Get all tables from the semantic model
-    all_tables = semantic_model.get("tables") or []
+    all_tables = semantic_model.tables or []
 
     # Iterate over each table in the enhanced metadata
     for enhanced_table in table_metadata.tables or []:

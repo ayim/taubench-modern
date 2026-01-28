@@ -440,7 +440,7 @@ class AgentSpecGenerator:
         if not semantic_data_models:
             return None
 
-        return [SpecSemanticDataModel.model_validate({"name": sdm.get("name")}) for sdm in semantic_data_models]
+        return [SpecSemanticDataModel(name=sdm.name) for sdm in semantic_data_models]
 
     @classmethod
     def _generate_spec_exclude(cls, exclude: list[str] | None = None) -> list[str]:

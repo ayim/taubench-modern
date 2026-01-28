@@ -13,12 +13,9 @@ required_vars=(
   RDS_CREDENTIALS_SECRET_ARN
   VPC_ID
   VPC_SUBNETS
-  MCP_RUNTIME_EFS_FILESYSTEM_ID
-  MCP_RUNTIME_EFS_ACCESS_POINT_ID
   # Supplied when starting the build
   BRANCH_NAME
   SPAR_IMAGE_REF
-  MCP_RUNTIME_IMAGE_REF
 )
 
 # Convert branch name to lowercase alphanumeric release identifier

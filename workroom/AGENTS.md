@@ -1,10 +1,9 @@
 # Context
 
-The Work Room folder is an app that comprises of 4 main pieces:
+The Work Room folder is an app that comprises of 3 main pieces:
 
 - `@backend`: backend (in express) responsible for routing request to the agent-server, located outside of this folder, both locally and in production
 - `@frontend`: frontend (in react) responsible for displaying the UI.
-- `@mcp-runtime`: the service responsible for provisioning and running action servers as MCP servers. It exposes an API to provision, deprovision and list existing deployments (among other things)
 
 # Glossary
 

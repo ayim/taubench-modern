@@ -24,11 +24,6 @@ data_server_tag="1.1.15_e65fbf8.20250916T124606Z"
 data_server_ecr_repository="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server"
 data_server_ghcr_repository="ghcr.io/sema4ai-external/s4te-data-server"
 
-# Tag + repos for `mcp-runtime` image
-mcp_runtime_tag="1.0.0_91f9670.20251118T094215Z"
-mcp_runtime_ecr_repository="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/mcp-runtime"
-mcp_runtime_ghcr_repository="ghcr.io/sema4ai-external/s4te-mcp-runtime"
-
 # The GitHub repository the images should be linked to (available from repo sidebar under "packages")
 linked_github_repository_url="https://github.com/sema4ai-external/sema4ai-team-edition-deployment"
 
@@ -52,15 +47,7 @@ crane mutate \
   --label "org.opencontainers.image.source=${linked_github_repository_url}" \
   "${data_server_dst}"
 
-mcp_runtime_src="${mcp_runtime_ecr_repository}:${mcp_runtime_tag}"
-mcp_runtime_dst="${mcp_runtime_ghcr_repository}:${mcp_runtime_tag}"
-crane copy "${mcp_runtime_src}" "${mcp_runtime_dst}"
-crane mutate \
-  --label "org.opencontainers.image.source=${linked_github_repository_url}" \
-  "${mcp_runtime_dst}"
-
 echo "##############################################################################"
 echo "Images copied successfully:"
 echo "- ${spar_dst}"
 echo "- ${data_server_dst}"
-echo "- ${mcp_runtime_dst}"

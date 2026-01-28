@@ -2,12 +2,13 @@
 
 import pytest
 
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.payloads.semantic_data_model_payloads import TableInfo
 from agent_platform.server.kernel.semantic_data_model_generator import ColumnInfo, DataConnectionInfo
 
 
 @pytest.fixture
-async def semantic_model():
+async def semantic_model() -> SemanticDataModel:
     """Fixture to generate a semantic data model."""
     from agent_platform.server.kernel.semantic_data_model_generator import (
         SemanticDataModelGenerator,
@@ -217,10 +218,12 @@ class TestFullStrategy:
         strategy.apply_enhancement(enhanced_model)
 
         # Check that the model was updated
-        assert strategy.semantic_model["name"] == "Enhanced Model"
-        assert strategy.semantic_model.get("description") == "Enhanced description"
-        assert strategy.semantic_model["tables"][0]["name"] == "enhanced_table"  # type: ignore[index]
-        dimensions = strategy.semantic_model["tables"][0].get("dimensions")  # type: ignore[index]
+        assert strategy.semantic_model.name == "Enhanced Model"
+        assert strategy.semantic_model.description == "Enhanced description"
+        tables = strategy.semantic_model.tables
+        assert tables is not None
+        assert tables[0]["name"] == "enhanced_table"
+        dimensions = tables[0].get("dimensions")
         assert dimensions is not None
         assert len(dimensions) > 0
         assert dimensions[0].get("name") == "ai_system_name"
@@ -255,7 +258,7 @@ class TestTablesOnlyStrategy:
         )
 
         # Store original column name
-        original_col_name = semantic_model["tables"][0].get("dimensions")[0]["name"]  # type: ignore[index]
+        original_col_name = semantic_model.tables[0].get("dimensions")[0]["name"]
 
         strategy = TablesOnlyStrategy(semantic_model, tables_to_enhance={"ai_systems"})
 
@@ -274,12 +277,14 @@ class TestTablesOnlyStrategy:
         strategy.apply_enhancement(enhanced_tables)
 
         # Check that table metadata was updated
-        assert strategy.semantic_model["tables"][0]["name"] == "ai_systems"  # type: ignore[index]
-        assert strategy.semantic_model["tables"][0]["description"] == "Enhanced table description"  # type: ignore[index]
-        assert strategy.semantic_model["tables"][0]["synonyms"] == ["table_synonym"]  # type: ignore[index]
+        assert strategy.semantic_model.tables[0]["name"] == "ai_systems"
+        assert strategy.semantic_model.tables[0].get("description") == "Enhanced table description"
+        assert strategy.semantic_model.tables[0].get("synonyms") == ["table_synonym"]
 
         # Check that column name was NOT changed
-        updated_col_name = strategy.semantic_model["tables"][0].get("dimensions")[0]["name"]  # type: ignore[index]
+        dimensions = strategy.semantic_model.tables[0].get("dimensions")
+        assert dimensions is not None
+        updated_col_name = dimensions[0].get("name")
         assert updated_col_name == original_col_name
 
 
@@ -314,8 +319,8 @@ class TestColumnsOnlyStrategy:
         )
 
         # Store original table name and description
-        original_table_name = semantic_model["tables"][0]["name"]  # type: ignore[index]
-        original_table_desc = semantic_model["tables"][0].get("description")  # type: ignore[index]
+        original_table_name = semantic_model.tables[0]["name"]
+        original_table_desc = semantic_model.tables[0].get("description")
 
         strategy = ColumnsOnlyStrategy(
             semantic_model,
@@ -341,7 +346,7 @@ class TestColumnsOnlyStrategy:
         strategy.apply_enhancement(enhanced_columns)
 
         # Check that column was updated
-        dimensions = strategy.semantic_model["tables"][0].get("dimensions")  # type: ignore[index]
+        dimensions = strategy.semantic_model.tables[0].get("dimensions")
         assert dimensions is not None
         assert len(dimensions) > 0
         assert dimensions[0].get("name") == "ai_system_name"
@@ -349,5 +354,5 @@ class TestColumnsOnlyStrategy:
         assert dimensions[0].get("synonyms") == ["col_synonym"]
 
         # Check that table metadata was NOT changed
-        assert strategy.semantic_model["tables"][0]["name"] == original_table_name  # type: ignore[index]
-        assert strategy.semantic_model["tables"][0].get("description") == original_table_desc  # type: ignore[index]
+        assert strategy.semantic_model.tables[0]["name"] == original_table_name
+        assert strategy.semantic_model.tables[0].get("description") == original_table_desc

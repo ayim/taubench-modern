@@ -240,7 +240,7 @@ class SemanticDataModelCollector:
         Returns:
             The logical table dict if found, None otherwise
         """
-        tables = semantic_data_model.get("tables") or []
+        tables = semantic_data_model.tables or []
         for table in tables:
             if table.get("name") == logical_table_name:
                 return table
@@ -298,7 +298,7 @@ class SemanticDataModelCollector:
 
         if references.errors:
             logger.error(
-                f"Error: semantic data model: {semantic_data_model.get('name')} has errors",
+                f"Error: semantic data model: {semantic_data_model.name} has errors",
                 errors=references.errors,
             )
             return semantic_data_model, references
@@ -314,7 +314,7 @@ class SemanticDataModelCollector:
 
         if found is not None:
             logical_table_name_to_logical_table: dict[str, LogicalTable] = {}
-            for logical_table in semantic_data_model.get("tables") or []:
+            for logical_table in semantic_data_model.tables or []:
                 name = logical_table.get("name")
                 if not name:
                     continue
@@ -382,8 +382,7 @@ class SemanticDataModelCollector:
 
             if references.errors:
                 logger.error(
-                    f"Error: semantic data model: {resolved_sdm.get('name')} has errors"
-                    f" (unable to use it in the kernel)",
+                    f"Error: semantic data model: {resolved_sdm.name} has errors (unable to use it in the kernel)",
                     errors=references.errors,
                 )
                 continue

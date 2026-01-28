@@ -145,14 +145,6 @@ describe('buildCreateMcpServerPayload', () => {
     expect(result.type).toBe('sema4ai_action_server');
   });
 
-  it('builds payload for hosted server with URL', () => {
-    const input: NewMcpServerFormValues = { ...baseInput, type: 'hosted' };
-    const result = buildCreateMcpServerPayload(input);
-    expect(result.type).toBe('sema4ai_action_server');
-    expect(result.transport).toBe('streamable-http');
-    expect(result.url).toBe('https://example.com/mcp');
-  });
-
   it('includes headers when provided', () => {
     const input: NewMcpServerFormValues = {
       ...baseInput,
@@ -160,16 +152,6 @@ describe('buildCreateMcpServerPayload', () => {
     };
     const result = buildCreateMcpServerPayload(input);
     expect(result.headers).toEqual({ Authorization: 'Bearer token' });
-  });
-
-  it('includes agent package secrets as secret headers for hosted type', () => {
-    const input: NewMcpServerFormValues = {
-      ...baseInput,
-      type: 'hosted',
-      agentPackageSecrets: { API_KEY: 'my-api-key', EMPTY_SECRET: '' },
-    };
-    const result = buildCreateMcpServerPayload(input);
-    expect(result.headers).toEqual({ API_KEY: { type: 'secret', value: 'my-api-key' } });
   });
 
   it('builds oauth config for client credentials flow', () => {
@@ -248,31 +230,6 @@ describe('buildUpdateMcpServerPayload', () => {
     expect(result.cwd).toBe('/home/user');
     expect(result.env).toEqual({ PATH: '/usr/bin' });
     expect(result.force_serial_tool_calls).toBe(true);
-  });
-
-  it('converts hosted type to sema4ai_action_server', () => {
-    const input: EditMcpServerFormValues = { ...baseInput, type: 'hosted' };
-    const result = buildUpdateMcpServerPayload(input, baseOriginal, { isHostedWithMetadata: false });
-    expect(result.type).toBe('sema4ai_action_server');
-  });
-
-  it('includes agent package secrets when isHostedWithMetadata is true', () => {
-    const input: EditMcpServerFormValues = {
-      ...baseInput,
-      type: 'hosted',
-      agentPackageSecrets: { API_KEY: 'my-api-key' },
-    };
-    const result = buildUpdateMcpServerPayload(input, baseOriginal, { isHostedWithMetadata: true });
-    expect(result.headers).toEqual({ API_KEY: { type: 'secret', value: 'my-api-key' } });
-  });
-
-  it('does not include agent package secrets when isHostedWithMetadata is false', () => {
-    const input: EditMcpServerFormValues = {
-      ...baseInput,
-      agentPackageSecrets: { API_KEY: 'my-api-key' },
-    };
-    const result = buildUpdateMcpServerPayload(input, baseOriginal, { isHostedWithMetadata: false });
-    expect(result.headers).toBeNull();
   });
 
   it('splits argsText by whitespace', () => {
@@ -376,34 +333,6 @@ describe('newMcpServerFormSchema', () => {
       name: 'Test Server',
       type: 'generic_mcp',
       transport: 'stdio',
-    };
-    const result = newMcpServerFormSchema.safeParse(input);
-    expect(result.success).toBe(true);
-  });
-
-  it('requires URL for hosted type without agent package file', () => {
-    const input = {
-      name: 'Test Server',
-      type: 'hosted',
-      transport: 'auto',
-    };
-    const result = newMcpServerFormSchema.safeParse(input);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(
-        result.error.issues.some(
-          (i) => i.message === 'Action Server URL is required when no agent package is uploaded',
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it('allows hosted type with URL', () => {
-    const input = {
-      name: 'Test Server',
-      type: 'hosted',
-      transport: 'auto',
-      url: 'https://example.com/mcp',
     };
     const result = newMcpServerFormSchema.safeParse(input);
     expect(result.success).toBe(true);

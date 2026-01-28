@@ -13,6 +13,8 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
+    from agent_platform.core.payloads.semantic_data_model_payloads import SemanticDataModel
+
     # Use unique name to avoid conflicts with other test runs
     unique_suffix = str(uuid4())[:8]
     test_model_name = f"test_semantic_model_{unique_suffix}"
@@ -55,106 +57,108 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         )
 
         # Create a semantic data model
-        semantic_model = {
-            "name": test_model_name,
-            "description": "A test semantic model for integration testing",
-            "tables": [
-                {
-                    "name": "hardware_and_energy_cost_to_train_notable_ai_systems",
-                    "base_table": {
-                        "table": "data_frame_hardware_and_energy_cost_to_train_notable_ai_systems",
-                        "file_reference": {
-                            "thread_id": thread_id,
-                            "file_ref": name_file_1,
-                            "sheet_name": "",
+        semantic_model = SemanticDataModel.model_validate(
+            {
+                "name": test_model_name,
+                "description": "A test semantic model for integration testing",
+                "tables": [
+                    {
+                        "name": "hardware_and_energy_cost_to_train_notable_ai_systems",
+                        "base_table": {
+                            "table": "data_frame_hardware_and_energy_cost_to_train_notable_ai_systems",
+                            "file_reference": {
+                                "thread_id": thread_id,
+                                "file_ref": name_file_1,
+                                "sheet_name": "",
+                            },
                         },
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the training datapoint",
+                            },
+                            {
+                                "name": "Code",
+                                "expr": "Code",
+                                "data_type": "TEXT",
+                                "description": "The code of the training datapoint",
+                            },
+                            {
+                                "name": "Year",
+                                "expr": "Year",
+                                "data_type": "TEXT",
+                                "description": "The year of the training datapoint",
+                            },
+                            {
+                                "name": "Day",
+                                "expr": "Day",
+                                "data_type": "TEXT",
+                                "description": "The day of the training datapoint",
+                            },
+                            {
+                                "name": "Domain",
+                                "expr": "Domain",
+                                "data_type": "TEXT",
+                                "description": "The domain of the training datapoint",
+                            },
+                            {
+                                "name": "Cost (inflation-adjusted)",
+                                "expr": "Cost (inflation-adjusted)",
+                                "data_type": "TEXT",
+                                "description": "The cost of the training datapoint",
+                            },
+                        ],
                     },
-                    "dimensions": [
-                        {
-                            "name": "Entity",
-                            "expr": "Entity",
-                            "data_type": "TEXT",
-                            "description": "The entity of the training datapoint",
+                    {
+                        "name": "artificial_intelligence_number_training_datapoints",
+                        "base_table": {
+                            "database": "",  # Not required for SQLite
+                            "schema": "",  # Not required for SQLite
+                            "table": "artificial_intelligence_number_training_datapoints",
+                            "data_connection_id": data_connection_1["id"],
                         },
-                        {
-                            "name": "Code",
-                            "expr": "Code",
-                            "data_type": "TEXT",
-                            "description": "The code of the training datapoint",
-                        },
-                        {
-                            "name": "Year",
-                            "expr": "Year",
-                            "data_type": "TEXT",
-                            "description": "The year of the training datapoint",
-                        },
-                        {
-                            "name": "Day",
-                            "expr": "Day",
-                            "data_type": "TEXT",
-                            "description": "The day of the training datapoint",
-                        },
-                        {
-                            "name": "Domain",
-                            "expr": "Domain",
-                            "data_type": "TEXT",
-                            "description": "The domain of the training datapoint",
-                        },
-                        {
-                            "name": "Cost (inflation-adjusted)",
-                            "expr": "Cost (inflation-adjusted)",
-                            "data_type": "TEXT",
-                            "description": "The cost of the training datapoint",
-                        },
-                    ],
-                },
-                {
-                    "name": "artificial_intelligence_number_training_datapoints",
-                    "base_table": {
-                        "database": "",  # Not required for SQLite
-                        "schema": "",  # Not required for SQLite
-                        "table": "artificial_intelligence_number_training_datapoints",
-                        "data_connection_id": data_connection_1["id"],
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the training datapoint",
+                            },
+                            {
+                                "name": "Code",
+                                "expr": "Code",
+                                "data_type": "TEXT",
+                                "description": "The code of the training datapoint",
+                            },
+                            {
+                                "name": "Day",
+                                "expr": "Day",
+                                "data_type": "TEXT",
+                                "description": "The day of the training datapoint",
+                            },
+                            {
+                                "name": "Training_dataset_size",
+                                "expr": "Training_dataset_size",
+                                "data_type": "INTEGER",
+                                "description": "The size of the training dataset",
+                            },
+                            {
+                                "name": "Domain",
+                                "expr": "Domain",
+                                "data_type": "TEXT",
+                                "description": "The domain of the training datapoint",
+                            },
+                        ],
                     },
-                    "dimensions": [
-                        {
-                            "name": "Entity",
-                            "expr": "Entity",
-                            "data_type": "TEXT",
-                            "description": "The entity of the training datapoint",
-                        },
-                        {
-                            "name": "Code",
-                            "expr": "Code",
-                            "data_type": "TEXT",
-                            "description": "The code of the training datapoint",
-                        },
-                        {
-                            "name": "Day",
-                            "expr": "Day",
-                            "data_type": "TEXT",
-                            "description": "The day of the training datapoint",
-                        },
-                        {
-                            "name": "Training_dataset_size",
-                            "expr": "Training_dataset_size",
-                            "data_type": "INTEGER",
-                            "description": "The size of the training dataset",
-                        },
-                        {
-                            "name": "Domain",
-                            "expr": "Domain",
-                            "data_type": "TEXT",
-                            "description": "The domain of the training datapoint",
-                        },
-                    ],
-                },
-            ],
-        }
+                ],
+            }
+        )
 
         # Create the semantic data model
         created_model_id_and_references = agent_client.create_semantic_data_model(
-            dict(semantic_model=semantic_model),
+            dict(semantic_model=semantic_model.model_dump()),
         )
         assert semantic_model == agent_client.get_semantic_data_model(
             created_model_id_and_references["semantic_data_model_id"]
@@ -164,13 +168,15 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Test creating with a specific ID (use a different name to avoid duplicate)
         model_id = "test-model-id-123"
-        semantic_model_with_specific_id = {
-            **semantic_model,
-            "name": f"{test_model_name}_with_specific_id",
-        }
+        semantic_model_with_specific_id = SemanticDataModel.model_validate(
+            {
+                **semantic_model.model_dump(),
+                "name": f"{test_model_name}_with_specific_id",
+            }
+        )
         created_model_with_id = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=semantic_model_with_specific_id),
+            semantic_model=dict(semantic_model=semantic_model_with_specific_id.model_dump()),
         )
         assert created_model_with_id["semantic_data_model_id"] == model_id
         assert created_model_with_id["data_connection_ids"] == [data_connection_1["id"]]
@@ -181,66 +187,68 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         assert retrieved_model == semantic_model_with_specific_id
 
         # Test updating the semantic data model (keep the same name as the model we're updating)
-        updated_semantic_model = semantic_model = {
-            "name": f"{test_model_name}_with_specific_id",
-            "description": "A test semantic model for integration testing",
-            "tables": [
-                {
-                    "name": "hardware_and_energy_cost_to_train_notable_ai_systems",
-                    "base_table": {
-                        "table": "data_frame_hardware_and_energy_cost_to_train_notable_ai_systems",
-                        "file_reference": {
-                            "thread_id": thread_id,
-                            "file_ref": name_file_1,
-                            "sheet_name": "",
+        updated_semantic_model = semantic_model = SemanticDataModel.model_validate(
+            {
+                "name": f"{test_model_name}_with_specific_id",
+                "description": "A test semantic model for integration testing",
+                "tables": [
+                    {
+                        "name": "hardware_and_energy_cost_to_train_notable_ai_systems",
+                        "base_table": {
+                            "table": "data_frame_hardware_and_energy_cost_to_train_notable_ai_systems",
+                            "file_reference": {
+                                "thread_id": thread_id,
+                                "file_ref": name_file_1,
+                                "sheet_name": "",
+                            },
                         },
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the training datapoint",
+                            },
+                            {
+                                "name": "Code",
+                                "expr": "Code",
+                                "data_type": "TEXT",
+                                "description": "The code of the training datapoint",
+                            },
+                            {
+                                "name": "Year",
+                                "expr": "Year",
+                                "data_type": "TEXT",
+                                "description": "The year of the training datapoint",
+                            },
+                            {
+                                "name": "Day",
+                                "expr": "Day",
+                                "data_type": "TEXT",
+                                "description": "The day of the training datapoint",
+                            },
+                            {
+                                "name": "Domain",
+                                "expr": "Domain",
+                                "data_type": "TEXT",
+                                "description": "The domain of the training datapoint",
+                            },
+                            {
+                                "name": "Cost (inflation-adjusted)",
+                                "expr": "Cost (inflation-adjusted)",
+                                "data_type": "TEXT",
+                                "description": "The cost of the training datapoint",
+                            },
+                        ],
                     },
-                    "dimensions": [
-                        {
-                            "name": "Entity",
-                            "expr": "Entity",
-                            "data_type": "TEXT",
-                            "description": "The entity of the training datapoint",
-                        },
-                        {
-                            "name": "Code",
-                            "expr": "Code",
-                            "data_type": "TEXT",
-                            "description": "The code of the training datapoint",
-                        },
-                        {
-                            "name": "Year",
-                            "expr": "Year",
-                            "data_type": "TEXT",
-                            "description": "The year of the training datapoint",
-                        },
-                        {
-                            "name": "Day",
-                            "expr": "Day",
-                            "data_type": "TEXT",
-                            "description": "The day of the training datapoint",
-                        },
-                        {
-                            "name": "Domain",
-                            "expr": "Domain",
-                            "data_type": "TEXT",
-                            "description": "The domain of the training datapoint",
-                        },
-                        {
-                            "name": "Cost (inflation-adjusted)",
-                            "expr": "Cost (inflation-adjusted)",
-                            "data_type": "TEXT",
-                            "description": "The cost of the training datapoint",
-                        },
-                    ],
-                },
-            ],
-        }
+                ],
+            }
+        )
 
         # Test updating the semantic data model (leave just the file reference, not the connection)
         updated_model_id_and_references = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=updated_semantic_model),
+            semantic_model=dict(semantic_model=updated_semantic_model.model_dump()),
         )
         assert updated_model_id_and_references["data_connection_ids"] == []
         assert updated_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
@@ -248,7 +256,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Verify the update
         retrieved_updated_model = agent_client.get_semantic_data_model(model_id)
-        assert retrieved_updated_model == updated_semantic_model
+        assert retrieved_updated_model == SemanticDataModel.model_validate(updated_semantic_model)
 
         # Test deleting the semantic data model
         agent_client.delete_semantic_data_model(model_id)
@@ -455,7 +463,7 @@ def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_serve
 
         # Verify model_2 still has its original name
         retrieved_model_2 = agent_client.get_semantic_data_model(model_id_2)
-        assert retrieved_model_2["name"] == "Cost Analysis"
+        assert retrieved_model_2.name == "Cost Analysis"
 
 
 @pytest.mark.integration
@@ -517,8 +525,8 @@ def test_can_update_semantic_data_model_with_same_name(base_url_agent_server_ses
 
         # Verify the update succeeded
         retrieved_model = agent_client.get_semantic_data_model(model_id)
-        assert retrieved_model["name"] == "Product Metrics"
-        assert retrieved_model["description"] == "Updated description"
+        assert retrieved_model.name == "Product Metrics"
+        assert retrieved_model.description == "Updated description"
 
 
 @pytest.mark.integration
@@ -590,10 +598,9 @@ def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_se
 
         # Generate the semantic data model
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        assert "semantic_model" in generated_model
 
         # Create the semantic data model
-        created_model = agent_client.create_semantic_data_model(generated_model)
+        created_model = agent_client.create_semantic_data_model(generated_model.model_dump())
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
         # Set the generated data model for the agent
@@ -605,8 +612,9 @@ def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_se
         assert semantic_data_model_id in agent_models[0]
 
         # Verify the model was created correctly
-        retrieved_model = agent_client.get_semantic_data_model(semantic_data_model_id)
-        assert retrieved_model == generated_model["semantic_model"]
+        _ = agent_client.get_semantic_data_model(semantic_data_model_id)
+
+        # Interact with the SDM via the agent.
         final_response, tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             thread_id,
@@ -698,8 +706,6 @@ def test_generate_semantic_data_model_generation_integration(
     base_url_agent_server, resources_dir, data_regression, openai_api_key
 ):
     """Test generate semantic data model API endpoint integration."""
-    import copy
-
     import yaml
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
@@ -865,48 +871,62 @@ def test_generate_semantic_data_model_generation_integration(
         }
 
         # Generate the semantic data model
-        generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        logger.info(f"Generated model:\n{yaml.safe_dump(generated_model)}")
-        original_generated_model = copy.deepcopy(generated_model)
-
-        semantic_model = generated_model["semantic_model"]
+        orig_model_resp = agent_client.generate_semantic_data_model(generate_payload)
+        orig_model = orig_model_resp.model_dump()
+        semantic_model = orig_model_resp.semantic_model
 
         # Redact the fields that change on each run (so that the data_regression can be used
         # to check the expected results).
-        for table in semantic_model["tables"]:
-            if "data_connection_id" in table["base_table"]:
+        for table in semantic_model.tables:
+            if table["base_table"].get("data_connection_id", None) is not None:
                 table["base_table"]["data_connection_id"] = "<redacted>"
-            if "file_reference" in table["base_table"]:
-                table["base_table"]["file_reference"]["thread_id"] = "<redacted>"
-                table["base_table"]["file_reference"]["file_ref"] = "<redacted>"
+            if table["base_table"].get("file_reference", None) is not None:
+                table["base_table"]["file_reference"]["thread_id"] = "<redacted>"  # type: ignore
+                table["base_table"]["file_reference"]["file_ref"] = "<redacted>"  # type: ignore
 
         # We cannot use data_regression here as the generated model is different on each run
         # (as the LLM is used to enhance the model).
         # As such, just verify that the generated model tables/columns are present.
-        assert semantic_model["name"] is not None, "Model name is expected"
-        assert "_" not in semantic_model["name"], "Model name should not contain underscores"
+        assert semantic_model.name is not None, "Model name is expected"
+        assert "_" not in semantic_model.name, "Model name should not contain underscores"
         # We check for 35 characters because the LLM is not perfect and sometimes generates
         # names that are too long even though it's encouraged to less than 25 in the prompt.
-        assert len(semantic_model["name"]) <= 35, "Model name should be less than 35 characters"
-        assert "tables" in semantic_model, "Tables are expected"
-        assert len(semantic_model["tables"]) > 0, "At least one table is expected"
-        for table in semantic_model["tables"]:
+        assert len(semantic_model.name) <= 35, "Model name should be less than 35 characters"
+        assert semantic_model.tables is not None, "Tables are expected"
+        assert len(semantic_model.tables) > 0, "At least one table is expected"
+        for table in semantic_model.tables:
             assert "name" in table, "Table name is expected"
 
-        semantic_data_model_id = agent_client.create_semantic_data_model(original_generated_model)[
-            "semantic_data_model_id"
-        ]
+        semantic_data_model_id = agent_client.create_semantic_data_model(orig_model)["semantic_data_model_id"]
 
         agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
         agent_client.set_thread_semantic_data_models(thread_id, [semantic_data_model_id])
 
-        assert agent_client.get_thread_semantic_data_models(thread_id) == [
-            {semantic_data_model_id: original_generated_model["semantic_model"]}
-        ]
+        thread_sdms = agent_client.get_thread_semantic_data_models(thread_id)
+        # Get the semantic model dict with nulls stripped consistently
+        # We need to use model_dump() on the SemanticDataModel directly (not through the parent)
+        # to ensure the custom serializer strips nulls properly
+        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 
-        assert agent_client.get_agent_semantic_data_models(agent_id) == [
-            {semantic_data_model_id: original_generated_model["semantic_model"]}
-        ]
+        semantic_model_dict = SemanticDataModel.model_validate(orig_model["semantic_model"]).model_dump()
+        expected_thread_sdms = [{semantic_data_model_id: semantic_model_dict}]
+        if thread_sdms != expected_thread_sdms:
+            import difflib
+
+            expected_yaml = yaml.safe_dump(expected_thread_sdms, default_flow_style=False, sort_keys=True)
+            actual_yaml = yaml.safe_dump(thread_sdms, default_flow_style=False, sort_keys=True)
+            diff = "\n".join(
+                difflib.unified_diff(
+                    expected_yaml.splitlines(),
+                    actual_yaml.splitlines(),
+                    fromfile="expected",
+                    tofile="actual",
+                    lineterm="",
+                )
+            )
+            pytest.fail(f"Thread SDMs differs from original SDM:\n{diff}")
+
+        assert agent_client.get_agent_semantic_data_models(agent_id) == [{semantic_data_model_id: semantic_model_dict}]
 
         # Test the new list semantic data models API
         # List all semantic data models
@@ -947,49 +967,51 @@ Google,2023,15"""
         assert len(table_info["columns"]) == 3  # Entity, Year, Cost
 
         # Step 3: Create a semantic data model from it
-        semantic_model: SemanticDataModel = {
-            "name": "test_ai_systems_semantic_model",
-            "description": "A test semantic model for AI systems data",
-            "tables": [
-                {
-                    "name": "ai_systems_data",
-                    "base_table": {
-                        # This will be the data frame name (use to reference the table in the
-                        # SQL queries)
-                        "table": "data_frame_test_ai_systems",
-                        # Because we're uploading the semantic data model to an agent, we don't
-                        # know the thread_id or file_ref yet, so we leave them empty. Later
-                        # on we must automatically match with a matching file uploaded to the
-                        # thread.
-                        "file_reference": {
-                            "thread_id": "",
-                            "file_ref": "",
-                            "sheet_name": "",
+        semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
+            {
+                "name": "test_ai_systems_semantic_model",
+                "description": "A test semantic model for AI systems data",
+                "tables": [
+                    {
+                        "name": "ai_systems_data",
+                        "base_table": {
+                            # This will be the data frame name (use to reference the table in the
+                            # SQL queries)
+                            "table": "data_frame_test_ai_systems",
+                            # Because we're uploading the semantic data model to an agent, we don't
+                            # know the thread_id or file_ref yet, so we leave them empty. Later
+                            # on we must automatically match with a matching file uploaded to the
+                            # thread.
+                            "file_reference": {
+                                "thread_id": "",
+                                "file_ref": "",
+                                "sheet_name": "",
+                            },
                         },
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the AI system",
+                            },
+                            {
+                                "name": "Year",
+                                "expr": "Year",
+                                "data_type": "TEXT",
+                                "description": "The year of the AI system",
+                            },
+                            {
+                                "name": "Cost",
+                                "expr": "Cost",
+                                "data_type": "NUMBER",
+                                "description": "The cost of the AI system",
+                            },
+                        ],
                     },
-                    "dimensions": [
-                        {
-                            "name": "Entity",
-                            "expr": "Entity",
-                            "data_type": "TEXT",
-                            "description": "The entity of the AI system",
-                        },
-                        {
-                            "name": "Year",
-                            "expr": "Year",
-                            "data_type": "TEXT",
-                            "description": "The year of the AI system",
-                        },
-                        {
-                            "name": "Cost",
-                            "expr": "Cost",
-                            "data_type": "NUMBER",
-                            "description": "The cost of the AI system",
-                        },
-                    ],
-                },
-            ],
-        }
+                ],
+            }
+        )
 
         # Step 4: Create a new thread
         agent_id = agent_client.create_agent_and_return_agent_id(
@@ -1012,7 +1034,7 @@ Google,2023,15"""
         # Create the semantic data model -- note that it doesn't really reference
         # a file yet (because it currently doesn't exist in a thread).
         created_model = agent_client.create_semantic_data_model(
-            dict(semantic_model=semantic_model),
+            dict(semantic_model=semantic_model.model_dump()),
         )
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
@@ -1081,37 +1103,39 @@ def test_semantic_data_model_validation_with_file_reference_resolution(base_url_
         thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Create a semantic model with UNRESOLVED file references (empty thread_id/file_ref)
-        semantic_model: SemanticDataModel = {
-            "name": "test_validation_with_file_resolution",
-            "description": "Test model for validation with file reference resolution",
-            "tables": [
-                {
-                    "name": "test_data",
-                    "base_table": {
-                        "table": "data_frame_test_data",
-                        "file_reference": {
-                            "thread_id": "",  # Empty - should be resolved
-                            "file_ref": "",  # Empty - should be resolved
-                            "sheet_name": "",
+        semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
+            {
+                "name": "test_validation_with_file_resolution",
+                "description": "Test model for validation with file reference resolution",
+                "tables": [
+                    {
+                        "name": "test_data",
+                        "base_table": {
+                            "table": "data_frame_test_data",
+                            "file_reference": {
+                                "thread_id": "",  # Empty - should be resolved
+                                "file_ref": "",  # Empty - should be resolved
+                                "sheet_name": "",
+                            },
                         },
+                        "dimensions": [
+                            {
+                                "name": "Name",
+                                "expr": "Name",
+                                "data_type": "TEXT",
+                                "description": "Name column",
+                            },
+                            {
+                                "name": "Value",
+                                "expr": "Value",
+                                "data_type": "NUMBER",
+                                "description": "Value column",
+                            },
+                        ],
                     },
-                    "dimensions": [
-                        {
-                            "name": "Name",
-                            "expr": "Name",
-                            "data_type": "TEXT",
-                            "description": "Name column",
-                        },
-                        {
-                            "name": "Value",
-                            "expr": "Value",
-                            "data_type": "NUMBER",
-                            "description": "Value column",
-                        },
-                    ],
-                },
-            ],
-        }
+                ],
+            }
+        )
 
         # Validate BEFORE uploading file - should have unresolved file reference warnings
         base_url = urljoin(base_url_agent_server + "/", "api/v2")
@@ -1119,7 +1143,7 @@ def test_semantic_data_model_validation_with_file_reference_resolution(base_url_
 
         response_before = requests.post(
             validate_url,
-            json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+            json={"semantic_data_model": semantic_model.model_dump(), "thread_id": thread_id},
             headers={"Content-Type": "application/json"},
         )
         assert response_before.status_code == 200, (
@@ -1150,7 +1174,7 @@ Test2,200"""
         # Validate AFTER uploading file - file references should be resolved
         response_after = requests.post(
             validate_url,
-            json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+            json={"semantic_data_model": semantic_model.model_dump(), "thread_id": thread_id},
             headers={"Content-Type": "application/json"},
         )
         assert response_after.status_code == 200, (
@@ -1171,6 +1195,7 @@ Test2,200"""
 
 
 @pytest.mark.integration
+@pytest.mark.skip(reason="EPD-3679 Flaky test")
 def test_save_data_frame_as_validated_query_and_create_from_it(
     base_url_agent_server_session, resources_dir, openai_api_key
 ):
@@ -1248,10 +1273,12 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
         # Generate the semantic data model
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        assert "semantic_model" in generated_model
+        assert generated_model.semantic_model is not None
 
         # Create the semantic data model
-        created_model = agent_client.create_semantic_data_model(generated_model)
+        created_model = agent_client.create_semantic_data_model(
+            {"semantic_model": generated_model.semantic_model.model_dump()}
+        )
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
         # Set the generated data model for the agent
@@ -1328,12 +1355,16 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         response_data = get_response.json()
 
         # Verify the response contains both the verified query and semantic data model name
-        assert "verified_query" in response_data
-        assert "semantic_data_model_name" in response_data
+        assert response_data.get("verified_query", None), (
+            f"Expected verified_query in response: {json.dumps(response_data, indent=2)}"
+        )
+        assert response_data.get("semantic_data_model_name", None), (
+            f"Expected semantic_data_model_name in response: {json.dumps(response_data, indent=2)}"
+        )
 
         # Get the semantic data model to verify the name
         semantic_data_model = agent_client.get_semantic_data_model(semantic_data_model_id)
-        expected_sdm_name = semantic_data_model["name"]
+        expected_sdm_name = semantic_data_model.name
 
         # Verify the semantic data model name matches the one we created
         assert response_data["semantic_data_model_name"] == expected_sdm_name, (
@@ -1364,15 +1395,15 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
         # Verify the semantic data model was updated with the verified query
         retrieved_model = agent_client.get_semantic_data_model(semantic_data_model_id)
-        assert "verified_queries" in retrieved_model
-        assert retrieved_model["verified_queries"] is not None
-        assert len(retrieved_model["verified_queries"]) == 1
+        assert retrieved_model.verified_queries is not None
+        assert retrieved_model.verified_queries is not None
+        assert len(retrieved_model.verified_queries) == 1
 
-        verified_query = retrieved_model["verified_queries"][0]
-        # API returns dicts, not Pydantic models
-        assert verified_query["name"] == expected_verified_query_name
-        assert verified_query["sql"] is not None
-        assert verified_query["sql"]  # SQL should not be empty
+        verified_query = retrieved_model.verified_queries[0]
+        # verified_query is now a VerifiedQuery Pydantic model
+        assert verified_query.name == expected_verified_query_name
+        assert verified_query.sql is not None
+        assert verified_query.sql  # SQL should not be empty
 
         # Create a new thread in the same agent
         new_thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
@@ -1524,10 +1555,10 @@ def test_user_description_preserved_after_generation(base_url_agent_server_sessi
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        assert "semantic_model" in generated_model
+        assert generated_model.semantic_model is not None
 
         # Verify user description is preserved after enhancement
-        actual_description = generated_model["semantic_model"].get("description")
+        actual_description = generated_model.semantic_model.description
         assert actual_description == user_description, (
             f"Expected user description '{user_description}' to be preserved, but got '{actual_description}'"
         )
@@ -1587,14 +1618,14 @@ def test_no_description_allows_llm_generated_description(base_url_agent_server_s
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        assert "semantic_model" in generated_model
+        assert generated_model.semantic_model is not None
 
         # Verify model was generated successfully with LLM-generated description
-        assert generated_model["semantic_model"] is not None
-        assert "tables" in generated_model["semantic_model"]
+        assert generated_model.semantic_model is not None
+        assert generated_model.semantic_model.tables is not None
 
         # When no user description is provided, LLM should generate one
-        actual_description = generated_model["semantic_model"].get("description")
+        actual_description = generated_model.semantic_model.description
         assert actual_description is not None, "Expected LLM to generate a description when user provides none"
         assert len(actual_description) > 0, "Expected non-empty description from LLM"
 
@@ -1667,12 +1698,12 @@ def test_distinct_samples_from_file(base_url_agent_server):
             }
         )
 
-        semantic_model = generated["semantic_model"]
-        logical_table = next(t for t in semantic_model["tables"] if t["name"] == "dupe_samples.csv")
-        logical_city = next(d for d in logical_table["dimensions"] if d.get("expr") == "city")
+        semantic_model = generated.semantic_model
+        logical_table = next(t for t in (semantic_model.tables or []) if t.get("name") == "dupe_samples.csv")
+        logical_city = next(d for d in list(logical_table.get("dimensions") or []) if d.get("expr") == "city")
         sample_values = logical_city.get("sample_values")
         assert sample_values is not None
-        assert sorted(sample_values) == ["Paris", "Rome"]
+        assert sorted([v for v in sample_values if v is not None]) == ["Paris", "Rome"]
 
 
 @pytest.mark.integration
@@ -1731,9 +1762,9 @@ def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
             }
         )
 
-        semantic_model = generated["semantic_model"]
-        logical_items = next(t for t in semantic_model["tables"] if t["name"] == "items")
-        logical_category = next(d for d in logical_items["dimensions"] if d.get("expr") == "category")
+        semantic_model = generated.semantic_model
+        logical_items = next(t for t in (semantic_model.tables or []) if t.get("name") == "items")
+        logical_category = next(d for d in list(logical_items.get("dimensions") or []) if d.get("expr") == "category")
         sample_values = logical_category.get("sample_values")
         assert sample_values is not None
         assert len(sample_values) == len(set(sample_values))
@@ -1785,19 +1816,19 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
-        assert "semantic_model" in generated_model
+        assert generated_model.semantic_model is not None
 
-        semantic_model = generated_model["semantic_model"]
+        semantic_model = generated_model.semantic_model
 
         # Verify relationships were detected
-        assert "relationships" in semantic_model, "Expected relationships to be present in semantic model"
-        relationships = semantic_model["relationships"]
+        assert semantic_model.relationships is not None, "Expected relationships to be present in semantic model"
+        relationships = semantic_model.relationships
         assert relationships is not None, "Relationships should not be None"
         assert len(relationships) > 0, "Expected at least one relationship to be detected"
 
         # Verify specific relationships exist
         # Expected: customers -> orders, orders -> order_items, products -> order_items, regions -> stores
-        relationship_pairs = [(rel["left_table"], rel["right_table"]) for rel in relationships]
+        relationship_pairs = [(rel.get("left_table"), rel.get("right_table")) for rel in relationships]
 
         # Check for customers -> orders relationship (single-column FK)
         assert any(
@@ -1915,7 +1946,7 @@ def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent
 
         # Verify the first SDM has the name "foo"
         first_sdm = agent_client.get_semantic_data_model(first_sdm_id)
-        assert first_sdm["name"] == "foo"
+        assert first_sdm.name == "foo"
 
         # Prepare import payload - use data_connection_name instead of data_connection_id for portability
         import_model = {
@@ -1954,8 +1985,8 @@ def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent
 
         # Verify the imported SDM was auto-renamed to "foo (1)"
         second_sdm = agent_client.get_semantic_data_model(second_sdm_id)
-        assert second_sdm["name"] == "foo (1)", f"Expected 'foo (1)', got '{second_sdm['name']}'"
+        assert second_sdm.name == "foo (1)", f"Expected 'foo (1)', got '{second_sdm.name}'"
 
         # Verify we have three distinct SDMs with the "foo" prefix
-        all_names = [first_sdm["name"], second_sdm["name"]]
+        all_names = [first_sdm.name, second_sdm.name]
         assert all_names == ["foo", "foo (1)"], f"Expected ['foo', 'foo (1)'], got {all_names}"

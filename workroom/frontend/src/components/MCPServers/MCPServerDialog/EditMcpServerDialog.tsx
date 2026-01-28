@@ -32,7 +32,7 @@ type EditMcpServerFormContentProps = {
   server: McpServerGetResponse;
   onSuccess?: () => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
+  showStdioTransport?: boolean;
 };
 
 const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
@@ -327,7 +327,7 @@ export type EditMcpServerDialogProps = {
   mcpServerId: string;
   onSuccess?: () => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
+  showStdioTransport?: boolean;
 };
 
 export const EditMcpServerDialog: FC<EditMcpServerDialogProps> = ({

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from agent_platform.core.data_frames.semantic_data_model_types import (
@@ -30,7 +30,7 @@ async def _get_existing_semantic_data_model_names(
         if exclude_model_id is not None and model_info["semantic_data_model_id"] == exclude_model_id:
             continue
         semantic_model = model_info["semantic_data_model"]
-        existing_name = semantic_model.get("name", "")
+        existing_name = semantic_model.name or ""
         if existing_name:
             existing_names.add(existing_name.lower())
     return existing_names
@@ -146,6 +146,6 @@ async def get_semantic_data_model_by_name(
     all_models = await storage.list_semantic_data_models()
     for model_info in all_models:
         semantic_model = model_info["semantic_data_model"]
-        if semantic_model.get("name") == model_name:
-            return cast("SemanticDataModel", semantic_model)
+        if semantic_model.name == model_name:
+            return semantic_model
     return None

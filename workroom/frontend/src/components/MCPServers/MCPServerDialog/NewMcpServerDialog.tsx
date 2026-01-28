@@ -101,7 +101,7 @@ type NewMcpServerDialogProps = {
   open: boolean;
   onClose: (serverId?: string) => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
+  showStdioTransport?: boolean;
 };
 
 const DEFAULT_MCP_TYPE = 'generic_mcp' as const;

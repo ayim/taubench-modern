@@ -77,15 +77,15 @@ async def _get_tables_from_specific_sdm(
     for semantic_data_model_and_refs in semantic_data_models_infos:
         semantic_data_model_info = semantic_data_model_and_refs.semantic_data_model_info
         semantic_data_model = semantic_data_model_info["semantic_data_model"]
-        if semantic_data_model.get("name") == semantic_data_model_name:
+        if semantic_data_model.name == semantic_data_model_name:
             target_sdm_info = semantic_data_model_info
             break
 
     if target_sdm_info is None:
         available_names = [
-            sdm.semantic_data_model_info["semantic_data_model"].get("name")
+            sdm.semantic_data_model_info["semantic_data_model"].name
             for sdm in semantic_data_models_infos
-            if sdm.semantic_data_model_info["semantic_data_model"].get("name")
+            if sdm.semantic_data_model_info["semantic_data_model"].name
         ]
         raise PlatformError(
             message=(
@@ -96,7 +96,7 @@ async def _get_tables_from_specific_sdm(
         )
 
     semantic_data_model = target_sdm_info["semantic_data_model"]
-    tables: list[LogicalTable] = semantic_data_model.get("tables") or []
+    tables: list[LogicalTable] = semantic_data_model.tables or []
     for table in tables:
         name = table.get("name")
         if not name:
@@ -164,8 +164,8 @@ async def _get_tables_from_data_frames_and_sdms(
         for semantic_data_model_and_refs in semantic_data_models_infos:
             semantic_data_model_info = semantic_data_model_and_refs.semantic_data_model_info
             semantic_data_model = semantic_data_model_info["semantic_data_model"]
-            sdm_name = semantic_data_model.get("name")
-            tables: list[LogicalTable] = semantic_data_model.get("tables") or []
+            sdm_name = semantic_data_model.name
+            tables: list[LogicalTable] = semantic_data_model.tables or []
             if not tables:
                 continue
             for table in tables:

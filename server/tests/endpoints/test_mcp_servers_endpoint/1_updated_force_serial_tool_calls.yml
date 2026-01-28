@@ -6,7 +6,6 @@ cwd: null
 env: null
 force_serial_tool_calls: true
 headers: null
-is_hosted: false
 mcp_server_metadata: null
 name: test-api-server
 source: API

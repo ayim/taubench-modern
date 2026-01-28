@@ -21,8 +21,6 @@ async def test_get_related_to_semantic_data_model_name_returns_sdm_name_for_file
     - Uses the collector to resolve the file reference
     - Returns the SDM name when the file_ref matches
     """
-    from typing import cast
-
     from agent_platform.core.agent_architectures.thread_conversion_utils import (
         _get_related_to_semantic_data_model_name,
     )
@@ -48,11 +46,9 @@ Jim,35
     )
 
     # Create an SDM with a logical table that has columns matching the file
-    # The file_reference is intentionally unresolved - the collector should resolve it
-    # Note: {} is falsy in Python, so we need a non-empty dict to trigger detection
+    # The file_reference is intentionally unresolved (empty dict) - the collector should resolve it
     sdm_name = "People Data Model"
-    semantic_model = cast(
-        SemanticDataModel,
+    semantic_model = SemanticDataModel.model_validate(
         {
             "name": sdm_name,
             "description": "A semantic data model for people data",
@@ -62,7 +58,10 @@ Jim,35
                     "description": "People data from uploaded file",
                     "base_table": {
                         "table": "people_table",
-                        "file_reference": {"file_ref": None, "thread_id": None},
+                        # Note: {} is falsy in Python, so we need a non-empty dict to trigger detection
+                        # Use a dummy sheet_name to make the dict truthy while missing thread_id/file_ref
+                        # (can't use None because exclude_none=True removes it)
+                        "file_reference": {"sheet_name": "Sheet1"},
                     },
                     "dimensions": [
                         {"name": "name", "expr": "name", "data_type": "TEXT"},
@@ -72,7 +71,7 @@ Jim,35
                     ],
                 }
             ],
-        },
+        }
     )
 
     # Store the SDM and associate it with the agent
@@ -141,8 +140,6 @@ async def test_get_related_to_semantic_data_model_name_returns_none_when_columns
     """Test that _get_related_to_semantic_data_model_name returns None when
     an SDM exists but its columns don't match the file's columns.
     """
-    from typing import cast
-
     from agent_platform.core.agent_architectures.thread_conversion_utils import (
         _get_related_to_semantic_data_model_name,
     )
@@ -166,9 +163,8 @@ Gadget,25.50
     )
 
     # Create an SDM with columns that DON'T match the file (name, age vs product, price)
-    # Note: {} is falsy in Python, so we need a non-empty dict to trigger detection
-    semantic_model = cast(
-        SemanticDataModel,
+    # The file_reference is intentionally unresolved (empty dict)
+    semantic_model = SemanticDataModel.model_validate(
         {
             "name": "People Data Model",
             "description": "A semantic data model for people data",
@@ -178,7 +174,10 @@ Gadget,25.50
                     "description": "People data",
                     "base_table": {
                         "table": "people_table",
-                        "file_reference": {"file_ref": None, "thread_id": None},
+                        # Note: {} is falsy in Python, so we need a non-empty dict to trigger detection
+                        # Use a dummy sheet_name to make the dict truthy while missing thread_id/file_ref
+                        # (can't use None because exclude_none=True removes it)
+                        "file_reference": {"sheet_name": "Sheet1"},
                     },
                     "dimensions": [
                         {"name": "name", "expr": "name", "data_type": "TEXT"},
@@ -188,7 +187,7 @@ Gadget,25.50
                     ],
                 }
             ],
-        },
+        }
     )
 
     sdm_id = await storage.set_semantic_data_model(
@@ -238,29 +237,31 @@ Jane,30
 
     # Create an SDM with a pre-resolved file_reference
     sdm_name = "People Data Model With Ref"
-    semantic_model: SemanticDataModel = {
-        "name": sdm_name,
-        "description": "A semantic data model with resolved file reference",
-        "tables": [
-            {
-                "name": "people_table",
-                "description": "People data from uploaded file",
-                "base_table": {
-                    "table": "people_table",
-                    "file_reference": {
-                        "thread_id": sample_thread.thread_id,
-                        "file_ref": sample_file.file_ref,
+    semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": sdm_name,
+            "description": "A semantic data model with resolved file reference",
+            "tables": [
+                {
+                    "name": "people_table",
+                    "description": "People data from uploaded file",
+                    "base_table": {
+                        "table": "people_table",
+                        "file_reference": {
+                            "thread_id": sample_thread.thread_id,
+                            "file_ref": sample_file.file_ref,
+                        },
                     },
-                },
-                "dimensions": [
-                    {"name": "name", "expr": "name", "data_type": "TEXT"},
-                ],
-                "facts": [
-                    {"name": "age", "expr": "age", "data_type": "NUMBER"},
-                ],
-            }
-        ],
-    }
+                    "dimensions": [
+                        {"name": "name", "expr": "name", "data_type": "TEXT"},
+                    ],
+                    "facts": [
+                        {"name": "age", "expr": "age", "data_type": "NUMBER"},
+                    ],
+                }
+            ],
+        }
+    )
 
     sdm_id = await storage.set_semantic_data_model(
         semantic_data_model_id=None,

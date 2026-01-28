@@ -146,7 +146,7 @@ class GenerateSemanticDataModelResponse(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    semantic_model: SemanticDataModel | dict
+    semantic_model: SemanticDataModel
 
 
 @dataclass(frozen=True)
@@ -396,7 +396,7 @@ class ValidateSemanticDataModelResultItem:
     semantic_data_model_id: str | None
     """The ID of the semantic data model, if it exists in storage."""
 
-    semantic_data_model: SemanticDataModel | dict
+    semantic_data_model: SemanticDataModel
     """The validated semantic data model."""
 
     errors: list[ValidationMessage] = field(default_factory=list)

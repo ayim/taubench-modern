@@ -22,7 +22,6 @@
   "workspaces": [
     "backend",
     "frontend",
-    "mcp-runtime",
     "packages/*"
   ],
   "devDependencies": {

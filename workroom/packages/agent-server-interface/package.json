@@ -1,16 +1,15 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.2.18",
+  "version": "2.2.18-unreleased-fbc5ad1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib"
   ],
   "scripts": {
-    "build:all": "npm run generate && tsc && npm run copy-legacy-types",
+    "build:all": "npm run generate && tsc",
     "build": "npm run build:all",
     "check:types": "tsc --noEmit",
-    "copy-legacy-types": "vite-node ./scripts/copy-legacy-types.js",
     "format:check": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --check --ignore-path ../../../.prettierignore",
     "format:fix": "prettier \"**/*.{ts,tsx,js,json,md,css}\" --write --ignore-path ../../../.prettierignore",
     "generate:all": "npm run generate:private && npm run generate:public",
@@ -18,7 +17,7 @@
     "generate:public": "vite-node ./scripts/generate.ts ./public.openapi.json \"public\"",
     "generate": "npm run generate:all && npm run format:fix && npm run check:types",
     "prebuild": "npm run test",
-    "prepublishOnly": "tsc && npm run copy-legacy-types",
+    "prepublishOnly": "tsc",
     "test:types": "tsd",
     "test": "jest"
   },

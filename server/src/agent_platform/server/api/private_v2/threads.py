@@ -1,7 +1,7 @@
 import dataclasses
 import hashlib
 from mimetypes import guess_type
-from typing import Any, cast
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
@@ -774,6 +774,9 @@ async def validate_thread_semantic_data_models(
         ValidationMessageKind,
         ValidationMessageLevel,
     )
+    from agent_platform.core.data_frames.semantic_data_model_validation import (
+        validate_semantic_model_payload_and_extract_references,
+    )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         SemanticDataModelValidator,
     )
@@ -781,21 +784,39 @@ async def validate_thread_semantic_data_models(
     results: list[ValidateSemanticDataModelResultItem] = []
     for semantic_data_model_info in semantic_data_models:
         semantic_data_model_id = semantic_data_model_info["semantic_data_model_id"]
-        semantic_data_model = cast(SemanticDataModel, semantic_data_model_info["semantic_data_model"])
+        # If the UI sends an unbindable json payload to this endpoint, do we need to reflect the bad SDM?
+        semantic_data_model = SemanticDataModel.model_validate(semantic_data_model_info["semantic_data_model"])
         try:
+            # First, run structural validation and extract references
+            references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
+            if references.errors:
+                assert references.semantic_data_model_with_errors is not None
+                # Structural validation failed - add errors and continue
+                results.append(
+                    ValidateSemanticDataModelResultItem(
+                        semantic_data_model_id=semantic_data_model_id,
+                        semantic_data_model=references.semantic_data_model_with_errors,
+                        errors=references._structured_errors,
+                        warnings=[],
+                    )
+                )
+                continue
+
+            # Then run contextual validation
             validator = SemanticDataModelValidator(
-                semantic_data_model=cast(SemanticDataModel, semantic_data_model),
+                semantic_data_model=semantic_data_model,
+                references=references,
                 thread_id=thread.thread_id,
                 storage=storage,
                 user=user,
             )
-            validated_semantic_data_model = await validator.validate()
+            result = await validator.validate()
         except Exception as e:
             logger.error(f"Error validating semantic data model: {e!s}", error=str(e))
             results.append(
                 ValidateSemanticDataModelResultItem(
                     semantic_data_model_id=semantic_data_model_id,
-                    semantic_data_model={},
+                    semantic_data_model=semantic_data_model,
                     errors=[
                         ValidationMessage(
                             message=str(e),
@@ -811,9 +832,9 @@ async def validate_thread_semantic_data_models(
         results.append(
             ValidateSemanticDataModelResultItem(
                 semantic_data_model_id=semantic_data_model_id,
-                semantic_data_model=validated_semantic_data_model,
-                errors=validator.errors,
-                warnings=validator.warnings,
+                semantic_data_model=result.semantic_data_model_with_errors(),
+                errors=result.errors,
+                warnings=result.warnings,
             )
         )
 
