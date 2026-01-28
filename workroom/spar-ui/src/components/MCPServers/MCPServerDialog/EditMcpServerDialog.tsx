@@ -5,7 +5,6 @@ import { IconLoading, IconPlus, IconTrash } from '@sema4ai/icons';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 
 import { MCPServerAuthFields } from '../MCPServerAuth';
-import { ActionPackageItem } from '../ActionPackage';
 import {
   editMcpServerFormSchema,
   headerTypeSelectItems,
@@ -13,8 +12,7 @@ import {
   buildUpdateMcpServerPayload,
   buildValidationPayload,
   SERVER_TYPE_LABELS,
-  TRANSPORT_OPTIONS_BASE,
-  TRANSPORT_OPTIONS_WITH_STDIO,
+  TRANSPORT_OPTIONS,
   type McpServerType,
   type EditMcpServerFormInput,
   type EditMcpServerFormValues,
@@ -32,31 +30,13 @@ type EditMcpServerFormContentProps = {
   server: McpServerGetResponse;
   onSuccess?: () => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
 };
 
-const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
-  onClose,
-  server,
-  onSuccess,
-  serverTypes,
-  showStdioTransport,
-}) => {
+const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({ onClose, server, onSuccess, serverTypes }) => {
   const updateMutation = useUpdateMcpServerMutation({});
   const validateMutation = useValidateMcpServerCapabilitiesMutation({});
 
-  const isHosted = server.is_hosted === true;
-  const hostedMetadata = server.mcp_server_metadata;
-  const actionPackages = hostedMetadata?.action_packages ?? [];
-  const isHostedWithMetadata = isHosted && actionPackages.length > 0;
-  const transportOptions = showStdioTransport ? TRANSPORT_OPTIONS_WITH_STDIO : TRANSPORT_OPTIONS_BASE;
-
-  const { entries: allEntries, secrets } = apiHeadersToFormEntries(server.headers);
-
-  const defaultHeadersKV = isHostedWithMetadata ? allEntries.filter((e) => e.type !== 'secret') : allEntries;
-  const defaultAgentPackageSecrets = isHostedWithMetadata ? secrets : {};
-
-  const initialType = isHosted ? 'hosted' : server.type;
+  const { entries: allEntries } = apiHeadersToFormEntries(server.headers);
 
   const existingCredentials =
     server.authentication_type === 'oauth2-client-credentials' && server.authentication_metadata
@@ -76,21 +56,16 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
     resolver: zodResolver(editMcpServerFormSchema),
     defaultValues: {
       name: server.name,
-      type: initialType,
-      transport: server.transport,
-      url: server.url ?? undefined,
-      headersKV: defaultHeadersKV,
-      command: server.command ?? undefined,
-      argsText: server.args?.join(' ') ?? undefined,
-      cwd: server.cwd ?? undefined,
-      agentPackageSecrets: defaultAgentPackageSecrets,
+      type: 'generic_mcp',
+      transport: server.transport === 'stdio' ? 'auto' : server.transport,
+      url: server.url ?? '',
+      headersKV: allEntries,
       authentication_type: server.authentication_type,
       client_credentials: initialClientCredentials,
     },
     mode: 'onChange',
   });
 
-  const transportValue = form.watch('transport');
   const headersArray = useFieldArray({ control: form.control, name: 'headersKV' as const });
 
   const onSubmit = form.handleSubmit(async (values: EditMcpServerFormValues) => {
@@ -100,10 +75,9 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
       force_serial_tool_calls: server.force_serial_tool_calls,
       env: server.env,
     };
-    const payloadOptions = { isHostedWithMetadata };
 
-    const body = buildUpdateMcpServerPayload(values, originalFields, payloadOptions);
-    const validationPayload = buildValidationPayload(values, originalFields, payloadOptions);
+    const body = buildUpdateMcpServerPayload(values, originalFields);
+    const validationPayload = buildValidationPayload(values, originalFields);
 
     await validateMutation.mutateAsync(
       { mcpServer: validationPayload },
@@ -131,13 +105,11 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
     );
   });
 
-  const effectiveServerTypes =
-    isHosted && !serverTypes.includes('hosted') ? [...serverTypes, 'hosted' as const] : serverTypes;
-  const typeSelectItems = effectiveServerTypes.map((type) => ({
+  const typeSelectItems = serverTypes.map((type) => ({
     value: type,
     label: SERVER_TYPE_LABELS[type] || type,
   }));
-  const showTypeSelector = effectiveServerTypes.length > 1;
+  const showTypeSelector = serverTypes.length > 1;
 
   const isPending = updateMutation.isPending || validateMutation.isPending;
 
@@ -184,121 +156,72 @@ const EditMcpServerFormContent: FC<EditMcpServerFormContentProps> = ({
                 )}
               </Box>
 
-              {transportValue === 'stdio' ? (
-                <>
-                  <Input
-                    label="Command"
-                    placeholder="/usr/local/bin/mcp-server"
-                    description="The command to execute"
-                    {...form.register('command')}
-                    error={form.formState.errors.command?.message}
-                  />
-                  <Input
-                    label="Arguments"
-                    placeholder="--flag value"
-                    description="Space-separated arguments"
-                    {...form.register('argsText')}
-                    error={form.formState.errors.argsText?.message}
-                  />
-                  <Input
-                    label="Working Directory"
-                    placeholder="/path/to/dir"
-                    description="Optional working directory"
-                    {...form.register('cwd')}
-                    error={form.formState.errors.cwd?.message}
-                  />
-                </>
-              ) : (
-                <Input
-                  label="URL"
-                  placeholder="https://example.com/mcp"
-                  description={
-                    isHosted ? 'URL is managed automatically for hosted servers' : 'The MCP server endpoint URL'
-                  }
-                  {...form.register('url')}
-                  error={form.formState.errors.url?.message}
-                  readOnly={isHosted}
-                />
-              )}
+              <Input
+                label="URL"
+                placeholder="https://example.com/mcp"
+                description="The MCP server endpoint URL"
+                {...form.register('url')}
+                error={form.formState.errors.url?.message}
+              />
 
-              {!isHosted && (
-                <>
-                  <Controller
-                    control={form.control}
-                    name="transport"
-                    render={({ field }) => <Select label="Transport" items={[...transportOptions]} {...field} />}
-                  />
+              <Controller
+                control={form.control}
+                name="transport"
+                render={({ field }) => <Select label="Transport" items={[...TRANSPORT_OPTIONS]} {...field} />}
+              />
 
-                  {/* Authentication - only for URL-based transports */}
-                  {transportValue !== 'stdio' && <MCPServerAuthFields />}
-                </>
-              )}
+              <MCPServerAuthFields />
 
-              {isHostedWithMetadata && actionPackages.length > 0 && (
-                <Box display="flex" flexDirection="column" gap="$12">
-                  <Typography fontWeight="medium">Action Packages</Typography>
-                  <Box display="grid" gap="$16">
-                    {actionPackages.map((actionPackage) => (
-                      <ActionPackageItem key={actionPackage.name} actionPackage={actionPackage} />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-
-              {transportValue !== 'stdio' && (
-                <Box display="flex" flexDirection="column" gap="$8">
-                  <Typography fontWeight="medium">
-                    {isHostedWithMetadata ? 'Additional Headers (optional)' : 'Headers (optional)'}
-                  </Typography>
-                  <Typography color="content.subtle" fontSize="$14">
-                    Additional headers to include in requests to the MCP server
-                  </Typography>
-                  <Box display="grid" gap="$8" mt="$8">
-                    {headersArray.fields.map((f, idx) => (
-                      <Box key={f.id} display="grid" gridTemplateColumns="1fr 120px 1fr auto" gap="$8">
-                        <Input
-                          label="Key"
-                          placeholder="Header name"
-                          {...form.register(`headersKV.${idx}.key` as const)}
+              <Box display="flex" flexDirection="column" gap="$8">
+                <Typography fontWeight="medium">Headers (optional)</Typography>
+                <Typography color="content.subtle" fontSize="$14">
+                  Additional headers to include in requests to the MCP server
+                </Typography>
+                <Box display="grid" gap="$8" mt="$8">
+                  {headersArray.fields.map((f, idx) => (
+                    <Box key={f.id} display="grid" gridTemplateColumns="1fr 120px 1fr auto" gap="$8">
+                      <Input
+                        label="Key"
+                        placeholder="Header name"
+                        {...form.register(`headersKV.${idx}.key` as const)}
+                      />
+                      <Controller
+                        control={form.control}
+                        name={`headersKV.${idx}.type` as const}
+                        render={({ field }) => <Select label="Type" items={[...headerTypeSelectItems]} {...field} />}
+                      />
+                      <Input
+                        label="Value"
+                        placeholder="Header value"
+                        type={
+                          (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
+                            ? 'password'
+                            : 'text'
+                        }
+                        {...form.register(`headersKV.${idx}.value` as const)}
+                      />
+                      <Box display="flex" alignItems="flex-end" pb="$4">
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          icon={IconTrash}
+                          aria-label="Remove header"
+                          type="button"
+                          onClick={() => headersArray.remove(idx)}
                         />
-                        <Controller
-                          control={form.control}
-                          name={`headersKV.${idx}.type` as const}
-                          render={({ field }) => <Select label="Type" items={[...headerTypeSelectItems]} {...field} />}
-                        />
-                        <Input
-                          label="Value"
-                          placeholder="Header value"
-                          type={
-                            (form.getValues(`headersKV.${idx}.type` as const) || 'string') === 'secret'
-                              ? 'password'
-                              : 'text'
-                          }
-                          {...form.register(`headersKV.${idx}.value` as const)}
-                        />
-                        <Box display="flex" alignItems="flex-end" pb="$4">
-                          <Button
-                            variant="ghost"
-                            size="small"
-                            icon={IconTrash}
-                            aria-label="Remove header"
-                            type="button"
-                            onClick={() => headersArray.remove(idx)}
-                          />
-                        </Box>
                       </Box>
-                    ))}
-                    <Button
-                      variant="outline"
-                      icon={IconPlus}
-                      type="button"
-                      onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
-                    >
-                      Add Header
-                    </Button>
-                  </Box>
+                    </Box>
+                  ))}
+                  <Button
+                    variant="outline"
+                    icon={IconPlus}
+                    type="button"
+                    onClick={() => headersArray.append({ key: '', value: '', type: 'string' })}
+                  >
+                    Add Header
+                  </Button>
                 </Box>
-              )}
+              </Box>
 
               {errorMessage && (
                 <Box p="$16" borderRadius="$8" borderColor="red50">
@@ -327,7 +250,6 @@ export type EditMcpServerDialogProps = {
   mcpServerId: string;
   onSuccess?: () => void;
   serverTypes: McpServerType[];
-  showStdioTransport: boolean;
 };
 
 export const EditMcpServerDialog: FC<EditMcpServerDialogProps> = ({
@@ -336,7 +258,6 @@ export const EditMcpServerDialog: FC<EditMcpServerDialogProps> = ({
   mcpServerId,
   onSuccess,
   serverTypes,
-  showStdioTransport,
 }) => {
   const { data: server, isLoading, error } = useMcpServerQuery({ mcpServerId });
 
@@ -377,13 +298,7 @@ export const EditMcpServerDialog: FC<EditMcpServerDialogProps> = ({
 
   return (
     <Dialog open={open} size="x-large" onClose={onClose}>
-      <EditMcpServerFormContent
-        onClose={onClose}
-        server={server}
-        onSuccess={onSuccess}
-        serverTypes={serverTypes}
-        showStdioTransport={showStdioTransport}
-      />
+      <EditMcpServerFormContent onClose={onClose} server={server} onSuccess={onSuccess} serverTypes={serverTypes} />
     </Dialog>
   );
 };

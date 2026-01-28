@@ -24,16 +24,13 @@ class MCPServerSource(str, Enum):
 
 @dataclass(frozen=True)
 class MCPServerWithMetadata:
-    """MCP server with its source and deployment information."""
+    """MCP server with its source information."""
 
     server: "MCPServerWithOAuthConfig"
     """The MCP server configuration with OAuth information."""
 
     source: MCPServerSource
     """The source of the MCP server (FILE or API)."""
-
-    deployment_id: str | None = None
-    """The MCP runtime deployment ID, if hosted."""
 
 
 Transport = Literal["auto", "streamable-http", "sse", "stdio"]

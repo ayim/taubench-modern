@@ -615,7 +615,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
         self,
         mcp_server: "MCPServer | MCPServerWithOAuthConfig",
         source: "MCPServerSource",
-        mcp_runtime_deployment_id: str | None = None,
     ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID.
 
@@ -654,7 +653,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             "name": mcp_server.name,
             "enc_config": self._encrypt_config(actual_mcp_server_dict),
             "source": source.value,
-            "mcp_runtime_deployment_id": mcp_runtime_deployment_id,
             "created_at": now,
             "updated_at": now,
         }
@@ -826,7 +824,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Build MCPServerWithMetadata from database row.
 
         Args:
-            row: Database row containing enc_config, source, mcp_runtime_deployment_id,
+            row: Database row containing enc_config, source,
                 authentication_type, and authentication_metadata_enc
             server_id: Server ID for logging purposes
 
@@ -841,13 +839,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
         mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, server_id)
 
         source = MCPServerSource(row["source"])
-        raw_deployment_id = row["mcp_runtime_deployment_id"]
-        deployment_id = str(raw_deployment_id) if raw_deployment_id else None
 
         return MCPServerWithMetadata(
             server=mcp_server_with_oauth,
             source=source,
-            deployment_id=deployment_id,
         )
 
     async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
@@ -857,12 +852,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # 1. Validate the uuid
         self._validate_uuid(mcp_server_id)
 
-        # 2. Get the MCP server with source, deployment_id, and OAuth info
+        # 2. Get the MCP server with source and OAuth info
         mcp_server_table = self._get_table("mcp_server")
         stmt = sa.select(
             mcp_server_table.c.enc_config,
             mcp_server_table.c.source,
-            mcp_server_table.c.mcp_runtime_deployment_id,
             mcp_server_table.c.authentication_type,
             mcp_server_table.c.authentication_metadata_enc,
         ).where(mcp_server_table.c.mcp_server_id == mcp_server_id)
@@ -890,7 +884,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             mcp_server_table.c.mcp_server_id,
             mcp_server_table.c.enc_config,
             mcp_server_table.c.source,
-            mcp_server_table.c.mcp_runtime_deployment_id,
             mcp_server_table.c.authentication_type,
             mcp_server_table.c.authentication_metadata_enc,
         ).order_by(mcp_server_table.c.created_at.desc())

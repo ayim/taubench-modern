@@ -25,7 +25,3 @@ output "acr_registry_name" {
 output "resource_group_name" {
   value = local.resource_group_name
 }
-
-output "mcp_runtime_storage_name" {
-  value = module.mcp_runtime_storage.mcp_runtime_storage_name
-}

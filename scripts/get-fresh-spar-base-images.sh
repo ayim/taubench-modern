@@ -6,7 +6,6 @@ repo_root="$(git rev-parse --show-toplevel)"
 
 dockerfiles=(
   "${repo_root}/Dockerfile.spar"
-  "${repo_root}/workroom/mcp-runtime/Dockerfile"
 )
 
 for dockerfile_path in "${dockerfiles[@]}"; do

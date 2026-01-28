@@ -96,14 +96,7 @@ export const MCPServers: AgentDeploymentFormSection = ({ agentTemplate }) => {
           </Link>
         </Typography>
       </Box>
-      {isNewServerDialogOpen && (
-        <NewMcpServerDialog
-          open
-          onClose={onNewServerClose}
-          serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
-          showStdioTransport
-        />
-      )}
+      {isNewServerDialogOpen && <NewMcpServerDialog open onClose={onNewServerClose} serverTypes={['generic_mcp']} />}
     </Box>
   );
 };

@@ -11,7 +11,6 @@ required_vars=(
   KEY_VAULT_URI # Application Key Vault URI
   SPAR_IMAGE_REF # Docker image reference for the SPAR component
   DATA_SERVER_IMAGE_REF # Docker image reference for the Data Server component
-  MCP_RUNTIME_IMAGE_REF # Docker image reference for the MCP Runtime component
   ACR_LOGIN_SERVER # ACR registry login server
 )
 
