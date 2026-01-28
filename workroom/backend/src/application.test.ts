@@ -5,7 +5,6 @@ import { http, HttpResponse } from 'msw';
 import { setupServer, SetupServerApi } from 'msw/node';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApplication } from './application.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
@@ -61,7 +60,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     mode: 'disabled',
   },
   frontendMode: 'disk',
-  legacyRoutingUrl: null,
   logLevel: 'INFO',
   metaUrl: null,
   ports: {
@@ -142,26 +140,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
 });
 
-const getMockAgentServerDatabase = (): AgentServerDatabaseClient => {
-  return {
-    getAllUsers: () =>
-      Promise.resolve({
-        success: true,
-        data: [],
-      } satisfies Awaited<ReturnType<AgentServerDatabaseClient['getAllUsers']>>),
-    setUserSub: () =>
-      Promise.resolve({
-        success: true,
-        data: undefined,
-      } satisfies Awaited<ReturnType<AgentServerDatabaseClient['setUserSub']>>),
-    userTableMigratedAndReady: () =>
-      Promise.resolve({
-        success: true,
-        data: true,
-      }),
-  } as unknown as AgentServerDatabaseClient;
-};
-
 const getMockDatabase = (): DatabaseClient => {
   return {
     findUserIdentities: () =>
@@ -221,7 +199,6 @@ describe('application', () => {
       });
 
       service = await createApplication({
-        agentServerDatabase: getMockAgentServerDatabase(),
         configuration: generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
         database: getMockDatabase(),
         monitoring: {
@@ -254,7 +231,6 @@ describe('application', () => {
   describe('(snowflake auth)', () => {
     beforeEach(async () => {
       service = await createApplication({
-        agentServerDatabase: getMockAgentServerDatabase(),
         configuration: {
           ...generateConfiguration({ agentServerInternalUrl: '' }),
           auth: {

@@ -85,7 +85,6 @@ export interface Configuration {
         storageAccountName: string;
       };
   frontendMode: 'disk' | 'middleware';
-  legacyRoutingUrl: string | null;
   logLevel: LogSeverity;
   metaUrl: string | null;
   ports: {
@@ -304,16 +303,7 @@ export const getConfiguration = (): Configuration => {
     }
   })();
 
-  const legacyRoutingUrl = process.env.SEMA4AI_WORKROOM_AGENT_ROUTER_URL
-    ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_ROUTER_URL')
-    : null;
-
-  const enableSparOnlyFeatures = process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES
-    ? parseEnvVariableBoolean('SEMA4AI_ENABLE_SPAR_ONLY_FEATURES')
-    : false;
-  const sparOnlyFeature = enableSparOnlyFeatures
-    ? { enabled: true, reason: null }
-    : { enabled: false, reason: 'This feature is not available for this deployment' };
+  const enabledFeature = { enabled: true, reason: null };
 
   const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE ?? 'http://localhost';
 
@@ -347,7 +337,6 @@ export const getConfiguration = (): Configuration => {
     featuresUrl,
     files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
-    legacyRoutingUrl,
     logLevel,
     metaUrl,
     ports: {
@@ -374,27 +363,19 @@ export const getConfiguration = (): Configuration => {
     },
     workroomMeta: {
       features: {
-        // For ACE the values are defined here: https://github.com/Sema4AI/ace/blob/86a89c91c3d6f3623992e7a952a2cccb26b5059f/applications/router-service/src/interface.ts#L205
-        // SPAR & SPCS: defined here - anything that is SPAR Only will be disabled in SPCS
-        agentAuthoring: sparOnlyFeature,
-        agentConfiguration: sparOnlyFeature,
-        agentDetails: {
-          enabled: true,
-          reason: null,
-        },
-        agentEvals: sparOnlyFeature,
-        deploymentWizard: sparOnlyFeature,
-        developerMode: {
-          enabled: true,
-          reason: null,
-        },
-        documentIntelligence: sparOnlyFeature,
-        mcpServersManagement: sparOnlyFeature,
-        publicAPI: sparOnlyFeature,
-        semanticDataModels: sparOnlyFeature,
-        settings: sparOnlyFeature,
-        userManagement: sparOnlyFeature,
-        workerAgents: sparOnlyFeature,
+        agentAuthoring: enabledFeature,
+        agentConfiguration: enabledFeature,
+        agentDetails: enabledFeature,
+        agentEvals: enabledFeature,
+        deploymentWizard: enabledFeature,
+        developerMode: enabledFeature,
+        documentIntelligence: enabledFeature,
+        mcpServersManagement: enabledFeature,
+        publicAPI: enabledFeature,
+        semanticDataModels: enabledFeature,
+        settings: enabledFeature,
+        userManagement: enabledFeature,
+        workerAgents: enabledFeature,
       },
     },
   };
