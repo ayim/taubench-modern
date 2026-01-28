@@ -45,7 +45,6 @@ export const createSessionManager = ({
       });
 
     case 'none':
-    case 'sema4-oidc-sso':
     case 'oidc':
       return new HTTPSessionManager({
         monitoring,

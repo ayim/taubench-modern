@@ -178,7 +178,6 @@ const getMockDatabase = (): DatabaseClient => {
 };
 
 describe('application', () => {
-  const ACE_ID = randomUUID();
   const USER_ID = randomUUID();
 
   let service: Awaited<ReturnType<typeof createApplication>>;
@@ -313,82 +312,4 @@ describe('application', () => {
     });
   });
 
-  describe('(oidc auth, meta pass-through)', () => {
-    beforeEach(async () => {
-      const targetPort = await getPort();
-      const targetServerUrl = `http://127.0.0.1:${targetPort}`;
-
-      mockServer = setupServer(
-        http.get(`${targetServerUrl}/meta`, ({ request }) => {
-          expect(request.headers.get('x-sema4ai-test-header')).toEqual('test value');
-
-          return HttpResponse.json({
-            aceId: ACE_ID,
-            instanceId: 'dev2',
-          });
-        }),
-      );
-
-      mockServer.listen({
-        onUnhandledRequest: () => {
-          // Squelch
-        },
-      });
-
-      service = await createApplication({
-        agentServerDatabase: getMockAgentServerDatabase(),
-        configuration: {
-          ...generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
-          auth: {
-            autoPromoteEmails: [],
-            controlPlaneUrl: targetServerUrl,
-            jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
-            roleManagement: false,
-            tokenIssuer: 'ace',
-            tokenIssuers: [],
-            type: 'sema4-oidc-sso',
-          },
-          metaUrl: `${targetServerUrl}/meta`,
-          tenant: {
-            tenantId: 'ace-test',
-            tenantName: 'ACE test',
-          },
-        },
-        database: getMockDatabase(),
-        monitoring: {
-          logger: {
-            debug: () => {},
-            info: () => {},
-            error: () => {},
-          },
-        },
-      });
-    });
-
-    it('returns 404 for old meta', async () => {
-      await request(service.appPublic).get('/meta').expect(404);
-    });
-
-    it('returns expected meta via proxy', async () => {
-      await request(service.appPublic)
-        .get('/tenants/ace-test/meta')
-        .set('x-sema4ai-test-header', 'test value')
-        .expect(200)
-        .expect({
-          aceId: ACE_ID,
-          instanceId: 'dev2',
-        });
-    });
-
-    it('fails for missing authentication', async () => {
-      await request(service.appPublic).get('/tenants/ace-test/tenants-list').expect(401);
-    });
-
-    it('fails for invalid authentication', async () => {
-      await request(service.appPublic)
-        .get('/tenants/ace-test/tenants-list')
-        .set('Authorization', 'Bearer abc123')
-        .expect(403);
-    });
-  });
 });

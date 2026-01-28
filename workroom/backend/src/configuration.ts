@@ -16,12 +16,6 @@ export interface Configuration {
   allowInsecureRequests: boolean;
   auth: {
     autoPromoteEmails: Array<string>;
-    /**
-     * Transitionary flag to know if an auth type should handle permissions
-     * and role management, provided by SPAR itself. Once our own SSO-OIDC
-     * is removed in the future, in favour of OIDC, this may be refactored
-     * to only check `auth.type` vs 'none'.
-     */
     roleManagement: boolean;
     tokenIssuer: string;
   } & (
@@ -31,12 +25,6 @@ export interface Configuration {
     | {
         jwtPrivateKeyB64: string;
         type: 'snowflake';
-      }
-    | {
-        controlPlaneUrl: string;
-        jwtPrivateKeyB64: string;
-        tokenIssuers: Array<string>;
-        type: 'sema4-oidc-sso';
       }
     | {
         clientId: string;
@@ -172,18 +160,6 @@ export const getConfiguration = (): Configuration => {
           type: 'snowflake',
         };
       }
-      case 'sema4-oidc-sso':
-        return {
-          autoPromoteEmails,
-          controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
-          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          roleManagement: false,
-          tokenIssuer,
-          tokenIssuers: parseEnvVariable('SEMA4AI_WORKROOM_TOKEN_ISSUERS')
-            .split(';')
-            .filter((issuer) => issuer.trim() !== ''),
-          type: 'sema4-oidc-sso',
-        };
       case 'oidc': {
         const oidcServer = parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SERVER');
 
@@ -294,7 +270,6 @@ export const getConfiguration = (): Configuration => {
         };
 
       case 'none':
-      case 'sema4-oidc-sso':
         return null;
 
       default:
@@ -323,15 +298,6 @@ export const getConfiguration = (): Configuration => {
           tenantId: parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID'),
           tenantName: 'Team Edition',
         };
-
-      case 'sema4-oidc-sso': {
-        const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');
-
-        return {
-          tenantId,
-          tenantName: tenantId,
-        };
-      }
 
       default:
         exhaustiveCheck(authMode);

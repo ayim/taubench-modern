@@ -53,9 +53,6 @@ export const createRouterContext =
       configuration,
       headers: extractHeadersFromRequest(req.headers),
       monitoring,
-      // Not needed for TRPC: we do permission checking at route definition,
-      // which is outside of the agent server permissions definition anyway.
-      permissions: [],
       sessionManager,
     });
     if (!userIdentityResult.success) {

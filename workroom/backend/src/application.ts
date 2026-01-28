@@ -7,7 +7,6 @@ import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import rateLimit from 'express-rate-limit';
-import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApiKeysManager } from './apiKeys/index.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
@@ -48,7 +47,6 @@ import { createSessionMiddleware } from './session/middleware.js';
 import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
-import { migrateAgentServerUsersForSPCS } from './utils/snowflake.js';
 
 // TODO: Add 'rate_limit_exceeded' to ErrorResponse in @sema4ai/workroom-interface
 type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: string } };
@@ -56,12 +54,10 @@ type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: s
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
 export const createApplication = async ({
-  agentServerDatabase,
   configuration,
   database,
   monitoring,
 }: {
-  agentServerDatabase: AgentServerDatabaseClient;
   configuration: Configuration;
   database: DatabaseClient;
   monitoring: MonitoringContext;
@@ -113,16 +109,6 @@ export const createApplication = async ({
     monitoring,
     secret: configuration.session?.secret ?? SESSION_COOKIES_NOT_ACTIVE,
   });
-
-  if (configuration.auth.type === 'snowflake') {
-    // Try to migrate existing users to new system
-    await migrateAgentServerUsersForSPCS({
-      agentServerDatabase,
-      configuration,
-      database,
-      monitoring,
-    });
-  }
 
   await autoPromoteUsersWithEmailsToAdmin({
     database,
