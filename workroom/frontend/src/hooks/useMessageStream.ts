@@ -466,9 +466,13 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
       }
     }
 
+    const startWebsocketStream = (aId: string) => {
+      return agentAPIClient.startWebsocketStream(aId);
+    };
+
     try {
       await streamManager.initiateStream({
-        startWebsocketStream: agentAPIClient.startWebsocketStream,
+        startWebsocketStream,
         queryClient,
         content,
         threadId,
