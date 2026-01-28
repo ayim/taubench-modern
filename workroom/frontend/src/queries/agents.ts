@@ -266,7 +266,7 @@ export const useDeployAgentFromPackageMutation = createSparMutation<
       mcpFormData.append('headers', JSON.stringify(headers));
       mcpFormData.append('mcp_server_metadata', JSON.stringify(agentTemplate));
 
-      const response = await agentAPIClient.agentFetch('post', '/api/v2/mcp-servers/mcp-servers-hosted', {
+      const response = await agentAPIClient.agentFetch('post', '/api/v2/mcp-servers/', {
         body: mcpFormData as never,
       });
 

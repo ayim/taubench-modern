@@ -3,6 +3,7 @@ import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError
 
 export const mcpServersQueryKey = () => ['mcp-servers'];
 export const mcpServerQueryKey = (mcpServerId: string) => ['mcp-server', mcpServerId];
+export type ListMcpServersResponse = ServerResponse<'get', '/api/v2/mcp-servers/'>;
 
 export const mcpServersQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
   queryKey: mcpServersQueryKey(),

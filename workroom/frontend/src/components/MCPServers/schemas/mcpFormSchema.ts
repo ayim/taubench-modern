@@ -41,7 +41,10 @@ export const headerTypeSelectItems = [
   { value: 'secret', label: 'Secret' },
 ] as const;
 
-export const mcpUrlSchema = z.string().min(1, 'URL is required');
+export const mcpUrlSchema = z
+  .string()
+  .optional()
+  .transform((val) => (val?.trim() ? val.trim() : undefined));
 
 const baseMcpServerFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -212,8 +215,8 @@ export const buildCreateMcpServerPayload = (input: NewMcpServerFormValues): Crea
   };
 };
 
-type McpServerApiType = 'generic_mcp' | 'sema4ai_action_server';
 type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
+type McpServerApiType = 'generic_mcp' | 'sema4ai_action_server';
 
 type McpServerCorePayload = {
   name: string;
