@@ -8,6 +8,7 @@ import { RenameDialog } from '../../../common/dialogs/RenameDialog';
 import { formatDateTime } from '../../../common/helpers';
 import { ListItemLink } from '../../../common/link';
 import { useFeatureFlag, useNavigate, useParams } from '../../../hooks';
+import { downloadMarkdown } from '../../../lib/utils';
 import { useDeleteThreadMutation, useThreadMessagesQuery, useUpdateThreadMutation } from '../../../queries/threads';
 import { SparUIFeatureFlag } from '../../../api';
 import { ThreadNameDisplay } from './ThreadNameDisplay';
@@ -18,18 +19,6 @@ type ThreadItemProps = {
   item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
     scenarioId?: string;
   };
-};
-
-const downloadMarkdown = (filename: string, content: string) => {
-  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 };
 
 const ToolTipContent: FC<{ name: string; createdAt?: string }> = ({ name, createdAt }) => {

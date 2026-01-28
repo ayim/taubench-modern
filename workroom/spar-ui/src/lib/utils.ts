@@ -211,6 +211,11 @@ export const downloadFile = (data: Blob, fileName: string) => {
   URL.revokeObjectURL(url);
 };
 
+export const downloadMarkdown = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+  downloadFile(blob, filename);
+};
+
 export const safeParseJson = (text: string | null | undefined) => {
   if (typeof text !== 'string') return null;
   try {
