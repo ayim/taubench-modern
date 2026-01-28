@@ -8,6 +8,7 @@ import {
 } from './mcpAuthSchema';
 
 export type McpServerType = 'generic_mcp' | 'sema4ai_action_server' | 'hosted';
+type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
 
 /**
  * Transport types for MCP servers
@@ -314,8 +315,6 @@ const buildMcpServerCorePayload = (
     env: isStdio ? original.env : {},
   };
 };
-
-type McpServer = ServerResponse<'get', '/api/v2/mcp-servers/{mcp_server_id}'>;
 
 export const buildUpdateMcpServerPayload = (
   input: EditMcpServerFormValues,

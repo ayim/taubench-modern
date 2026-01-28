@@ -9,6 +9,7 @@ import {
 } from '@sema4ai/icons';
 import { ChangeEvent, FC, useCallback, useMemo, useState, useEffect, useRef } from 'react';
 
+import { useExtractDocumentMutation } from '~/queries/documentIntelligence';
 import { LayoutFieldRow, getTableColumns, FieldRowProps, DocumentData } from '../types';
 import { StepDataTable, StepDataDisplayTable } from './common/StepDataTable';
 import { TableDataRowItem } from './common/TableDataRowItem';
@@ -19,7 +20,6 @@ import { SpecialHandlingMenu } from './common/SpecialHandlingMenu';
 import { SpecialHandlingInstructions } from './common/SpecialHandlingInstructions';
 import { useDocumentIntelligenceStore, ExtractionSchemaPayload } from '../store/useDocumentIntelligenceStore';
 import { useDocumentLayoutFlow } from '../hooks/useDocumentIntelligenceFlows';
-import { useExtractDocumentMutation } from '~/queries/documentIntelligence';
 import {
   validateExtractionSchema,
   convertParseResultToFields,

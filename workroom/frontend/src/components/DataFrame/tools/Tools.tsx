@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useLocalStorage } from '@sema4ai/components';
-import { useStateTransitionCallback } from '../../../hooks';
 import { useDataFramesQuery } from '~/queries/dataFrames';
+import { useStateTransitionCallback } from '../../../hooks';
 
 const DATA_FRAME_REFETCH_GRACE_PERIOD = 500;
 const DATA_FRAME_SIDEBAR_STORAGE_KEY = 'sidebar-thread-sidebar-width';

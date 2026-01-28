@@ -55,8 +55,8 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       ? targetRoute
       : '/tenants/$tenantId/conversational/$agentId/$threadId';
 
-    const startWebsocketStream = async (agentId: string) => {
-      const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId });
+    const startWebsocketStream = async (aId: string) => {
+      const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId: aId });
       return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
     };
 

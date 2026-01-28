@@ -5,10 +5,10 @@ import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import { useFeatureFlag, FeatureFlag } from '../../hooks';
-import { useCreateThread } from '../../hooks/useCreateThread';
 import { useAgentQuery } from '~/queries/agents';
 import { useThreadQuery } from '~/queries/threads';
+import { useFeatureFlag, FeatureFlag } from '../../hooks';
+import { useCreateThread } from '../../hooks/useCreateThread';
 import { ThreadSearch } from '../ThreadSearch';
 import { AgentContextMenu } from '../Agents';
 

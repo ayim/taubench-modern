@@ -1,9 +1,9 @@
 import { useCallback } from 'react';
 import { Outlet, createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { McpServersTable } from './mcp-servers/components/McpServersTable';
 import { useMcpServersQuery } from '~/queries/mcpServers';
 import { Page } from '~/components/layout/Page';
+import { McpServersTable } from './mcp-servers/components/McpServersTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers')({
   component: RouteComponent,
@@ -16,7 +16,7 @@ function RouteComponent() {
 
   const onSearchQueryUpdate = useCallback(
     (searchQuery: string) => {
-      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : '?${searchQuery}');
+      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : `?${searchQuery}`);
       const nextSearch: Record<string, unknown> = {};
       params.forEach((_v, key) => {
         const all = params.getAll(key);

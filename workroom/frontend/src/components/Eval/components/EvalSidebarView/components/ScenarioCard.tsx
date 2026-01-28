@@ -18,10 +18,10 @@ import {
   IconClock,
   IconAlertCircle,
 } from '@sema4ai/icons';
+import { formatShortDateTime } from '~/components/helpers';
 import { getRunStatus, hasTerminalTrials, isRunThrottled } from '../utils';
 import { getPassFailCounts, getLatestTrialProgressSummary } from '../helpers/evalHelpers';
 import type { Scenario, ScenarioRun, Trial } from '../types';
-import { formatShortDateTime } from '~/components/helpers';
 
 export interface ScenarioCardProps {
   scenario: Scenario;

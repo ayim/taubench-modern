@@ -3,12 +3,12 @@ import type { View } from 'vega';
 import { VisualizationSpec } from 'vega-embed';
 import { useParams } from '@tanstack/react-router';
 
+import { useDataFrameQuery } from '~/queries/dataFrames';
 import { useToggle } from '../../../../../hooks';
 import { SEMA4AI_VEGA_LITE_THEME, SEMA4AI_VEGA_THEME, processChartSpecOverrides } from './components/theming';
 import LoadingBox from './components/Loading';
 import { ChartContainer } from './components/Container';
 import { ChartEmbed } from './components/Embed';
-import { useDataFrameQuery } from '~/queries/dataFrames';
 import { specHasDataFrameUrl } from './components/utils';
 
 const VEGA_BASE_URL = 'https://vega.github.io/schema/vega';

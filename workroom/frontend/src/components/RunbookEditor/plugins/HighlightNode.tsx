@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-/* eslint-disable @typescript-eslint/no-use-before-define */
+
 import {
   EditorConfig,
   TextNode,
@@ -43,7 +43,7 @@ export class HighlightNode extends TextNode {
   }
 
   static importJSON(serializedNode: SerializedHighlightNode): HighlightNode {
-    const node = $createHighlightNode(serializedNode.text); // eslint-disable-line no-use-before-define
+    const node = $createHighlightNode(serializedNode.text);
     node.setFormat(serializedNode.format);
     node.setDetail(serializedNode.detail);
     node.setMode(serializedNode.mode);

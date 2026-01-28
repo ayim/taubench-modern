@@ -1,3 +1,5 @@
+/* eslint-disable no-nested-ternary */
+/* eslint-disable react/no-unstable-nested-components */
 import type { TableRowProps } from '@sema4ai/components';
 import { Box, Button, Menu, Select, Table } from '@sema4ai/components';
 import { IconDotsHorizontal, IconPlus } from '@sema4ai/icons';

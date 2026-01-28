@@ -2,8 +2,8 @@ import { Box, Label, Typography } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
 import { useFormContext } from 'react-hook-form';
 
-import { AgentDeploymentFormSchema, AgentDeploymentFormSection } from '../context';
 import { InputControlled } from '~/components/form/InputControlled';
+import { AgentDeploymentFormSchema, AgentDeploymentFormSection } from '../context';
 
 export const AgentName: AgentDeploymentFormSection = () => {
   const { watch } = useFormContext<AgentDeploymentFormSchema>();

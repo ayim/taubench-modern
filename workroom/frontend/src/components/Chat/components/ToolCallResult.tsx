@@ -5,8 +5,8 @@ import { IconPlus } from '@sema4ai/icons';
 import { format as formatSQLQuery } from 'sql-formatter';
 import { useParams } from '@tanstack/react-router';
 
-import { DATA_FRAME_TOOL_PREFIX } from '../../DataFrame/tools/Definitions';
 import { Code } from '~/components/code';
+import { DATA_FRAME_TOOL_PREFIX } from '../../DataFrame/tools/Definitions';
 import { safeParseJson } from '../../../lib/utils';
 import { CreateVerifiedQueryFromDataFrameDialog } from '../../DataFrame/CreateVerifiedQueryFromDataFrameDialog';
 

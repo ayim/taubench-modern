@@ -1,13 +1,4 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
-import { FlowType } from '../types';
-import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
-import type {
-  ValidationRule,
-  DataModelPayload,
-  DocumentLayoutPayload,
-  DataModel,
-  ExtractionSchemaPayload,
-} from '../store/useDocumentIntelligenceStore';
 import {
   useParseDocumentMutation,
   useGenerateDataModelMutation,
@@ -21,6 +12,15 @@ import {
   useGenerateExtractionSchemaMutation,
   useGetDataModelsMutation,
 } from '~/queries/documentIntelligence';
+import { FlowType } from '../types';
+import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
+import type {
+  ValidationRule,
+  DataModelPayload,
+  DocumentLayoutPayload,
+  DataModel,
+  ExtractionSchemaPayload,
+} from '../store/useDocumentIntelligenceStore';
 import {
   convertParseResultToFields,
   convertParseResultToTables,

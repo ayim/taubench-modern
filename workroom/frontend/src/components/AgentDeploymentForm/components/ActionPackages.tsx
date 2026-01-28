@@ -3,8 +3,8 @@ import { IconActionBadge, IconActions } from '@sema4ai/icons';
 import { Badge, Box, Link, Transition, Typography } from '@sema4ai/components';
 
 import { InputControlled } from '~/components/form/InputControlled';
-import { AgentDeploymentFormSection } from '../context';
 import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
+import { AgentDeploymentFormSection } from '../context';
 import { parseWhitelist, getUniqueSecretsMap } from '../../../utils/actionPackages';
 
 type ActionPackage = NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number];

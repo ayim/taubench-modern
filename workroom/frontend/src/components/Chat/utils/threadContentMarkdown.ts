@@ -1,8 +1,8 @@
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { formatDate } from '@sema4ai/components/utils';
+import { snakeCaseToTitleCase } from '~/components/helpers';
 import { shouldIgnoreToolCall } from '../components/renderer/Item';
 import { AgentErrorStreamPayload } from '../../../lib/AgentServerTypes';
-import { snakeCaseToTitleCase } from '~/components/helpers';
 import { getGroupedMessageContent } from '../components/renderer/Message';
 import { getActionGroupStateDetails } from '../components/ToolCall';
 import { formatThoughtTitle } from '../components/renderer/Thinking';

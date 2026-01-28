@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Banner, Divider, Form, Select, Switch } from '@sema4ai/components';
 import { IconSnowflake } from '@sema4ai/icons/logos';
-import { useSparUIContext } from '../../../api/context';
 import { ObservabilitySettings } from '~/queries/integrations';
-import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
 import { InputControlled } from '~/components/form/InputControlled';
 import { KeyValueRecordField } from '~/components/form/SchemaFormFields/components/KeyValueRecordField';
+import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
+import { useSparUIContext } from '../../../api/context';
 
 type ObservabilityProviderOption = {
   value: ObservabilitySettings['provider'];

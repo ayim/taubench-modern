@@ -92,9 +92,9 @@ const convertQueryToUrl = (
 const hasAnyQueryParams = (query: Partial<QuerySettings>): boolean => {
   return Boolean(
     query.filters?.status?.length ||
-      query.filters?.agent_name?.length ||
-      query.search ||
-      (query.page && query.page > 0),
+    query.filters?.agent_name?.length ||
+    query.search ||
+    (query.page && query.page > 0),
   );
 };
 

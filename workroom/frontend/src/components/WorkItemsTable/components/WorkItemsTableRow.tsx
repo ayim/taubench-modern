@@ -5,10 +5,10 @@ import { FC, useCallback } from 'react';
 
 import { formatDateTime, formatShortDateTime } from '~/components/helpers';
 import { useCompleteWorkItemMutation, useRestartWorkItemMutation } from '~/queries/workItems';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { WorkItemRowData } from '../types';
 import { workItemsTableColumns } from '../columns';
 import { WORK_ITEM_STATUS_CONFIG, DEFAULT_WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
-import { useNavigate, useParams } from '@tanstack/react-router';
 
 type RowProps = {
   rowData: WorkItemRowData;

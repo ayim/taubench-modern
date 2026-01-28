@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { useAgentsQuery } from '~/queries/agents';
 import { useRestartWorkItemMutation, useWorkItemsQuery, WorkItemStatus } from '~/queries/workItems';
+import { useRouter } from '@tanstack/react-router';
 import { WorkItemRowData } from './types';
 import { workItemsTableColumns } from './columns';
 import { WorkItemsTableRow } from './components/WorkItemsTableRow';
@@ -13,7 +14,6 @@ import { WorkItemsTableActions } from './components/WorkItemsTableActions';
 import { createWorkItemsStorageKey, getStoragePrefixFromPathname } from '../../constants/workItemsStorage';
 import { buildAgentMaps, transformWorkItemsWithAgentNames, buildFilterOptions, calculatePagination } from './utils';
 import { usePersistedQuery } from './usePersistedQuery';
-import { useRouter } from '@tanstack/react-router';
 
 type Props = {
   onDownloadJSON: (data: unknown, options: { filename: string; addTimestamp?: boolean }) => void;

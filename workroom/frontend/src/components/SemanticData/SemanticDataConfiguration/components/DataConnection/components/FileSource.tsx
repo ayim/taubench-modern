@@ -2,9 +2,9 @@ import { useContext, useState } from 'react';
 import { Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
+import { useDataConnectionFileInspectMutation } from '~/queries/dataConnections';
 import { FileList } from './FileList';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
-import { useDataConnectionFileInspectMutation } from '~/queries/dataConnections';
 import {
   ConfigurationStep,
   ConfigurationStepView,

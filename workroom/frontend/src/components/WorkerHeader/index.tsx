@@ -5,8 +5,8 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useLinkProps } from '~/components/link';
-import { useFeatureFlag, FeatureFlag } from '../../hooks';
 import { useAgentQuery } from '~/queries/agents';
+import { useFeatureFlag, FeatureFlag } from '../../hooks';
 import { Container as HeaderContainer, MenuToggleButton } from '../ThreadHeader';
 import { AgentContextMenu } from '../Agents';
 

@@ -3,9 +3,9 @@ import { Button, Progress } from '@sema4ai/components';
 import { Worker } from '~/components/Worker';
 import { AgentMetaContext } from '~/lib/agentMetaContext';
 import { EmptyView } from '~/components/EmptyView';
+import { useAgentMetaQuery } from '~/queries/agents';
 import { Header } from './components/Header';
 import { Layout } from './components/Layout';
-import { useAgentMetaQuery } from '~/queries/agents';
 
 export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId')({
   component: RouteComponent,

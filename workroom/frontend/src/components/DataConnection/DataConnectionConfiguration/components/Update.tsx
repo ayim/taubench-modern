@@ -4,8 +4,7 @@ import { DataConnection } from '@sema4ai/data-interface';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, Resolver, useForm } from 'react-hook-form';
 
-import { useDataConnectionQuery } from '~/queries/dataConnections';
-import { useUpdateDataConnectionMutation } from '~/queries/dataConnections';
+import { useDataConnectionQuery, useUpdateDataConnectionMutation } from '~/queries/dataConnections';
 import { DataConnectionForm } from './DataConnectionForm';
 
 type Props = {

@@ -7,15 +7,15 @@ import { useDeleteConfirm } from '@sema4ai/layouts';
 import { useDropzone } from 'react-dropzone';
 import { useParams } from '@tanstack/react-router';
 
-import { SemanticDataConfiguration } from '../../../../SemanticData/SemanticDataConfiguration';
 import {
   SemanticModel,
   useDeleteSemanticDataModelMutation,
   useExportSemanticDataModelQuery,
   useUpdateSemanticDataModelMutation,
 } from '~/queries/semanticData';
-import { useFeatureFlag, FeatureFlag, useMessageStream } from '../../../../../hooks';
 import { RenameDialog } from '~/components/dialogs/RenameDialog';
+import { SemanticDataConfiguration } from '../../../../SemanticData/SemanticDataConfiguration';
+import { useFeatureFlag, FeatureFlag, useMessageStream } from '../../../../../hooks';
 import { downloadFile } from '../../../../../lib/utils';
 import {
   parseSemanticModelErrors,

@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-/* eslint-disable no-underscore-dangle */
+
 import { JSX, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';

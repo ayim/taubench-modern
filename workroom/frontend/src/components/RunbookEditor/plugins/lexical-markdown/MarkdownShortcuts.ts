@@ -1,14 +1,12 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-template */
 /* eslint-disable prefer-destructuring */
-/* eslint-disable max-len */
+
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-cond-assign */
-/* eslint-disable no-use-before-define */
+
 /* eslint-disable no-continue */
-/* eslint-disable import/no-cycle */
 
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';
 import type { ElementNode, LexicalEditor, TextNode } from 'lexical';

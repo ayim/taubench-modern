@@ -1,8 +1,8 @@
 import { Button, Dialog, Link, Typography } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
-import { EXTERNAL_LINKS } from '../../../../lib/constants';
 import { InputControlled } from '~/components/form/InputControlled';
+import { EXTERNAL_LINKS } from '../../../../lib/constants';
 import { ConfigurationStepView, DataConnectionFormSchema } from './form';
 import { DataSelector } from './DataSelector';
 

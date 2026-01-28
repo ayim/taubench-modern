@@ -3,8 +3,8 @@ import { IconPlusSmall } from '@sema4ai/icons';
 import { ReactNode, useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 
-import { useFeatureFlag, FeatureFlag } from '../../../../hooks';
 import { useAgentSemanticDataQuery, useAgentSemanticDataValidationQuery } from '~/queries/semanticData';
+import { useFeatureFlag, FeatureFlag } from '../../../../hooks';
 import { SemanticDataConfiguration } from '../../../SemanticData/SemanticDataConfiguration';
 import { SemanticModelItem } from './components/SemanticModelItem';
 

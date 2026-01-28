@@ -4,6 +4,13 @@ import { Banner, Box, Button, Dialog, Dropzone, Form, Input, Progress, Select, T
 import { IconLightBulb, IconPlus, IconTrash } from '@sema4ai/icons';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 
+import {
+  useCreateMcpServerMutation,
+  useCreateHostedMcpServerMutation,
+  useValidateMcpServerCapabilitiesMutation,
+  useHostedMcpUpload,
+  UseHostedMcpUploadResult,
+} from '~/queries/mcpServers';
 import { MCPServerAuthFields } from '../MCPServerAuth';
 import { ActionPackageItem } from '../ActionPackage';
 import {
@@ -17,13 +24,6 @@ import {
   NewMcpServerFormInput,
   NewMcpServerFormValues,
 } from '../schemas/mcpFormSchema';
-import {
-  useCreateMcpServerMutation,
-  useCreateHostedMcpServerMutation,
-  useValidateMcpServerCapabilitiesMutation,
-  useHostedMcpUpload,
-  UseHostedMcpUploadResult,
-} from '~/queries/mcpServers';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DropzoneWithBanner: FC<{ onDrop: (files: File[]) => void; error?: string }> = ({ onDrop, error }) => (

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useSnackbar } from '@sema4ai/components';
+import { useIngestDocumentMutation } from '~/queries/documentIntelligence';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 import {
   useDocumentIntelligenceFlowTransitions,
@@ -7,7 +8,6 @@ import {
   useDataModelFlow,
 } from './useDocumentIntelligenceFlows';
 import { useDocumentCommits } from './useDocumentCommits';
-import { useIngestDocumentMutation } from '~/queries/documentIntelligence';
 import { DocumentData } from '../types';
 
 export const useFlowHandlers = () => {

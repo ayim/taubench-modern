@@ -4,9 +4,9 @@ import { IconArrowUpRight, IconDotsHorizontal, IconInformation, IconPencil, Icon
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { useFormContext } from 'react-hook-form';
 
+import { VerifiedQuery } from '~/queries/semanticData';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { DataConnectionFormSchema } from '../../form';
-import { VerifiedQuery } from '~/queries/semanticData';
 import { EditVerifiedQueryDialog } from './EditVerifiedQueryDialog';
 
 type VerifiedQueryRowData = VerifiedQuery & {

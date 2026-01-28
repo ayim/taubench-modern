@@ -140,7 +140,7 @@ function View() {
   return (
     <Form key={formKey} onSubmit={onSubmit} busy={isProcessingRequest}>
       <FormProvider {...formProps}>
-        <Form.Fieldset key={'document_intelligence_endpoint'}>
+        <Form.Fieldset key="document_intelligence_endpoint">
           <Input
             label="Document Intelligence Endpoint"
             placeholder="Document Intelligence Endpoint"
@@ -149,7 +149,7 @@ function View() {
             disabled={isConfigured}
           />
         </Form.Fieldset>
-        <Form.Fieldset key={'document_intelligence_api_key'}>
+        <Form.Fieldset key="document_intelligence_api_key">
           <InputControlled
             fieldName="documentIntelligenceApiKey"
             type="password"
@@ -159,7 +159,7 @@ function View() {
             error={formProps.formState.errors.documentIntelligenceApiKey?.message}
           />
         </Form.Fieldset>
-        <Form.Fieldset key={'postgres_connection_details'}>
+        <Form.Fieldset key="postgres_connection_details">
           <Controller
             control={formProps.control}
             name="dataConnectionId"

@@ -4,9 +4,9 @@ import { IconGoogle, IconMicrosoft, IconSalesforce, IconSlack, IconZendesk } fro
 import { OAuthProvider } from '@sema4ai/oauth-client';
 import { useParams } from '@tanstack/react-router';
 import { snakeCaseToTitleCase } from '~/components/helpers';
-import { AgentOAuthProviderState } from '../../../lib/OAuth';
 import { useDeleteAgentOAuthMutation } from '~/queries/agents';
 import { authorizeOAuthProvider } from '~/utils/oAuth';
+import { AgentOAuthProviderState } from '../../../lib/OAuth';
 
 const getOAuthProviderIcon = (provider: OAuthProvider): React.ReactNode | null => {
   switch (provider) {

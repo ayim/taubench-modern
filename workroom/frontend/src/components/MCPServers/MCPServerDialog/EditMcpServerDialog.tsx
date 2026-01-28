@@ -4,6 +4,12 @@ import { Box, Button, Dialog, Form, Input, Select, Typography } from '@sema4ai/c
 import { IconLoading, IconPlus, IconTrash } from '@sema4ai/icons';
 import { Controller, useFieldArray, useForm, FormProvider } from 'react-hook-form';
 
+import {
+  McpServerGetResponse,
+  useMcpServerQuery,
+  useUpdateMcpServerMutation,
+  useValidateMcpServerCapabilitiesMutation,
+} from '~/queries/mcpServers';
 import { MCPServerAuthFields } from '../MCPServerAuth';
 import { ActionPackageItem } from '../ActionPackage';
 import {
@@ -20,12 +26,6 @@ import {
   type EditMcpServerFormValues,
 } from '../schemas/mcpFormSchema';
 import { apiPayloadToClientCredentials } from '../schemas/mcpAuthSchema';
-import {
-  McpServerGetResponse,
-  useMcpServerQuery,
-  useUpdateMcpServerMutation,
-  useValidateMcpServerCapabilitiesMutation,
-} from '~/queries/mcpServers';
 
 type EditMcpServerFormContentProps = {
   onClose: () => void;

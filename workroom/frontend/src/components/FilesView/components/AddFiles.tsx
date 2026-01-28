@@ -2,9 +2,9 @@ import { Dropzone, DropzoneConfig } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
 import { FC, useCallback } from 'react';
 
+import { useAgentOAuthStateQuery } from '~/queries/agents';
 import { useFeatureFlag, FeatureFlag } from '../../../hooks';
 import { useMessageStream } from '../../../hooks/useMessageStream';
-import { useAgentOAuthStateQuery } from '~/queries/agents';
 
 type props = {
   agentId: string;

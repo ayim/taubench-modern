@@ -227,7 +227,7 @@ const FloatingLinkEditor = ({
   const monitorInputInteraction = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+
       handleLinkSubmission();
     } else if (event.key === 'Escape') {
       event.preventDefault();

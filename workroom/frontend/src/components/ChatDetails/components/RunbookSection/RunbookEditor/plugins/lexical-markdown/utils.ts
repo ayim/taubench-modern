@@ -30,6 +30,8 @@ type MarkdownFormatKind =
   | 'strikethrough_italic_bold'
   | 'link';
 
+type Block = (node: LexicalNode, exportChildren: (elementNode: ElementNode) => string) => string | null;
+
 type MarkdownCriteria = Readonly<{
   export?: (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -350,8 +352,6 @@ export function getAllMarkdownCriteriaForParagraphs(): MarkdownCriteriaArray {
 export function getAllMarkdownCriteriaForTextNodes(): MarkdownCriteriaArray {
   return allMarkdownCriteriaForTextNodes;
 }
-
-type Block = (node: LexicalNode, exportChildren: (elementNode: ElementNode) => string) => string | null;
 
 export function indexBy<T>(list: Array<T>, callback: (arg0: T) => string): Readonly<Record<string, Array<T>>> {
   const index: Record<string, Array<T>> = {};

@@ -1,9 +1,7 @@
 /* eslint-disable no-restricted-syntax */
-/* eslint-disable @typescript-eslint/no-use-before-define */
-/* eslint-disable max-len */
+
 /* eslint-disable no-labels */
 /* eslint-disable no-continue */
-/* eslint-disable no-use-before-define */
 
 import type { CodeNode } from '@lexical/code';
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';

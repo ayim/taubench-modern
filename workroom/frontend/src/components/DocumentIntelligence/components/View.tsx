@@ -1,6 +1,7 @@
 import { FC, useState, useCallback } from 'react';
 import { IconAlert, IconRefresh } from '@sema4ai/icons';
 import { Box, Switch, Snackbar, Divider, Typography, Banner, Button, useSnackbar } from '@sema4ai/components';
+import { useExtractDocumentMutation } from '~/queries/documentIntelligence';
 import { StepType, DocumentData } from '../types';
 import { DataModelNameDialog } from './common/DataModelNameDialog';
 import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
@@ -17,7 +18,6 @@ import { StepDataQuality } from './StepDataQuality';
 import { StepFooter } from './StepFooter';
 import { StepHeader } from './StepHeader';
 import { ExtractionData } from './ExtractionData';
-import { useExtractDocumentMutation } from '~/queries/documentIntelligence';
 import {
   buildExtractionSchemaFromLayout,
   convertParseResultToFields,

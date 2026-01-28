@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable class-methods-use-this */
 /* eslint-disable no-underscore-dangle */
-/* eslint-disable no-use-before-define */
 
 import { JSX, useEffect, useRef } from 'react';
 import {
@@ -383,7 +382,7 @@ export class SuggestionNode extends DecoratorNode<JSX.Element> {
     }
 
     // Replace the entire ancestor block with the new nodes
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+
     let insertAfterNode: LexicalNode | null = ancestorBlock;
 
     // Insert all nodes after the ancestor block

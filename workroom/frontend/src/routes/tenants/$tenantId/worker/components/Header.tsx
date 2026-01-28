@@ -53,129 +53,123 @@ export const Header = () => {
         ) : undefined
       }
     >
-      {!isMobile && (
+      {!isMobile && workItemId && threadId && (
         <>
-          {workItemId && threadId && (
-            <>
-              <Tooltip text="Work Item Details" placement="bottom">
-                <RouterSideNavigationLink
-                  icon={<IconPoll />}
-                  round
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                />
-              </Tooltip>
+          <Tooltip text="Work Item Details" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconPoll />}
+              round
+              {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                tenantId,
+                agentId,
+                workItemId,
+                threadId,
+              })}
+            />
+          </Tooltip>
 
-              <Tooltip text="Data Frames" placement="bottom">
-                <RouterSideNavigationLink
-                  icon={<IconDataframe />}
-                  round
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                />
-              </Tooltip>
+          <Tooltip text="Data Frames" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconDataframe />}
+              round
+              {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
+                tenantId,
+                agentId,
+                workItemId,
+                threadId,
+              })}
+            />
+          </Tooltip>
 
-              <Tooltip text="Files" placement="bottom">
-                <RouterSideNavigationLink
-                  icon={<IconPaperclip />}
-                  round
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                />
-              </Tooltip>
+          <Tooltip text="Files" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconPaperclip />}
+              round
+              {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
+                tenantId,
+                agentId,
+                workItemId,
+                threadId,
+              })}
+            />
+          </Tooltip>
 
-              {features.agentDetails.enabled && (
-                <Tooltip text="Details" placement="bottom">
-                  <RouterSideNavigationLink
-                    icon={<IconInformation />}
-                    round
-                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
-                      tenantId,
-                      agentId,
-                      workItemId,
-                      threadId,
-                    })}
-                  />
-                </Tooltip>
-              )}
-            </>
+          {features.agentDetails.enabled && (
+            <Tooltip text="Details" placement="bottom">
+              <RouterSideNavigationLink
+                icon={<IconInformation />}
+                round
+                {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
+                  tenantId,
+                  agentId,
+                  workItemId,
+                  threadId,
+                })}
+              />
+            </Tooltip>
           )}
         </>
       )}
 
       {isMobile && (
-        <>
-          <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
-            {isUserComingFromWorkItemsListView && (
-              <Menu.Item icon={IconArrowLeft} onClick={handleBack}>
-                Back
-              </Menu.Item>
-            )}
+        <Menu trigger={<Button icon={IconDotsHorizontal} variant="ghost" aria-label="Chat Actions" />}>
+          {isUserComingFromWorkItemsListView && (
+            <Menu.Item icon={IconArrowLeft} onClick={handleBack}>
+              Back
+            </Menu.Item>
+          )}
 
-            {workItemId && threadId && (
-              <>
+          {workItemId && threadId && (
+            <>
+              <RouterMenuLink
+                icon={IconPoll}
+                {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                  tenantId,
+                  agentId,
+                  workItemId,
+                  threadId,
+                })}
+              >
+                Work Item Details
+              </RouterMenuLink>
+              <RouterMenuLink
+                icon={IconDataframe}
+                {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
+                  tenantId,
+                  agentId,
+                  workItemId,
+                  threadId,
+                })}
+              >
+                Data Frames
+              </RouterMenuLink>
+              <RouterMenuLink
+                icon={IconPaperclip}
+                {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
+                  tenantId,
+                  agentId,
+                  workItemId,
+                  threadId,
+                })}
+              >
+                Files
+              </RouterMenuLink>
+              {features.agentDetails.enabled && (
                 <RouterMenuLink
-                  icon={IconPoll}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details', {
+                  icon={IconInformation}
+                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
                     tenantId,
                     agentId,
                     workItemId,
                     threadId,
                   })}
                 >
-                  Work Item Details
+                  Details
                 </RouterMenuLink>
-                <RouterMenuLink
-                  icon={IconDataframe}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                >
-                  Data Frames
-                </RouterMenuLink>
-                <RouterMenuLink
-                  icon={IconPaperclip}
-                  {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files', {
-                    tenantId,
-                    agentId,
-                    workItemId,
-                    threadId,
-                  })}
-                >
-                  Files
-                </RouterMenuLink>
-                {features.agentDetails.enabled && (
-                  <RouterMenuLink
-                    icon={IconInformation}
-                    {...resolveLink('/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details', {
-                      tenantId,
-                      agentId,
-                      workItemId,
-                      threadId,
-                    })}
-                  >
-                    Details
-                  </RouterMenuLink>
-                )}
-              </>
-            )}
-          </Menu>
-        </>
+              )}
+            </>
+          )}
+        </Menu>
       )}
     </WorkerHeader>
   );

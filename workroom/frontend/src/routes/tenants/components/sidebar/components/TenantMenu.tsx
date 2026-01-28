@@ -32,7 +32,6 @@ export const TenantMenu = () => {
 
     if (workroomRedirect) {
       window.location.href = workroomRedirect.href;
-      return;
     }
   };
 

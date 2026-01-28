@@ -3,8 +3,8 @@ import { IconQuickaction } from '@sema4ai/icons';
 import { FC } from 'react';
 import { useParams } from '@tanstack/react-router';
 
-import { useMessageStream } from '../../../../hooks';
 import { useThreadMessagesQuery } from '~/queries/threads';
+import { useMessageStream } from '../../../../hooks';
 import { InteractionComponent } from './shared';
 
 type QuickOption = {

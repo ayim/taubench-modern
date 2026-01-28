@@ -29,9 +29,9 @@ import type {
 } from '~/queries/evals';
 import { useAgentQuery } from '~/queries/agents';
 import { sortByCreatedAtDesc } from '~/lib/utils';
+import { useSparUIContext } from '~/api/context';
 import type { CreateEvalFormData } from '../components/CreateEvalDialog';
 import type { BatchSummary, EvaluationItem, ScenarioRun, Scenario, Trial } from '../types';
-import { useSparUIContext } from '~/api/context';
 
 export interface UseEvalSidebarDataProps {
   agentId: string;

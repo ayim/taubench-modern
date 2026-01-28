@@ -6,9 +6,9 @@ import { IconInformation } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 
 import { useAgentOAuthStateQuery } from '~/queries/agents';
-import { DetailsDialog } from './components/DetailsDialog';
 import { snakeCaseToTitleCase } from '~/components/helpers';
 import { authorizeOAuthProvider } from '~/utils/oAuth';
+import { DetailsDialog } from './components/DetailsDialog';
 
 export const OAuth: FC = () => {
   const { agentId } = useParams({ strict: false });

@@ -51,7 +51,6 @@ function HomePage() {
     type: [] as string[],
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const onAgentSearch = useCallback(fuzzyDataSearcher(agentSearchRules, allAgents), [allAgents]);
 
   const filterOptions = useMemo(() => {

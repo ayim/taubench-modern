@@ -5,13 +5,13 @@ import { Box, Button, Chat, Tooltip, useClipboard } from '@sema4ai/components';
 import { IconBallotBox, IconCheck2, IconCopy } from '@sema4ai/icons';
 import { css, styled } from '@sema4ai/theme';
 
+import { useThreadSearchStore } from '~/hooks/useThreadSearchStore';
 import { Attachment } from '../Attachment';
 import { FeedbackDialog } from '../FeedbackDialog';
 import { markdownRules, markdownUserMessageRules } from '../markdown';
 import { ToolCall } from '../ToolCall';
 import { formatMessageInfo, formatRelativeTime } from '../../../../lib/utils';
 import { useToggle } from '../../../../hooks/useToggle';
-import { useThreadSearchStore } from '~/hooks/useThreadSearchStore';
 import { useFeatureFlag, FeatureFlag } from '../../../../hooks/useFeatureFlag';
 import { Thinking } from './Thinking';
 

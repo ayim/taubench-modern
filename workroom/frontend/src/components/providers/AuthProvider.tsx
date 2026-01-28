@@ -27,7 +27,7 @@ export const AuthProvider: FC<Props> = ({ children }) => {
   }
 
   if (authOptions.bypassAuth) {
-    return <>{children}</>;
+    return children;
   }
 
   return (

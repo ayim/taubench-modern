@@ -2,8 +2,8 @@ import type { FC } from 'react';
 import { Box } from '@sema4ai/components';
 
 import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
-import { parseWhitelist, getUniqueSecretsMap } from '../../../utils/actionPackages';
 import { InputControlled } from '~/components/form/InputControlled';
+import { parseWhitelist, getUniqueSecretsMap } from '../../../utils/actionPackages';
 
 export const ActionSecrets: FC<{
   actionPackage: NonNullable<NonNullable<AgentPackageInspectionResponse>['action_packages']>[number];

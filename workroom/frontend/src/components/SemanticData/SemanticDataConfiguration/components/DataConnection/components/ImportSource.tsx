@@ -3,6 +3,7 @@ import { Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4a
 import { useFormContext } from 'react-hook-form';
 import { parse as yamlParse } from 'yaml';
 
+import { SemanticModel } from '~/queries/semanticData';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import {
   ConfigurationStepView,
@@ -13,7 +14,6 @@ import {
   requiresDataConnection,
 } from '../../form';
 import { DataConnectionSelect } from './DataConnectionSelect';
-import { SemanticModel } from '~/queries/semanticData';
 
 export const ImportSource: ConfigurationStepView = ({ onClose }) => {
   const { addSnackbar } = useSnackbar();

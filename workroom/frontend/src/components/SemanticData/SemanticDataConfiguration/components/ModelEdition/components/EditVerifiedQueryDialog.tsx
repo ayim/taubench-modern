@@ -3,8 +3,8 @@ import { Button, Dialog, Link } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 
-import { DataConnectionFormSchema } from '../../form';
 import { VerifiedQuery, useVerifyVerifiedQueryMutation, SemanticModel } from '~/queries/semanticData';
+import { DataConnectionFormSchema } from '../../form';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { VerifiedQueryForm, FormData } from './VerifiedQueryForm';
 

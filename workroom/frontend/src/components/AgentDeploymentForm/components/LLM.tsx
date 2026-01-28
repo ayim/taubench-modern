@@ -1,10 +1,10 @@
 /* eslint-disable camelcase */
 import { useMemo } from 'react';
-import { AgentDeploymentFormSection } from '../context';
 
 import { Link } from '~/components/link/Link';
 import { SelectControlled } from '~/components/form/SelectControlled';
 import { usePlatformsQuery } from '~/queries/llms';
+import { AgentDeploymentFormSection } from '../context';
 
 // TODO: Update to use the new LLM dialogs once the schema form is merged
 

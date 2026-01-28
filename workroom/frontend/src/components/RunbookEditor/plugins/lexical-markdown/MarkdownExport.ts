@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-continue */
 /* eslint-disable no-labels */
 /* eslint-disable no-else-return */
-/* eslint-disable no-use-before-define */
-/* eslint-disable @typescript-eslint/no-inferrable-types */
 
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';
 import { $isLinkNode } from '@lexical/link';

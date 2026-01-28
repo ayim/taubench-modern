@@ -6,11 +6,11 @@ import { IconCloseSmall, IconSearch } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 
 import { useThreadsQuery } from '~/queries/threads';
+import { VirtualList } from '~/components/VirtualList';
+import { SIDEBAR_STARTING_WIDTH_PX } from '~/lib/constants';
 import { NewThreadItem } from '../NewThreadItem';
 import { ThreadItem } from '../ThreadItem';
 import { Header } from './styles';
-import { VirtualList } from '~/components/VirtualList';
-import { SIDEBAR_STARTING_WIDTH_PX } from '~/lib/constants';
 
 const Container = styled(Box)`
   height: 100%;

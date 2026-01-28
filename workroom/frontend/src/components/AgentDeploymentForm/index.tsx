@@ -7,9 +7,9 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { ActionSticky } from '~/components/form/StickyActions';
 import { Accordion } from '~/components/Accordion';
-import { EXTERNAL_LINKS } from '../../lib/constants';
 import { useAgentsQuery, useDeployAgentFromPackageMutation, useDeployAgentMutation } from '~/queries/agents';
 import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
+import { EXTERNAL_LINKS } from '../../lib/constants';
 import { buildAgentDeploymentSchema, AgentDeploymentFormSchema, getDefaultValues } from './context';
 
 import { AgentName } from './components/AgentName';

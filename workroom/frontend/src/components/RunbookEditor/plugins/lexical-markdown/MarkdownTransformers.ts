@@ -63,7 +63,7 @@ export type ElementTransformer = {
   dependencies: Array<Klass<LexicalNode>>;
   export: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
+
     traverseChildren: (node: ElementNode) => string,
   ) => string | null;
   regExp: RegExp;
@@ -82,9 +82,9 @@ export type TextMatchTransformer = Readonly<{
   dependencies: Array<Klass<LexicalNode>>;
   export: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
+
     exportChildren: (node: ElementNode) => string,
-    // eslint-disable-next-line no-shadow
+
     exportFormat: (node: TextNode, textContent: string) => string,
   ) => string | null;
   importRegExp: RegExp;

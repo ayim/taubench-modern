@@ -143,7 +143,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     const payload = {
       id: platform.platform_id,
       name: values.name,
-      kind: kind,
+      kind,
       ...(provider ? { models: { [provider]: [modelId] } } : {}),
       credentials: Object.keys(credentials).length ? credentials : undefined,
     } satisfies UpdatePlatformBody;
@@ -167,17 +167,16 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   const modelItems = useMemo(() => {
     const forPlatform = (values: readonly string[]) =>
       values
-        .filter((modelValue) => modelValue.startsWith(kind + ':'))
+        .filter((modelValue) => modelValue.startsWith(`${kind}:`))
         .map((modelValue) => ({ value: modelValue, label: beautifyLabel(modelValue) }));
     if (kind === 'azure') return forPlatform(AZURE_MODEL_VALUES);
     if (kind === 'bedrock') return forPlatform(BEDROCK_MODEL_VALUES);
     if (kind === 'openai') return forPlatform(OPENAI_MODEL_VALUES);
     if (kind === 'google') return forPlatform(GOOGLE_MODEL_VALUES);
     if (kind === 'groq') return forPlatform(GROQ_MODEL_VALUES);
-    else {
-      kind satisfies never;
-      return [];
-    }
+
+    kind satisfies never;
+    return [];
   }, [kind]);
 
   return (

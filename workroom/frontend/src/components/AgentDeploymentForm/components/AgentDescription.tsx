@@ -1,5 +1,5 @@
-import { AgentDeploymentFormSection } from '../context';
 import { InputControlled } from '~/components/form/InputControlled';
+import { AgentDeploymentFormSection } from '../context';
 
 export const AgentDescription: AgentDeploymentFormSection = () => {
   return (

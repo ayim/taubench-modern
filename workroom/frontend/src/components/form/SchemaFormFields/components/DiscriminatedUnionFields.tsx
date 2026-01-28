@@ -87,9 +87,9 @@ export const DiscriminatedUnionFields: FC<Props> = ({ schema, formKeyPrefix, nam
       {!!selectOptionsSchema && (
         <Box pl="$24">
           <Form.Fieldset>
-            {/* eslint-disable-next-line no-use-before-define */}
+            {}
             <SchemaFormFields schema={selectOptionsSchema} formKeyPrefix={formKeyPrefix} />
-            {/* eslint-disable-next-line no-use-before-define */}
+            {}
             <SchemaFormFields schema={selectOptionsSchema} formKeyPrefix={formKeyPrefix} optionalFields />
           </Form.Fieldset>
         </Box>

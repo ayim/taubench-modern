@@ -5,7 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams } from '@tanstack/react-router';
 import { useConfirmAction } from '@sema4ai/layouts';
 
-import { useFeatureFlag, FeatureFlag } from '../../../hooks';
 import {
   useCreateSemanticDataMutation,
   useSemanticModelQuery,
@@ -13,6 +12,7 @@ import {
   useImportSemanticDataModelMutation,
 } from '~/queries/semanticData';
 import { useDataConnectionDatabaseInspectMutation } from '~/queries/dataConnections';
+import { useFeatureFlag, FeatureFlag } from '../../../hooks';
 
 import {
   ConfigurationStep,

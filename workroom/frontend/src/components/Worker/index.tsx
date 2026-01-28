@@ -2,8 +2,8 @@ import { styled } from '@sema4ai/theme';
 import { FC } from 'react';
 import { useParams } from '@tanstack/react-router';
 
-import { useQueryDataGuard } from '../../hooks';
 import { useAgentQuery } from '~/queries/agents';
+import { useQueryDataGuard } from '../../hooks';
 import { Chat } from '../Chat';
 import { WorkerList } from './components/WorkerList';
 

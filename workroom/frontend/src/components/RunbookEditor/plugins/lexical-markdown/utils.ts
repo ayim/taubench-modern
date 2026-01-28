@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-restricted-syntax */
-/* eslint-disable @typescript-eslint/no-use-before-define */
+
 /* eslint-disable no-useless-concat */
-/* eslint-disable no-continue */
-/* eslint-disable no-use-before-define */
 
 import type { ListNode } from '@lexical/list';
 import type { ElementTransformer, TextFormatTransformer, TextMatchTransformer, Transformer } from '@lexical/markdown';

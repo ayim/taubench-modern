@@ -67,8 +67,7 @@ export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
         agentTemplate: inspectionResult.data,
         agentPackage: file,
       });
-    } catch (err) {
-      console.error('❌ Error processing ZIP file:', err);
+    } catch {
       addSnackbar({
         message: 'Failed to process agent package. Please check the file format.',
         variant: 'danger',
@@ -82,7 +81,7 @@ export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
       'application/zip': ['.zip'],
     },
     maxSize: 100_000_000,
-    onDrop: onDrop,
+    onDrop,
 
     // Disable click and keydown behavior since we're using a button
     noClick: true,

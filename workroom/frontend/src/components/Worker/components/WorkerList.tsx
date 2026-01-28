@@ -6,9 +6,9 @@ import { useParams } from '@tanstack/react-router';
 
 import { IconCloseSmall, IconSearch } from '@sema4ai/icons';
 import { useWorkItemsInfiniteQuery } from '~/queries/workItems';
+import { VirtualList } from '~/components/VirtualList';
 import { NewWorkItem } from './NewWorkItem';
 import { WorkerItem } from './WorkerItem';
-import { VirtualList } from '~/components/VirtualList';
 import { Header } from '../../Thread/components/ThreadsList/styles';
 
 const Container = styled(Box)`

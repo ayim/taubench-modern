@@ -5,9 +5,9 @@ import { Box, Button, Chat, ChatActionRefType, useSnackbar } from '@sema4ai/comp
 import { IconCode } from '@sema4ai/icons';
 
 import { snakeCaseToTitleCase } from '~/components/helpers';
+import { useShowActionLogsMutation } from '~/queries/agents';
 import { useFeatureFlag, FeatureFlag, useStateTransitionCallback } from '../../../hooks';
 import { DataFrameClientTools } from '../../DataFrame/tools/Definitions';
-import { useShowActionLogsMutation } from '~/queries/agents';
 import { formatThoughtTitle } from './renderer/Thinking';
 import { DelegatedThreadMessages } from './DelegatedThreadMessages';
 import { ToolCallResult } from './ToolCallResult';

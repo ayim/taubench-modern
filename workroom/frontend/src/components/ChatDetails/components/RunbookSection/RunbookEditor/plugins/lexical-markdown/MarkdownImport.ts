@@ -174,7 +174,6 @@ const processTransformer = (
   }
 
   if (newTextNode) {
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     importTextMatchTransformers(newTextNode, textMatchTransformers);
   }
   transformer.replace(replaceNode, match);

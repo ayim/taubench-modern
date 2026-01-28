@@ -21,5 +21,5 @@ function View() {
     [navigate, tenantId, agentId],
   );
 
-  return <CreateWorkItemDialog agentId={agentId} isOpen={true} onClose={handleClose} />;
+  return <CreateWorkItemDialog agentId={agentId} isOpen onClose={handleClose} />;
 }

@@ -5,13 +5,13 @@ import { styled } from '@sema4ai/theme';
 import { IconDotsHorizontal, IconExport, IconMenu, IconSearch } from '@sema4ai/icons';
 import { IconDataFrames } from '@sema4ai/icons/logos';
 
-import { useMessageStream } from '../../hooks';
 import {
   ListDataFrames,
   useDataFrameSliceInfiniteQuery,
   useDataFramesQuery,
   useDataFramesAssemblyInfoQuery,
 } from '~/queries/dataFrames';
+import { useMessageStream } from '../../hooks';
 import { useDownloadCSV } from '../../hooks/useDownloadCSV';
 import { AssemblyInfoDialog } from './AssemblyInfoDialog';
 

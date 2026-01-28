@@ -30,13 +30,11 @@ import {
   TextNode,
 } from 'lexical';
 
-export type Transformer = ElementTransformer | TextFormatTransformer | TextMatchTransformer;
-
 export type ElementTransformer = {
   dependencies: Array<Klass<LexicalNode>>;
   export: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
+
     traverseChildren: (node: ElementNode) => string,
   ) => string | null;
   regExp: RegExp;
@@ -56,9 +54,9 @@ export type TextMatchTransformer = Readonly<{
   export: (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _node: LexicalNode,
-    // eslint-disable-next-line no-shadow, @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _exportChildren: (_node: ElementNode) => string,
-    // eslint-disable-next-line no-shadow, @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _exportFormat: (_node: TextNode, _textContent: string) => string,
   ) => string | null;
   importRegExp: RegExp;
@@ -72,6 +70,8 @@ export type TextMatchTransformer = Readonly<{
   trigger: string;
   type: 'text-match';
 }>;
+
+export type Transformer = ElementTransformer | TextFormatTransformer | TextMatchTransformer;
 
 const createBlockNode = (createNode: (match: Array<string>) => ElementNode): ElementTransformer['replace'] => {
   return (parentNode, children, match) => {

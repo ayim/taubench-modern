@@ -47,7 +47,6 @@ export const cloneElementNode = (node: ElementNode) => {
 export type SerializedRootNode<T extends SerializedLexicalNode = SerializedLexicalNode> = SerializedElementNode<T>;
 
 export class ArtificialRootNode extends ElementNode {
-  // eslint-disable-next-line no-underscore-dangle
   __cachedText: null | string;
 
   static getType(): string {

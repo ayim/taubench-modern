@@ -7,8 +7,8 @@ import { IconConversationalAgents, IconWorkerAgents } from '@sema4ai/icons/logos
 import { EXTERNAL_LINKS } from '~/lib/constants';
 
 import { useTenantContext } from '~/lib/tenantContext';
-import { AgentUploadForm } from './AgentUploadForm';
 import { RouterCardLink } from '~/components/RouterLink';
+import { AgentUploadForm } from './AgentUploadForm';
 
 type Props = {
   setAgentPackageUploadData: (data: {

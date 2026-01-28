@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { createFileRoute } from '@tanstack/react-router';
 import { Form, Box, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';

@@ -7,12 +7,12 @@ import { Button, Progress } from '@sema4ai/components';
 import { Thread } from '~/components/Thread';
 import { EmptyView } from '~/components/EmptyView';
 import { getAgentMetaQueryOptions } from '~/queries/agents';
-import { ThreadsUIContext } from './components/ThreadsUIContext';
-import { Layout } from './components/Layout';
-import { Header } from './components/Header';
 import { AgentMetaContext } from '~/lib/agentMetaContext';
 import { getPreferenceKey, setUserPreferenceId } from '~/utils';
 import { getThreadQueryOptions } from '~/queries/thread';
+import { ThreadsUIContext } from './components/ThreadsUIContext';
+import { Layout } from './components/Layout';
+import { Header } from './components/Header';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId } }) => {

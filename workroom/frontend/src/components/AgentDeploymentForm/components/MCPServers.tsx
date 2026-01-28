@@ -36,7 +36,6 @@ export const MCPServers: AgentDeploymentFormSection = ({ agentTemplate }) => {
     if (defaultValues.length > 0) {
       setValue('mcpServerIds', defaultValues);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mcpServers]);
 
   const onNewServerClose = (serverId?: string) => {

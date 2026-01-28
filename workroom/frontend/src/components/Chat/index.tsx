@@ -17,14 +17,14 @@ import { useForm } from 'react-hook-form';
 import { components, ThreadMessage } from '@sema4ai/agent-server-interface';
 
 import { getFileSize, getFileTypeIcon, isImageFile } from '~/components/helpers';
-import { useFeatureFlag, FeatureFlag, useMessageStream, useQueryDataGuard } from '../../hooks';
 import { useAgentOAuthStateQuery } from '~/queries/agents';
 import { useThreadMessagesQuery } from '~/queries/threads';
 import { useThreadSearchStore } from '~/hooks/useThreadSearchStore';
+import { useNavigate, useParams } from '@tanstack/react-router';
+import { useFeatureFlag, FeatureFlag, useMessageStream, useQueryDataGuard } from '../../hooks';
 import { OAuth } from './components/OAuth';
 import { MessageRenderer } from './components/renderer/Message';
 import { ConversationDisabledMessage } from './components/message/ConversationDisabled';
-import { useNavigate, useParams } from '@tanstack/react-router';
 
 type Props = {
   agentId: string;

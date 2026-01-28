@@ -1,8 +1,8 @@
 import { FC, memo, useMemo, useCallback } from 'react';
 import { Box, Typography, Button, Tooltip, useClipboard, useSnackbar } from '@sema4ai/components';
 import { IconSparkles2, IconDownload, IconCopy, IconCheck2 } from '@sema4ai/icons';
-import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 import { Code } from '~/components/code';
+import { useDocumentIntelligenceStore } from '../store/useDocumentIntelligenceStore';
 
 export const ExtractionData: FC = memo(() => {
   const originalGeneratedSchema = useDocumentIntelligenceStore((state) => state.originalGeneratedSchema);

@@ -28,7 +28,7 @@ export const Route = createFileRoute('/tenants/$tenantId/$agentId/')({
 
     const agentMode = agentResult.data.mode;
 
-    const searchParams = new URLSearchParams(location.search);
+    const searchParams = new URLSearchParams(window.location.search);
     const params = Object.fromEntries(searchParams);
 
     switch (agentMode) {

@@ -5,11 +5,11 @@ import { IconCloseSmall, IconDbDatabase, IconDbSchema, IconDbSpreadsheet } from 
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
-import { DataConnectionFormSchema } from '../../form';
 import { InputControlled } from '~/components/form/InputControlled';
 import { useSemanticDataValidationQuery } from '~/queries/semanticData';
-import { TableTreeItem } from './TableTreeItem';
 import { snakeCaseToCamelCase } from '~/components/helpers';
+import { TableTreeItem } from './TableTreeItem';
+import { DataConnectionFormSchema } from '../../form';
 import { getTableDimensions } from '../../../../../../lib/SemanticDataModels';
 
 type Props = {

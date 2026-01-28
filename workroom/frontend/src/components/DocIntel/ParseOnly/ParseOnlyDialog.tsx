@@ -1,9 +1,9 @@
 import { FC, useEffect, useCallback, useState } from 'react';
 import { Box, Dialog, Typography, useSnackbar, Switch, Button } from '@sema4ai/components';
 import type { ServerResponse } from '@sema4ai/agent-server-interface';
+import { useParseDocumentMutation } from '~/queries/documentIntelligence';
 import { ParseResultsPanel } from './ParseResultsPanel';
 import { DocumentViewer } from '../shared/components/DocumentViewer';
-import { useParseDocumentMutation } from '~/queries/documentIntelligence';
 import { useResizablePanel } from '../shared/hooks/useResizablePanel';
 import { parseChunksToThreadJSON } from '../shared/utils/data-lib';
 import { useSendResultsToThread } from '../shared/hooks';

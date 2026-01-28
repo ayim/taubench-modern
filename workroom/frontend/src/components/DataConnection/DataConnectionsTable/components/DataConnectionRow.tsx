@@ -6,8 +6,8 @@ import { useDeleteConfirm } from '@sema4ai/layouts';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { MenuLink } from '~/components/link';
-import { DataConnectionIcon } from '../../components/DataConnectionIcon';
 import { useDeleteDataConnectionMutation } from '~/queries/dataConnections';
+import { DataConnectionIcon } from '../../components/DataConnectionIcon';
 import { DataConnectionRowItem } from './types';
 import { formatDatetime } from '../../../../lib/utils';
 
