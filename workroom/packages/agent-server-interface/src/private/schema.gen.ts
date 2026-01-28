@@ -6196,12 +6196,7 @@ export interface components {
      * @description Response for generating a semantic data model.
      */
     GenerateSemanticDataModelResponse: {
-      /** Semantic Model */
-      semantic_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          };
+      semantic_model: components['schemas']['SemanticDataModel'];
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -9494,18 +9489,42 @@ export interface components {
      * @description A semantic model represents a collection of tables with their relationships.
      */
     SemanticDataModel: {
-      /** Name */
+      /**
+       * Name
+       * @description A descriptive name for this semantic model. Must be unique and follow the unquoted identifiers requirements. It also cannot conflict with Snowflake reserved keywords.
+       */
       name: string;
-      /** Description */
+      /**
+       * Id
+       * @description The unique identifier of this semantic model.
+       */
+      id?: string | null;
+      /**
+       * Description
+       * @description A description of this semantic model, including details of what kind of analysis it's useful for.
+       */
       description?: string | null;
-      /** Tables */
+      /**
+       * Tables
+       * @description A list of logical tables in this semantic model.
+       */
       tables?: components['schemas']['LogicalTable'][];
-      /** Relationships */
+      /**
+       * Relationships
+       * @description A list of joins between logical tables.
+       */
       relationships?: components['schemas']['Relationship'][] | null;
-      /** Errors */
-      errors?: components['schemas']['ValidationMessage'][];
-      /** Verified Queries */
+      /**
+       * Errors
+       * @description Validation errors for this semantic data model, if any.
+       */
+      errors?: components['schemas']['ValidationMessage'][] | null;
+      /**
+       * Verified Queries
+       * @description A list of validated queries that were saved from data frames created from SQL computations.
+       */
       verified_queries?: components['schemas']['VerifiedQuery'][] | null;
+      /** @description Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables. */
       metadata?: components['schemas']['SemanticDataModelMetadata'] | null;
     };
     /**
@@ -11195,12 +11214,7 @@ export interface components {
     ValidateSemanticDataModelResultItem: {
       /** Semantic Data Model Id */
       semantic_data_model_id: string | null;
-      /** Semantic Data Model */
-      semantic_data_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          };
+      semantic_data_model: components['schemas']['SemanticDataModel'];
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][];
       /** Warnings */

@@ -185,9 +185,9 @@ async def create_agent_project_zip(
     spooled_file = AgentPackageHandler.get_empty_spooled_file()
     handler = AgentPackageHandler(spooled_file)
 
-    # Write semantic data models`
+    # Write semantic data models
     for sdm in semantic_data_models:
-        sdm_filename = sdm.get("name", "unknown")
+        sdm_filename = sdm.name or "unknown"
         await handler.write_semantic_data_model(sdm, sdm_filename)
 
     # Write all content to the handler's zip file

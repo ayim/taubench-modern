@@ -40,6 +40,9 @@ if TYPE_CHECKING:
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.core.payloads.data_connection import DataConnection
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+    )
 
 # Module-level pytest marks
 pytestmark = [
@@ -213,14 +216,14 @@ def agent_for_json_queries(
 def documents_semantic_data_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_json_queries: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Generate a semantic data model from the documents table.
 
     This model should include JSON/JSONB columns and their nested fields.
 
     Returns:
-        dict: Generated semantic data model response with 'semantic_model' key
+        GenerateSemanticDataModelResponse: Generated semantic data model response
     """
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
@@ -270,58 +273,58 @@ def documents_semantic_data_model(
 
 
 def test_documents_semantic_data_model_structure(
-    documents_semantic_data_model: dict[str, Any],
+    documents_semantic_data_model: GenerateSemanticDataModelResponse,
 ):
     """Test that the documents semantic data model has the expected structure."""
     # Verify the result
     assert documents_semantic_data_model is not None
-    assert "semantic_model" in documents_semantic_data_model
+    assert documents_semantic_data_model.semantic_model is not None
 
-    semantic_model = documents_semantic_data_model["semantic_model"]
+    semantic_model = documents_semantic_data_model.semantic_model
 
     # Verify basic model properties
-    assert semantic_model["name"] is not None
-    assert semantic_model["description"] is not None
+    assert semantic_model.name is not None
+    assert semantic_model.description is not None
 
     # Verify the invoice_documents table is present
-    assert "tables" in semantic_model
-    tables = semantic_model["tables"]
+    assert semantic_model.tables is not None
+    tables = semantic_model.tables
     assert len(tables) == 1, "Expected exactly one table (invoice_documents)"
 
     table = tables[0]
-    assert table["base_table"]["table"] == "invoice_documents"
+    assert table["base_table"].get("table") == "invoice_documents"
 
     # Verify table has description and synonyms
-    assert table["description"] is not None, "Expected description for invoice_documents table"
-    assert table["synonyms"] is not None, "Expected synonyms for invoice_documents table"
+    assert table.get("description") is not None, "Expected description for invoice_documents table"
+    assert table.get("synonyms") is not None, "Expected synonyms for invoice_documents table"
 
     # Collect all columns
-    dimensions = table.get("dimensions", [])
-    facts = table.get("facts", [])
-    time_dimensions = table.get("time_dimensions", [])
+    dimensions = table.get("dimensions") or []
+    facts = table.get("facts") or []
+    time_dimensions = table.get("time_dimensions") or []
 
-    all_columns = dimensions + facts + time_dimensions
+    all_columns = list(dimensions) + list(facts) + list(time_dimensions)
 
     # Verify we have columns
     assert len(all_columns) > 0, "Expected columns in the table"
 
     # Verify each column has required properties
     for column in all_columns:
-        assert column["name"] is not None, f"Expected name for column {column}"
-        assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-        col_name = column["name"]
-        assert column["description"] is not None, f"Expected description for column {col_name}"
-        assert column["synonyms"] is not None, f"Expected synonyms for column {col_name}"
+        assert column.get("name") is not None, f"Expected name for column {column}"
+        assert column.get("expr") is not None, f"Expected expr for column {column.get('name')}"
+        col_name = column.get("name")
+        assert column.get("description") is not None, f"Expected description for column {col_name}"
+        assert column.get("synonyms") is not None, f"Expected synonyms for column {col_name}"
 
-    print(f"Dimensions found: {[d['name'] for d in dimensions]}")
-    print(f"Facts found: {[f['name'] for f in facts]}")
-    print(f"Time dimensions found: {[td['name'] for td in time_dimensions]}")
+    print(f"Dimensions found: {[d.get('name') for d in dimensions]}")
+    print(f"Facts found: {[f.get('name') for f in facts]}")
+    print(f"Time dimensions found: {[td.get('name') for td in time_dimensions]}")
 
 
 @pytest.fixture(scope="module")
 def created_documents_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    documents_semantic_data_model: dict[str, Any],
+    documents_semantic_data_model: GenerateSemanticDataModelResponse,
 ) -> str:
     """
     Create the documents semantic data model in the agent server.
@@ -332,7 +335,9 @@ def created_documents_model_id(
     client, _ = agent_server_client_with_data_connection
 
     # Create the semantic data model
-    created_model = client.create_semantic_data_model(documents_semantic_data_model)
+    created_model = client.create_semantic_data_model(
+        {"semantic_model": documents_semantic_data_model.semantic_model.model_dump()}
+    )
     return created_model["semantic_data_model_id"]
 
 

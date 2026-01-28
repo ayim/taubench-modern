@@ -1,6 +1,5 @@
 # ruff: noqa: E501
 import typing
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import Literal
 
@@ -73,6 +72,7 @@ def validate_semantic_model_payload_and_extract_references(
 ) -> References:
     """Validate the semantic model payload."""
     from agent_platform.core.data_frames.semantic_data_model_types import (
+        SemanticDataModel,
         ValidationMessageKind,
         ValidationMessageLevel,
     )
@@ -89,34 +89,43 @@ def validate_semantic_model_payload_and_extract_references(
         tables_with_unresolved_file_references=set(),
         semantic_data_model_with_errors=None,
     )
-    # We work on a copy so we can add errors as we walk the tree.
-    semantic_data_model = deepcopy(semantic_data_model)
+    # We work on a dict copy so we can add errors as we walk the tree.
+    # Convert Pydantic model to dict for manipulation
+    sdm_dict: dict = semantic_data_model.model_dump()
 
     def add_error(error: ValidationMessage):
         references._structured_errors.append(error)
         references.errors.append(error["message"])
 
-    if not semantic_data_model.get("name"):
+    def append_error_to_dict(d: dict, error: ValidationMessage):
+        """Append error to dict, handling None from model_dump()."""
+        if d.get("errors") is None:
+            d["errors"] = []
+        d["errors"].append(error)
+
+    if not sdm_dict.get("name"):
         error = ValidationMessage(
             message="'name' must be specified in the semantic data model.",
             level=ValidationMessageLevel.ERROR,
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)
+        append_error_to_dict(sdm_dict, error)
+        references.semantic_data_model_with_errors = SemanticDataModel.model_validate(sdm_dict)
         return references
 
-    if "tables" not in semantic_data_model or semantic_data_model.get("tables") is None:
+    if "tables" not in sdm_dict or sdm_dict.get("tables") is None:
         error = ValidationMessage(
             message="'tables' must be specified in the semantic data model.",
             level=ValidationMessageLevel.ERROR,
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)
+        append_error_to_dict(sdm_dict, error)
+        references.semantic_data_model_with_errors = SemanticDataModel.model_validate(sdm_dict)
         return references
 
-    semantic_data_model_tables = semantic_data_model.get("tables", [])
+    semantic_data_model_tables = sdm_dict.get("tables", [])
     if not semantic_data_model_tables:
         error = ValidationMessage(
             message="'tables' must be specified (and not empty) in the semantic data model.",
@@ -124,7 +133,8 @@ def validate_semantic_model_payload_and_extract_references(
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
         add_error(error)
-        semantic_data_model.setdefault("errors", []).append(error)
+        append_error_to_dict(sdm_dict, error)
+        references.semantic_data_model_with_errors = SemanticDataModel.model_validate(sdm_dict)
         return references
 
     for index, table in enumerate(semantic_data_model_tables):
@@ -136,7 +146,7 @@ def validate_semantic_model_payload_and_extract_references(
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)
+            append_error_to_dict(table, error)
             continue
 
         base_table = table.get("base_table")
@@ -149,7 +159,7 @@ def validate_semantic_model_payload_and_extract_references(
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)
+            append_error_to_dict(table, error)
             continue
 
         base_table_table = base_table.get("table")
@@ -162,7 +172,7 @@ def validate_semantic_model_payload_and_extract_references(
                 kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
             )
             add_error(error)
-            table.setdefault("errors", []).append(error)
+            append_error_to_dict(table, error)
             continue
 
         base_table_data_connection_id = base_table.get("data_connection_id")
@@ -182,7 +192,7 @@ def validate_semantic_model_payload_and_extract_references(
                     kind=ValidationMessageKind.MISSING_DATA_CONNECTION,
                 )
                 add_error(error)
-                table.setdefault("errors", []).append(error)
+                append_error_to_dict(table, error)
                 continue
 
             # We're dealing with a file reference or data frame
@@ -209,7 +219,7 @@ def validate_semantic_model_payload_and_extract_references(
                             kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
                         )
                         add_error(error)
-                        table.setdefault("errors", []).append(error)
+                        append_error_to_dict(table, error)
                         continue
 
                     references.logical_table_name_to_connection_info[logical_table_name] = FileConnectionInfo(
@@ -245,7 +255,7 @@ def validate_semantic_model_payload_and_extract_references(
                         kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
                     )
                     add_error(error)
-                    table.setdefault("errors", []).append(error)
+                    append_error_to_dict(table, error)
                     continue
 
                 references.logical_table_name_to_connection_info[logical_table_name] = DataFrameConnectionInfo(
@@ -269,7 +279,7 @@ def validate_semantic_model_payload_and_extract_references(
                     kind=ValidationMessageKind.SEMANTIC_MODEL_DUPLICATE_TABLE,
                 )
                 add_error(error)
-                table.setdefault("errors", []).append(error)
+                append_error_to_dict(table, error)
                 continue
 
             references.logical_table_name_to_connection_info[logical_table_name] = DataConnectionInfo(
@@ -283,6 +293,6 @@ def validate_semantic_model_payload_and_extract_references(
 
     # Set the semantic data model with errors if any were found
     if references.errors:
-        references.semantic_data_model_with_errors = semantic_data_model
+        references.semantic_data_model_with_errors = SemanticDataModel.model_validate(sdm_dict)
 
     return references

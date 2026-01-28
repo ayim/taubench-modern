@@ -13944,6 +13944,14 @@
                       "type": "boolean"
                     },
                     {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
                       "type": "null"
                     }
                   ]
@@ -14798,6 +14806,14 @@
                       "type": "boolean"
                     },
                     {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
                       "type": "null"
                     }
                   ]
@@ -15276,16 +15292,7 @@
       "GenerateSemanticDataModelResponse": {
         "properties": {
           "semantic_model": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SemanticDataModel"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            ],
-            "title": "Semantic Model"
+            "$ref": "#/components/schemas/SemanticDataModel"
           }
         },
         "type": "object",
@@ -18254,6 +18261,14 @@
                     },
                     {
                       "type": "boolean"
+                    },
+                    {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    {
+                      "type": "string",
+                      "format": "date-time"
                     },
                     {
                       "type": "null"
@@ -22224,7 +22239,21 @@
         "properties": {
           "name": {
             "type": "string",
-            "title": "Name"
+            "minLength": 1,
+            "title": "Name",
+            "description": "A descriptive name for this semantic model. Must be unique and follow the unquoted identifiers requirements. It also cannot conflict with Snowflake reserved keywords."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "The unique identifier of this semantic model."
           },
           "description": {
             "anyOf": [
@@ -22235,14 +22264,16 @@
                 "type": "null"
               }
             ],
-            "title": "Description"
+            "title": "Description",
+            "description": "A description of this semantic model, including details of what kind of analysis it's useful for."
           },
           "tables": {
             "items": {
               "$ref": "#/components/schemas/LogicalTable"
             },
             "type": "array",
-            "title": "Tables"
+            "title": "Tables",
+            "description": "A list of logical tables in this semantic model."
           },
           "relationships": {
             "anyOf": [
@@ -22256,14 +22287,23 @@
                 "type": "null"
               }
             ],
-            "title": "Relationships"
+            "title": "Relationships",
+            "description": "A list of joins between logical tables."
           },
           "errors": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationMessage"
-            },
-            "type": "array",
-            "title": "Errors"
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ValidationMessage"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Validation errors for this semantic data model, if any."
           },
           "verified_queries": {
             "anyOf": [
@@ -22277,7 +22317,8 @@
                 "type": "null"
               }
             ],
-            "title": "Verified Queries"
+            "title": "Verified Queries",
+            "description": "A list of validated queries that were saved from data frames created from SQL computations."
           },
           "metadata": {
             "anyOf": [
@@ -22287,9 +22328,11 @@
               {
                 "type": "null"
               }
-            ]
+            ],
+            "description": "Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables."
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": ["name"],
         "title": "SemanticDataModel",
@@ -24706,6 +24749,14 @@
                       "type": "boolean"
                     },
                     {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
                       "type": "null"
                     }
                   ]
@@ -25742,16 +25793,7 @@
             "title": "Semantic Data Model Id"
           },
           "semantic_data_model": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SemanticDataModel"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              }
-            ],
-            "title": "Semantic Data Model"
+            "$ref": "#/components/schemas/SemanticDataModel"
           },
           "errors": {
             "items": {

@@ -1,5 +1,3 @@
-import copy
-
 from fastapi import HTTPException
 from starlette import status
 from structlog import get_logger
@@ -224,8 +222,9 @@ async def upsert_semantic_data_models(
                 sdm_ids_to_link.append(matching_id)
         else:
             # Prepare SDM for storage: keep data_connection_id, remove data_connection_name
-            sdm_for_storage = copy.deepcopy(sdm_resolved)
-            for table in sdm_for_storage.get("tables", []):
+            # Convert to dict for manipulation
+            sdm_for_storage = sdm_resolved.model_dump()
+            for table in sdm_for_storage.get("tables") or []:
                 if "base_table" in table:
                     base_table = table["base_table"]
                     # Only remove data_connection_name if data_connection_id was resolved.
@@ -236,7 +235,7 @@ async def upsert_semantic_data_models(
 
             # Extract data connection IDs from resolved SDM (for junction table)
             data_connection_ids = []
-            for table in sdm_resolved.get("tables", []):
+            for table in sdm_resolved.tables or []:
                 base_table = table.get("base_table", {})
                 if "data_connection_id" in base_table:
                     dc_id = base_table["data_connection_id"]

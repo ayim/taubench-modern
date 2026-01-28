@@ -30,6 +30,7 @@ async def test_data_frames_interface(file_regression):
 
     from tests.data_frames.fixtures import KernelStub, StorageStub
 
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.data_frames.semantic_data_model_validation import References
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.data_frames.semantic_data_model_collector import (
@@ -75,39 +76,41 @@ async def test_data_frames_interface(file_regression):
 
     semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = [
         {
-            "semantic_data_model": {
-                "name": "test_semantic_model",
-                "description": "A test semantic model for data frame testing",
-                "tables": [
-                    {
-                        "name": "test_table",
-                        "base_table": {
-                            "table": "test_data_frame",
-                            "data_connection_id": "data-connection-id1",
-                            "database": "test_db",
-                            "schema": "public",
-                        },
-                        "description": "Test table for semantic model",
-                        "dimensions": [
-                            {
-                                "name": "col1",
-                                "expr": "col1",
-                                "data_type": "INTEGER",
-                                "description": "First column dimension",
-                            }
-                        ],
-                        "facts": [
-                            {
-                                "name": "col2",
-                                "expr": "col2",
-                                "data_type": "INTEGER",
-                                "description": "Second column fact",
-                            }
-                        ],
-                    }
-                ],
-                "relationships": [],
-            },
+            "semantic_data_model": SemanticDataModel.model_validate(
+                {
+                    "name": "test_semantic_model",
+                    "description": "A test semantic model for data frame testing",
+                    "tables": [
+                        {
+                            "name": "test_table",
+                            "base_table": {
+                                "table": "test_data_frame",
+                                "data_connection_id": "data-connection-id1",
+                                "database": "test_db",
+                                "schema": "public",
+                            },
+                            "description": "Test table for semantic model",
+                            "dimensions": [
+                                {
+                                    "name": "col1",
+                                    "expr": "col1",
+                                    "data_type": "INTEGER",
+                                    "description": "First column dimension",
+                                }
+                            ],
+                            "facts": [
+                                {
+                                    "name": "col2",
+                                    "expr": "col2",
+                                    "data_type": "INTEGER",
+                                    "description": "Second column fact",
+                                }
+                            ],
+                        }
+                    ],
+                    "relationships": [],
+                }
+            ),
             "semantic_data_model_id": "test_semantic_model_id",
             "agent_ids": {storage_stub.thread.agent_id},
             "thread_ids": {storage_stub.thread.tid},
@@ -145,25 +148,27 @@ async def test_data_frames_interface(file_regression):
 
     snowflake_semantic_data_models: list[BaseStorage.SemanticDataModelInfo] = [
         {
-            "semantic_data_model": {
-                "name": "snowflake_semantic_model",
-                "description": "Snowflake-backed semantic model",
-                "tables": [
-                    {
-                        "name": "snowflake_table",
-                        "base_table": {
-                            "table": "test_data_frame",
-                            "data_connection_id": "snowflake-connection-id",
-                            "database": "snowflake_db",
-                            "schema": "PUBLIC",
-                        },
-                        "description": "Snowflake table",
-                        "dimensions": [],
-                        "facts": [],
-                    }
-                ],
-                "relationships": [],
-            },
+            "semantic_data_model": SemanticDataModel.model_validate(
+                {
+                    "name": "snowflake_semantic_model",
+                    "description": "Snowflake-backed semantic model",
+                    "tables": [
+                        {
+                            "name": "snowflake_table",
+                            "base_table": {
+                                "table": "test_data_frame",
+                                "data_connection_id": "snowflake-connection-id",
+                                "database": "snowflake_db",
+                                "schema": "PUBLIC",
+                            },
+                            "description": "Snowflake table",
+                            "dimensions": [],
+                            "facts": [],
+                        }
+                    ],
+                    "relationships": [],
+                }
+            ),
             "semantic_data_model_id": "snowflake_semantic_model_id",
             "agent_ids": {storage_stub.thread.agent_id},
             "thread_ids": {storage_stub.thread.tid},
@@ -542,21 +547,10 @@ async def test_semantic_data_models_engine_in_summary(sqlite_storage, resources_
     )
 
     # Prepare Kernel stub bound to our agent/thread
-    class _KernelStub:
-        def __init__(self, thread, user_id: str):
-            self.thread = thread
+    from tests.data_frames.fixtures import KernelStub, UserStub
 
-            # Minimal user object with user_id
-            class _User:
-                def __init__(self, user_id: str):
-                    self.user_id = user_id
-
-            self.user = _User(user_id)
-            # Provide minimal agent attribute expected by interface
-            self.agent = type("_Agent", (), {"extra": {}})()
-            self.thread_state = None  # Add thread_state for new tools
-
-    kernel_stub = _KernelStub(thread, await model_creator.get_user_id())
+    user_stub = UserStub(user_id=await model_creator.get_user_id())
+    kernel_stub = KernelStub(thread, user_stub)
 
     # Initialize interface and verify engine in semantic data models summary
     interface = AgentServerDataFramesInterface()
@@ -653,7 +647,7 @@ async def test_duplicate_verified_query_names_in_interface():
     """Test that AgentServerDataFramesInterface creates unique tools for duplicate query names."""
     from tests.data_frames.fixtures import KernelStub, StorageStub
 
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, VerifiedQuery
     from agent_platform.core.kernel import Kernel
     from agent_platform.server.kernel.data_frames import (
         AgentServerDataFramesInterface,
@@ -672,74 +666,78 @@ async def test_duplicate_verified_query_names_in_interface():
     # Create two semantic data models with verified queries that have the same name
     semantic_data_models_for_test: list[BaseStorage.SemanticDataModelInfo] = [
         {
-            "semantic_data_model": {
-                "name": "first_model",
-                "description": "First model with duplicate query name",
-                "tables": [
-                    {
-                        "name": "test_table",
-                        "base_table": {
-                            "table": "test_data_frame",
-                            "data_connection_id": "data-connection-id1",
-                        },
-                        "description": "Test table",
-                        "dimensions": [
-                            {
-                                "name": "col1",
-                                "expr": "col1",
-                                "data_type": "INTEGER",
-                                "description": "Column 1",
-                            }
-                        ],
-                    }
-                ],
-                "verified_queries": [
-                    VerifiedQuery(
-                        name="get data",
-                        nlq="Get data from first model",
-                        sql="SELECT * FROM test_table LIMIT 5",
-                        verified_at="2024-01-01T00:00:00.000Z",
-                        verified_by="test-user",
-                    )
-                ],
-            },
+            "semantic_data_model": SemanticDataModel.model_validate(
+                {
+                    "name": "first_model",
+                    "description": "First model with duplicate query name",
+                    "tables": [
+                        {
+                            "name": "test_table",
+                            "base_table": {
+                                "table": "test_data_frame",
+                                "data_connection_id": "data-connection-id1",
+                            },
+                            "description": "Test table",
+                            "dimensions": [
+                                {
+                                    "name": "col1",
+                                    "expr": "col1",
+                                    "data_type": "INTEGER",
+                                    "description": "Column 1",
+                                }
+                            ],
+                        }
+                    ],
+                    "verified_queries": [
+                        VerifiedQuery(
+                            name="get data",
+                            nlq="Get data from first model",
+                            sql="SELECT * FROM test_table LIMIT 5",
+                            verified_at="2024-01-01T00:00:00.000Z",
+                            verified_by="test-user",
+                        )
+                    ],
+                }
+            ),
             "semantic_data_model_id": "sdm-id-1",
             "agent_ids": {storage_stub.thread.agent_id},
             "thread_ids": {storage_stub.thread.tid},
             "updated_at": "2024-01-01T00:00:00.000Z",
         },
         {
-            "semantic_data_model": {
-                "name": "second_model",
-                "description": "Second model with duplicate query name",
-                "tables": [
-                    {
-                        "name": "another_table",
-                        "base_table": {
-                            "table": "test_data_frame",
-                            "data_connection_id": "data-connection-id2",
-                        },
-                        "description": "Another test table",
-                        "dimensions": [
-                            {
-                                "name": "col2",
-                                "expr": "col2",
-                                "data_type": "INTEGER",
-                                "description": "Column 2",
-                            }
-                        ],
-                    }
-                ],
-                "verified_queries": [
-                    VerifiedQuery(
-                        name="get data",
-                        nlq="Get data from second model",
-                        sql="SELECT * FROM another_table LIMIT 3",
-                        verified_at="2024-01-01T00:00:00.000Z",
-                        verified_by="test-user",
-                    )
-                ],
-            },
+            "semantic_data_model": SemanticDataModel.model_validate(
+                {
+                    "name": "second_model",
+                    "description": "Second model with duplicate query name",
+                    "tables": [
+                        {
+                            "name": "another_table",
+                            "base_table": {
+                                "table": "test_data_frame",
+                                "data_connection_id": "data-connection-id2",
+                            },
+                            "description": "Another test table",
+                            "dimensions": [
+                                {
+                                    "name": "col2",
+                                    "expr": "col2",
+                                    "data_type": "INTEGER",
+                                    "description": "Column 2",
+                                }
+                            ],
+                        }
+                    ],
+                    "verified_queries": [
+                        VerifiedQuery(
+                            name="get data",
+                            nlq="Get data from second model",
+                            sql="SELECT * FROM another_table LIMIT 3",
+                            verified_at="2024-01-01T00:00:00.000Z",
+                            verified_by="test-user",
+                        )
+                    ],
+                }
+            ),
             "semantic_data_model_id": "sdm-id-2",
             "agent_ids": {storage_stub.thread.agent_id},
             "thread_ids": {storage_stub.thread.tid},

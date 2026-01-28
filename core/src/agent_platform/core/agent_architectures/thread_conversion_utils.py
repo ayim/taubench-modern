@@ -203,7 +203,7 @@ async def _get_related_to_semantic_data_model_name(
         # Check if file_ref matches any file reference in semantic data models
         for sdm_and_references in sdms_and_refs:
             semantic_data_model: SemanticDataModel = sdm_and_references.semantic_data_model_info["semantic_data_model"]
-            tables = semantic_data_model.get("tables") or []
+            tables = semantic_data_model.tables or []
             for semantic_data_model_table in tables:
                 base_table = semantic_data_model_table.get("base_table")
                 if not base_table:
@@ -212,7 +212,7 @@ async def _get_related_to_semantic_data_model_name(
                 if not file_reference:
                     continue
                 if file_reference.get("file_ref") == file_details.file_ref:
-                    return semantic_data_model.get("name") or "'<unable to get name>'"
+                    return semantic_data_model.name or "'<unable to get name>'"
 
     except Exception:
         logger.exception("Error checking if file is related to semantic data model")

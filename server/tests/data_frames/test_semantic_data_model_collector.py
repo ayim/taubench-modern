@@ -8,51 +8,53 @@ from server.tests.storage_fixtures import *  # noqa
 if typing.TYPE_CHECKING:
     from agent_platform.server.storage.sqlite.sqlite import SQLiteStorage
 
-SEMANTIC_DATA_MODEL_WITH_UNRESOLVED_FILE_REFERENCE: SemanticDataModel = {
-    "name": "test_semantic_model_with_unresolved_file",
-    "description": "A test semantic model with unresolved file reference",
-    "tables": [
-        {
-            "name": "sales_data",
-            "base_table": {
-                "table": "sales_data_table",
-                "file_reference": {
-                    "thread_id": "",
-                    "file_ref": "",
-                    "sheet_name": None,
+SEMANTIC_DATA_MODEL_WITH_UNRESOLVED_FILE_REFERENCE: SemanticDataModel = SemanticDataModel.model_validate(
+    {
+        "name": "test_semantic_model_with_unresolved_file",
+        "description": "A test semantic model with unresolved file reference",
+        "tables": [
+            {
+                "name": "sales_data",
+                "base_table": {
+                    "table": "sales_data_table",
+                    "file_reference": {
+                        "thread_id": "",
+                        "file_ref": "",
+                        "sheet_name": None,
+                    },
                 },
+                "dimensions": [
+                    {
+                        "name": "product_name",
+                        "expr": "product_name",
+                        "data_type": "TEXT",
+                        "description": "The name of the product",
+                    },
+                    {
+                        "name": "category",
+                        "expr": "category",
+                        "data_type": "TEXT",
+                        "description": "The category of the product",
+                    },
+                ],
+                "facts": [
+                    {
+                        "name": "revenue",
+                        "expr": "revenue",
+                        "data_type": "NUMBER",
+                        "description": "The revenue amount",
+                    },
+                    {
+                        "name": "quantity",
+                        "expr": "quantity",
+                        "data_type": "NUMBER",
+                        "description": "The quantity sold",
+                    },
+                ],
             },
-            "dimensions": [
-                {
-                    "name": "product_name",
-                    "expr": "product_name",
-                    "data_type": "TEXT",
-                    "description": "The name of the product",
-                },
-                {
-                    "name": "category",
-                    "expr": "category",
-                    "data_type": "TEXT",
-                    "description": "The category of the product",
-                },
-            ],
-            "facts": [
-                {
-                    "name": "revenue",
-                    "expr": "revenue",
-                    "data_type": "NUMBER",
-                    "description": "The revenue amount",
-                },
-                {
-                    "name": "quantity",
-                    "expr": "quantity",
-                    "data_type": "NUMBER",
-                    "description": "The quantity sold",
-                },
-            ],
-        },
-    ],
-}
+        ],
+    }
+)
 
 
 class _CustomArchState(DataFrameArchState):
@@ -135,9 +137,11 @@ async def test_semantic_data_model_collector(sqlite_storage: "SQLiteStorage", tm
         # Verify the collected model has resolved file reference
         collected_model_and_refs = collected[0]
         collected_model = collected_model_and_refs.semantic_data_model_info["semantic_data_model"]
-        tables = collected_model.get("tables")
+        # collected_model is now a SemanticDataModel BaseModel, use attribute access
+        tables = collected_model.tables
         assert tables is not None, "Tables should not be None"
         table = tables[0]
+        # LogicalTable is still a TypedDict, use .get()
         base_table = table.get("base_table")
         assert base_table is not None, "Base table should not be None"
         file_reference = base_table.get("file_reference")
@@ -247,45 +251,47 @@ async def test_resolve_file_references_for_unsaved_semantic_data_model(sqlite_st
     thread = await model_creator.obtain_sample_thread()
 
     # Create an unsaved semantic data model with unresolved file reference
-    unsaved_sdm: SemanticDataModel = {
-        "name": "test_unsaved_semantic_model",
-        "description": "An unsaved test semantic model with unresolved file reference",
-        "tables": [
-            {
-                "name": "customer_data",
-                "base_table": {
-                    "table": "customer_data_table",
-                    "file_reference": {
-                        "thread_id": "",
-                        "file_ref": "",
-                        "sheet_name": None,
+    unsaved_sdm: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": "test_unsaved_semantic_model",
+            "description": "An unsaved test semantic model with unresolved file reference",
+            "tables": [
+                {
+                    "name": "customer_data",
+                    "base_table": {
+                        "table": "customer_data_table",
+                        "file_reference": {
+                            "thread_id": "",
+                            "file_ref": "",
+                            "sheet_name": None,
+                        },
                     },
+                    "dimensions": [
+                        {
+                            "name": "customer_name",
+                            "expr": "customer_name",
+                            "data_type": "TEXT",
+                            "description": "The name of the customer",
+                        },
+                        {
+                            "name": "region",
+                            "expr": "region",
+                            "data_type": "TEXT",
+                            "description": "The region of the customer",
+                        },
+                    ],
+                    "facts": [
+                        {
+                            "name": "total_purchases",
+                            "expr": "total_purchases",
+                            "data_type": "NUMBER",
+                            "description": "Total purchases amount",
+                        },
+                    ],
                 },
-                "dimensions": [
-                    {
-                        "name": "customer_name",
-                        "expr": "customer_name",
-                        "data_type": "TEXT",
-                        "description": "The name of the customer",
-                    },
-                    {
-                        "name": "region",
-                        "expr": "region",
-                        "data_type": "TEXT",
-                        "description": "The region of the customer",
-                    },
-                ],
-                "facts": [
-                    {
-                        "name": "total_purchases",
-                        "expr": "total_purchases",
-                        "data_type": "NUMBER",
-                        "description": "Total purchases amount",
-                    },
-                ],
-            },
-        ],
-    }
+            ],
+        }
+    )
 
     collector = SemanticDataModelCollector(
         agent_id=agent.agent_id,
@@ -332,7 +338,7 @@ async def test_resolve_file_references_for_unsaved_semantic_data_model(sqlite_st
     assert len(references.file_references) == 1
 
     # Verify the resolved SDM has the file reference populated
-    tables = resolved_sdm.get("tables")
+    tables = resolved_sdm.tables
     assert tables is not None
     table = tables[0]
     base_table = table.get("base_table")
@@ -349,7 +355,7 @@ async def test_resolve_file_references_for_unsaved_semantic_data_model(sqlite_st
     assert resolved_sdm is unsaved_sdm
 
     # Verify the mutation happened by checking the original object
-    unsaved_tables = unsaved_sdm.get("tables")
+    unsaved_tables = unsaved_sdm.tables
     assert unsaved_tables is not None
     unsaved_base_table = unsaved_tables[0].get("base_table")
     assert unsaved_base_table is not None

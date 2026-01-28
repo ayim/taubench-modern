@@ -277,22 +277,26 @@ class SampleModelCreator:
         """Create a sample semantic data model for testing."""
 
         if semantic_model is None:
+            from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
             # Create a simple semantic data model
-            semantic_model = {
-                "name": name,
-                "description": f"Test semantic data model: {name}",
-                "tables": [
-                    {
-                        "name": "test_entity",
-                        "description": "A test entity",
-                        "base_table": {
-                            "database": "test_db",
-                            "schema": "test_schema",
-                            "table": "test_table",
-                        },
-                    }
-                ],
-            }
+            semantic_model = SemanticDataModel.model_validate(
+                {
+                    "name": name,
+                    "description": f"Test semantic data model: {name}",
+                    "tables": [
+                        {
+                            "name": "test_entity",
+                            "description": "A test entity",
+                            "base_table": {
+                                "database": "test_db",
+                                "schema": "test_schema",
+                                "table": "test_table",
+                            },
+                        }
+                    ],
+                }
+            )
 
         # Create the semantic data model in storage
         semantic_data_model_id = await self.storage.set_semantic_data_model(

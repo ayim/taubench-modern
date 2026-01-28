@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 
     from agent_platform.core.data_frames.semantic_data_model_types import LogicalTable
     from agent_platform.core.payloads.data_connection import DataConnection
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+    )
     from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
         ValueForDimension,
     )
@@ -92,7 +95,6 @@ def assert_table_enhanced(table: LogicalTable) -> None:
     Raises:
         AssertionError: If any required field is missing or invalid.
     """
-    import typing
 
     from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
@@ -114,7 +116,7 @@ def assert_table_enhanced(table: LogicalTable) -> None:
     assert len(columns) > 0, f"Expected columns for table {table.get('name')}"
 
     # Create a minimal semantic model to use SemanticDataModelIndex
-    temp_model = typing.cast(SemanticDataModel, {"tables": [table]})
+    temp_model = SemanticDataModel.model_validate({"name": "temp_model", "tables": [table]})
     index = SemanticDataModelIndex(temp_model)
 
     for column in columns:
@@ -217,19 +219,19 @@ def test_generate_semantic_data_model_basic(
 
     # Verify the result
     assert result is not None
-    assert "semantic_model" in result
+    assert result.semantic_model is not None
 
     # Verify the semantic model has expected structure
-    semantic_model = result["semantic_model"]
-    assert semantic_model["name"] is not None, "Model should have a name"
+    semantic_model = result.semantic_model
+    assert semantic_model.name is not None, "Model should have a name"
     # Enhancement should have added a description (name change is optional)
-    assert semantic_model["description"] is not None, "Enhancement should have added a description"
-    assert len(semantic_model["description"]) > 0, "Description should not be empty"
+    assert semantic_model.description is not None, "Enhancement should have added a description"
+    assert len(semantic_model.description) > 0, "Description should not be empty"
 
     # Verify tables are in the model
-    assert "tables" in semantic_model
-    tables = semantic_model["tables"]
-    table_names = [table["base_table"]["table"] for table in tables]
+    assert semantic_model.tables is not None
+    tables = semantic_model.tables
+    table_names = [table["base_table"].get("table") for table in tables]
     assert "customers" in table_names, "Expected 'customers' table to be in the model"
     assert "orders" in table_names, "Expected 'orders' table to be in the model"
 
@@ -271,14 +273,14 @@ def agent_for_full_model(
 def _generate_full_semantic_data_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_full_model: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """Helper function to generate a semantic data model from all e-commerce tables.
 
     This is extracted as a helper so it can be used by both module-scoped and
     function-scoped fixtures.
 
     Returns:
-        dict: Generated semantic data model response with 'semantic_model' key
+        GenerateSemanticDataModelResponse: Generated semantic data model response
     """
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
@@ -349,7 +351,7 @@ def _generate_full_semantic_data_model(
 def generated_semantic_data_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_full_model: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Fixture that generates a semantic data model from all e-commerce tables.
 
@@ -358,7 +360,7 @@ def generated_semantic_data_model(
     generated_semantic_data_model_for_flaky_tests instead.
 
     Returns:
-        dict: Generated semantic data model response with 'semantic_model' key
+        GenerateSemanticDataModelResponse: Generated semantic data model response
     """
     return _generate_full_semantic_data_model(agent_server_client_with_data_connection, agent_for_full_model)
 
@@ -367,7 +369,7 @@ def generated_semantic_data_model(
 def generated_semantic_data_model_for_flaky_tests(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_full_model: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Function-scoped fixture for flaky tests that need to regenerate the model on retry.
 
@@ -375,14 +377,14 @@ def generated_semantic_data_model_for_flaky_tests(
     fails due to LLM nondeterminism.
 
     Returns:
-        dict: Generated semantic data model response with 'semantic_model' key
+        GenerateSemanticDataModelResponse: Generated semantic data model response
     """
     return _generate_full_semantic_data_model(agent_server_client_with_data_connection, agent_for_full_model)
 
 
 @pytest.mark.flaky(max_runs=5, min_passes=1)
 def test_generated_semantic_data_model_structure(
-    generated_semantic_data_model_for_flaky_tests: dict[str, Any],
+    generated_semantic_data_model_for_flaky_tests: GenerateSemanticDataModelResponse,
 ):
     """Test that the generated semantic data model has the expected structure.
 
@@ -401,20 +403,20 @@ def test_generated_semantic_data_model_structure(
     """
     # Verify the result
     assert generated_semantic_data_model_for_flaky_tests is not None
-    assert "semantic_model" in generated_semantic_data_model_for_flaky_tests
+    assert generated_semantic_data_model_for_flaky_tests.semantic_model is not None
 
-    semantic_model = generated_semantic_data_model_for_flaky_tests["semantic_model"]
+    semantic_model = generated_semantic_data_model_for_flaky_tests.semantic_model
 
     # Verify basic model properties
     # Enhancement should have added a description (name change is optional)
-    assert semantic_model["name"] is not None, "Model should have a name"
-    assert semantic_model["description"] is not None, "Model should have a description"
-    assert len(semantic_model["description"]) > 0, "Description should not be empty"
+    assert semantic_model.name is not None, "Model should have a name"
+    assert semantic_model.description is not None, "Model should have a description"
+    assert len(semantic_model.description) > 0, "Description should not be empty"
 
     # Verify all tables are present
-    assert "tables" in semantic_model
-    tables = semantic_model["tables"]
-    base_table_names = [table["base_table"]["table"] for table in tables]
+    assert semantic_model.tables is not None
+    tables = semantic_model.tables
+    base_table_names = [table["base_table"].get("table") for table in tables]
     assert len(base_table_names) == 4, f"Expected 4 base tables, got {len(base_table_names)}"
     assert "customers" in base_table_names, "Expected 'customers' table to be in the model"
     assert "products" in base_table_names, "Expected 'products' table to be in the model"
@@ -425,28 +427,28 @@ def test_generated_semantic_data_model_structure(
     for table in tables:
         assert "name" in table
         assert "base_table" in table
-        assert table["description"] is not None, f"Expected description for table {table['name']}"
-        assert table["synonyms"] is not None, f"Expected synonyms for table {table['name']}"
+        assert table.get("description") is not None, f"Expected description for table {table.get('name')}"
+        assert table.get("synonyms") is not None, f"Expected synonyms for table {table.get('name')}"
 
         # Verify columns are in the table
         columns = (
-            table.get("dimensions", [])
-            + table.get("facts", [])
-            + table.get("metrics", [])
-            + table.get("time_dimensions", [])
+            list(table.get("dimensions") or [])
+            + list(table.get("facts") or [])
+            + list(table.get("metrics") or [])
+            + list(table.get("time_dimensions") or [])
         )
-        assert len(columns) > 0, f"Expected columns for table {table['name']}"
+        assert len(columns) > 0, f"Expected columns for table {table.get('name')}"
         for column in columns:
-            assert column["name"] is not None, f"Expected name for column {column['name']}"
-            assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-            assert column["description"] is not None, f"Expected description for column {column['name']}"
-            assert column["synonyms"] is not None, f"Expected synonyms for column {column['name']}"
+            assert column.get("name") is not None, f"Expected name for column {column.get('name')}"
+            assert column.get("expr") is not None, f"Expected expr for column {column.get('name')}"
+            assert column.get("description") is not None, f"Expected description for column {column.get('name')}"
+            assert column.get("synonyms") is not None, f"Expected synonyms for column {column.get('name')}"
 
 
 @pytest.fixture(scope="module")
 def created_semantic_data_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    generated_semantic_data_model: dict[str, Any],
+    generated_semantic_data_model: GenerateSemanticDataModelResponse,
 ) -> str:
     """
     Fixture that creates a semantic data model in the agent server.
@@ -457,13 +459,15 @@ def created_semantic_data_model_id(
     client, _ = agent_server_client_with_data_connection
 
     # Create the semantic data model
-    created_model = client.create_semantic_data_model(generated_semantic_data_model)
+    created_model = client.create_semantic_data_model(
+        {"semantic_model": generated_semantic_data_model.semantic_model.model_dump()}
+    )
     return created_model["semantic_data_model_id"]
 
 
 def test_created_semantic_data_model_retrieval(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    generated_semantic_data_model: dict[str, Any],
+    generated_semantic_data_model: GenerateSemanticDataModelResponse,
     created_semantic_data_model_id: str,
 ):
     """Test that the created semantic data model can be retrieved correctly."""
@@ -473,7 +477,7 @@ def test_created_semantic_data_model_retrieval(
     retrieved_model = client.get_semantic_data_model(created_semantic_data_model_id)
 
     # Verify the retrieved model matches the original
-    assert retrieved_model == generated_semantic_data_model["semantic_model"]
+    assert retrieved_model == generated_semantic_data_model.semantic_model
 
 
 @pytest.fixture(scope="module")
@@ -625,7 +629,9 @@ def test_data_frame_column_headers_populated(
             agent_id=agent_id,
         )
         generated_model = client.generate_semantic_data_model(payload.model_dump())
-        created_model = client.create_semantic_data_model(generated_model)
+        created_model = client.create_semantic_data_model(
+            {"semantic_model": generated_model.semantic_model.model_dump()}
+        )
         model_id = created_model["semantic_data_model_id"]
 
         # Assign model to agent and create thread
@@ -737,7 +743,7 @@ def agent_for_enhancer_tests(
 def initial_sdm_with_one_table(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_enhancer_tests: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Generate initial SDM with customers table (subset of columns).
 
@@ -791,8 +797,8 @@ def initial_sdm_with_one_table(
 def sdm_after_column_change(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_enhancer_tests: str,
-    initial_sdm_with_one_table: dict[str, Any],
-) -> dict[str, Any]:
+    initial_sdm_with_one_table: GenerateSemanticDataModelResponse,
+) -> GenerateSemanticDataModelResponse:
     """
     Regenerate SDM adding orders table and more columns to customers table.
 
@@ -844,7 +850,7 @@ def sdm_after_column_change(
         ],
         files_info=[],
         agent_id=agent_id,
-        existing_semantic_data_model=initial_sdm_with_one_table["semantic_model"],
+        existing_semantic_data_model=initial_sdm_with_one_table.semantic_model.model_dump(),
     )
 
     # Generate the semantic data model
@@ -855,8 +861,8 @@ def sdm_after_column_change(
 def sdm_after_table_added(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_enhancer_tests: str,
-    sdm_after_column_change: dict[str, Any],
-) -> dict[str, Any]:
+    sdm_after_column_change: GenerateSemanticDataModelResponse,
+) -> GenerateSemanticDataModelResponse:
     """
     Regenerate SDM adding products table with subset of columns.
 
@@ -913,7 +919,7 @@ def sdm_after_table_added(
         ],
         files_info=[],
         agent_id=agent_id,
-        existing_semantic_data_model=sdm_after_column_change["semantic_model"],
+        existing_semantic_data_model=sdm_after_column_change.semantic_model.model_dump(),
     )
 
     # Generate the semantic data model
@@ -924,8 +930,8 @@ def sdm_after_table_added(
 def sdm_after_more_columns(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_enhancer_tests: str,
-    sdm_after_table_added: dict[str, Any],
-) -> dict[str, Any]:
+    sdm_after_table_added: GenerateSemanticDataModelResponse,
+) -> GenerateSemanticDataModelResponse:
     """
     Regenerate SDM adding more columns to products table.
 
@@ -983,7 +989,7 @@ def sdm_after_more_columns(
         ],
         files_info=[],
         agent_id=agent_id,
-        existing_semantic_data_model=sdm_after_table_added["semantic_model"],
+        existing_semantic_data_model=sdm_after_table_added.semantic_model.model_dump(),
     )
 
     # Generate the semantic data model
@@ -1294,44 +1300,46 @@ def test_validation_resolves_file_references_with_thread_context(
     thread_id = client.create_thread_and_return_thread_id(agent_id)
 
     # Create a semantic model with UNRESOLVED file references (empty thread_id/file_ref)
-    semantic_model: SemanticDataModel = {
-        "name": "test_validation_with_file_resolution",
-        "description": "Test model for validation with file reference resolution",
-        "tables": [
-            {
-                "name": "test_data",
-                "base_table": {
-                    "table": "data_frame_test_data",
-                    "file_reference": {
-                        "thread_id": "",  # Empty - should be resolved
-                        "file_ref": "",  # Empty - should be resolved
-                        "sheet_name": "",
+    semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": "test_validation_with_file_resolution",
+            "description": "Test model for validation with file reference resolution",
+            "tables": [
+                {
+                    "name": "test_data",
+                    "base_table": {
+                        "table": "data_frame_test_data",
+                        "file_reference": {
+                            "thread_id": "",  # Empty - should be resolved
+                            "file_ref": "",  # Empty - should be resolved
+                            "sheet_name": "",
+                        },
                     },
+                    "dimensions": [
+                        {
+                            "name": "customer_name",
+                            "expr": "customer_name",
+                            "data_type": "TEXT",
+                            "description": "Customer name column",
+                        },
+                        {
+                            "name": "revenue",
+                            "expr": "revenue",
+                            "data_type": "NUMBER",
+                            "description": "Revenue column",
+                        },
+                    ],
                 },
-                "dimensions": [
-                    {
-                        "name": "customer_name",
-                        "expr": "customer_name",
-                        "data_type": "TEXT",
-                        "description": "Customer name column",
-                    },
-                    {
-                        "name": "revenue",
-                        "expr": "revenue",
-                        "data_type": "NUMBER",
-                        "description": "Revenue column",
-                    },
-                ],
-            },
-        ],
-    }
+            ],
+        }
+    )
 
     # Validate BEFORE uploading file - should have unresolved file reference warnings
     base_url = urljoin(client.base_url + "/", "semantic-data-models/validate")
 
     response_before = requests.post(
         base_url,
-        json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+        json={"semantic_data_model": semantic_model.model_dump(), "thread_id": thread_id},
         headers={"Content-Type": "application/json"},
     )
     assert response_before.status_code == 200, (
@@ -1363,7 +1371,7 @@ GlobalTrade Ltd,180000"""
     # Validate AFTER uploading file - file references should be resolved
     response_after = requests.post(
         base_url,
-        json={"semantic_data_model": semantic_model, "thread_id": thread_id},
+        json={"semantic_data_model": semantic_model.model_dump(), "thread_id": thread_id},
         headers={"Content-Type": "application/json"},
     )
     assert response_after.status_code == 200, (

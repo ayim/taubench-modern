@@ -1610,8 +1610,8 @@ async def save_data_frame_as_validated_query(
     # Get the semantic data model
     semantic_data_model_dict = await base_storage.get_semantic_data_model(payload.semantic_data_model_id)
 
-    # Cast to SemanticDataModel type
-    semantic_data_model = typing.cast(SemanticDataModel, semantic_data_model_dict)
+    # Convert to SemanticDataModel
+    semantic_data_model = SemanticDataModel.model_validate(semantic_data_model_dict)
 
     # Extract existing references to preserve them when updating
     references = validate_semantic_model_payload_and_extract_references(semantic_data_model)
@@ -1622,14 +1622,14 @@ async def save_data_frame_as_validated_query(
         )
 
     # Initialize verified_queries if it doesn't exist
-    if "verified_queries" not in semantic_data_model or not isinstance(semantic_data_model["verified_queries"], list):
-        semantic_data_model["verified_queries"] = []
+    if semantic_data_model.verified_queries is None:
+        semantic_data_model.verified_queries = []
 
     # Cast the verified query from the payload
     verified_query = typing.cast(VerifiedQuery, payload.verified_query)
 
     # Check if a verified query with this name already exists
-    verified_queries = semantic_data_model["verified_queries"]
+    verified_queries = semantic_data_model.verified_queries
     existing_query_index = None
     for i, query in enumerate(verified_queries):
         if query.name == verified_query.name:

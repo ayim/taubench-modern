@@ -750,7 +750,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
     )
 
     # Ok, a basic model was created, let's change the logical name of the table
-    tables = generated_model.semantic_model.get("tables", [])
+    tables = generated_model.semantic_model.tables or []
     if not tables:
         raise Exception("No tables found in the semantic data model")
     for table in tables:
@@ -775,7 +775,7 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
     )
 
     # Get the semantic data model name
-    semantic_data_model_name = generated_model.semantic_model.get("name")
+    semantic_data_model_name = generated_model.semantic_model.name
 
     result = await dfs_checker.create_data_frame_from_sql_computation_api(
         "test_data_frame",

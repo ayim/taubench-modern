@@ -1,17 +1,1 @@
-[
-  {
-    "label": "Pytest (custom)",
-    "command": "uv run pytest -s --tb=short $ZED_CUSTOM_PYTHON_TEST_TARGET",
-    "tags": ["python-pytest-class", "python-pytest-method"]
-  },
-  {
-    "label": "Pytest current file",
-    "command": "uv run pytest -s --tb=short",
-    "args": ["$ZED_FILE"]
-  },
-  {
-    "label": "Pytest current function",
-    "command": "uv run pytest -s --tb=short",
-    "args": ["$ZED_FILE::$ZED_SYMBOL"]
-  }
-]
+[]

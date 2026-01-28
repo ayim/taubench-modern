@@ -170,7 +170,7 @@ async def create_agent_project_patch(
     # Write semantic data models from deployed agent
     if AgentPackageSpecFileFields.semantic_data_models in changed_categories:
         for sdm in deployed_sdms:
-            sdm_name = sdm.get("name", "unknown")
+            sdm_name = sdm.name or "unknown"
             await patch_handler.write_semantic_data_model(sdm, sdm_name)
 
     # Write new action packages - only expand from URIs if there are new packages
