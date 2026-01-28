@@ -1,26 +1,20 @@
-import { createFileRoute, useLoaderData, useNavigate } from '@tanstack/react-router';
+import { Progress } from '@sema4ai/components';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { EditPlatformDialog } from '~/components/platforms/EditPlatformDialog';
-import { getPlatformQueryOptions } from '~/queries/platforms';
+import { usePlatformQuery } from '~/queries/platforms';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/$platformId')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { tenantId, platformId } }) => {
-    const data = await queryClient.fetchQuery(getPlatformQueryOptions({ agentAPIClient, tenantId, platformId }));
-    return data;
-  },
   component: View,
 });
 
 function View() {
   const navigate = useNavigate();
-  const { tenantId } = Route.useParams();
-  const platform = useLoaderData({ from: '/tenants/$tenantId/configuration/llm/$platformId' });
+  const { tenantId, platformId } = Route.useParams();
+  const { data: platform, isLoading } = usePlatformQuery({ platformId });
 
-  return (
-    <EditPlatformDialog
-      platform={platform}
-      tenantId={tenantId}
-      open
-      onClose={() => navigate({ to: '..', params: { tenantId } })}
-    />
-  );
+  if (isLoading || !platform) {
+    return <Progress variant="page" />;
+  }
+
+  return <EditPlatformDialog platform={platform} open onClose={() => navigate({ to: '..', params: { tenantId } })} />;
 }

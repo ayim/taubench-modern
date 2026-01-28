@@ -24,8 +24,7 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onUpdated?: (platform: GetPlatformResponse) => void;
-  platform: PlatformForEditing;
-  tenantId: string;
+  platform: GetPlatformResponse;
 };
 
 type GooglePlatformExtras = {
@@ -35,9 +34,9 @@ type GooglePlatformExtras = {
   google_vertex_service_account_json?: string | null;
 };
 
-export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated, tenantId }) => {
+export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated }) => {
   const { addSnackbar } = useSnackbar();
-  const kind: Platform = platform.kind;
+  const kind = platform.kind as Platform;
   const router = useRouter();
 
   const firstModel = getAlowedModelFromPlatform(platform);
@@ -150,7 +149,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
     } satisfies UpdatePlatformBody;
 
     mutation.mutate(
-      { tenantId, platformId: platform.platform_id, validateLLM: values.validateLLM, body: payload },
+      { platformId: platform.platform_id, validateLLM: values.validateLLM, body: payload },
       {
         onSuccess: async (updated) => {
           addSnackbar({ message: 'LLM updated', variant: 'success' });

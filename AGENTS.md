@@ -8,7 +8,7 @@ This mono-repository contains the code for both the backend and the frontend of 
 
 Primary components:
 
-- Frontend: @workroom/frontend, @workroom/spar-ui
+- Frontend: @workroom/frontend
 - Backend: @workroom/backend (SPAR proxy/router)
 - MCP runtime: @workroom/mcp-runtime - used to provision action servers (as MCP servers) in SPAR
   - API reference: @workroom/mcp-runtime/README.md

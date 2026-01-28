@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { CreateWorkItemDialog } from '@sema4ai/spar-ui';
+import { CreateWorkItemDialog } from '~/components/CreateWorkItemDialog';
 import { useCallback } from 'react';
 
 export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/create')({

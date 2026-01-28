@@ -1,11 +1,13 @@
-import { Card, Progress, useSnackbar } from '@sema4ai/components';
+import { Box, Button, useSnackbar } from '@sema4ai/components';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileRejection, useDropzone } from 'react-dropzone';
-import { IconUpload } from '@sema4ai/icons';
-import { AgentPackageInspectionResponse, useInspectAgentPackageMutation } from '@sema4ai/spar-ui/queries';
-import { useSparUIContext } from '@sema4ai/spar-ui';
+import { IconPlus } from '@sema4ai/icons';
+
+import { AgentPackageInspectionResponse, useInspectAgentPackageMutation } from '~/queries/agentPackageInspection';
+
+import { useTenantContext } from '~/lib/tenantContext';
 
 type Props = {
   setAgentPackageUploadData: (data: {
@@ -16,8 +18,8 @@ type Props = {
 
 export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
   const { addSnackbar } = useSnackbar();
-  const { sparAPIClient } = useSparUIContext();
-  const { mutateAsync: inspectAgentPackageMutation, isPending } = useInspectAgentPackageMutation({ sparAPIClient });
+  const { mutateAsync: inspectAgentPackageMutation, isPending } = useInspectAgentPackageMutation({});
+  const { features } = useTenantContext();
 
   const schema = z.object({
     file: z
@@ -88,16 +90,13 @@ export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
   });
 
   return (
-    <>
-      {isPending && <Progress variant="page" />}
+    <Box height="100%" display="flex" flexDirection="row" gap={2}>
       <input {...getInputProps()} />
-      <Card
-        as="button"
-        title="Import Agent Package"
-        icon={IconUpload}
-        onClick={open}
-        description="Upload an agent package."
-      />
-    </>
+      {features.deploymentWizard.enabled && (
+        <Button icon={IconPlus} round onClick={open} loading={isPending}>
+          Agent
+        </Button>
+      )}
+    </Box>
   );
 };

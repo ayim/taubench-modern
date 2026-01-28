@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { DataFrameView } from '@sema4ai/spar-ui';
+import { DataFrameView } from '~/components/DataFrame/View';
 
 import { Sidebar } from '~/components/Sidebar';
 

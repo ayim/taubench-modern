@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Outlet, createFileRoute, useNavigate } from '@tanstack/react-router';
 
 import { McpServersTable } from './mcp-servers/components/McpServersTable';
-import { useListMcpServersQuery } from '~/queries/mcpServers';
+import { useMcpServersQuery } from '~/queries/mcpServers';
 import { Page } from '~/components/layout/Page';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers')({
@@ -10,9 +10,8 @@ export const Route = createFileRoute('/tenants/$tenantId/mcp-servers')({
 });
 
 function RouteComponent() {
-  const { tenantId } = Route.useParams();
   const navigate = useNavigate();
-  const { data: mcpServersById = {} } = useListMcpServersQuery({ tenantId });
+  const { data: mcpServersById = {} } = useMcpServersQuery({});
   const mcpServers = Object.values(mcpServersById);
 
   const onSearchQueryUpdate = useCallback(
@@ -23,7 +22,7 @@ function RouteComponent() {
         const all = params.getAll(key);
         nextSearch[key] = all.length > 1 ? all : params.get(key);
       });
-      navigate({ to: '.', search: (prev) => ({ ...(prev as Record<string, unknown>), ...nextSearch }) });
+      navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, ...nextSearch }) });
     },
     [navigate],
   );

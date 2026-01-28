@@ -20,11 +20,10 @@ const beautifyConfigType = (key: string): string => {
 };
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/settings/')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
+  loader: async ({ context: { queryClient, agentAPIClient } }) => {
     const config = await queryClient.ensureQueryData(
       getGetConfigQueryOptions({
         agentAPIClient,
-        tenantId,
       }),
     );
 

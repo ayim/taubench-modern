@@ -2,18 +2,17 @@ import { useCallback, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Box, Code, Dropzone, Typography, useSnackbar } from '@sema4ai/components';
 import { Agent } from '@sema4ai/agent-server-interface';
-import { useSparUIContext, getSnackbarContent } from '@sema4ai/spar-ui';
-import { useReadPackageMutation, usePackageMetadataMutation } from '@sema4ai/spar-ui/queries';
+import { getSnackbarContent } from '~/queries/shared';
+import { useReadPackageMutation, usePackageMetadataMutation } from '~/queries/packages';
 
 export const Route = createFileRoute('/tenants/$tenantId/package')({
   component: PackagePage,
 });
 
 function PackagePage() {
-  const { sparAPIClient } = useSparUIContext();
   const { addSnackbar } = useSnackbar();
-  const readPackageMutation = useReadPackageMutation({ sparAPIClient });
-  const packageMetadataMutation = usePackageMetadataMutation({ sparAPIClient });
+  const readPackageMutation = useReadPackageMutation({});
+  const packageMetadataMutation = usePackageMetadataMutation({});
 
   const [packageReadResult, setPackageReadResult] = useState<{
     status: 'success' | 'error';

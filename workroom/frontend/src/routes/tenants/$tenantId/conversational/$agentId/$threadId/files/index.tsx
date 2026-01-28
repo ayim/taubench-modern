@@ -1,4 +1,4 @@
-import { FilesView } from '@sema4ai/spar-ui';
+import { FilesView } from '~/components/FilesView';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { Sidebar } from '~/components/Sidebar';

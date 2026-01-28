@@ -1,25 +1,24 @@
 import { Progress } from '@sema4ai/components';
-import { NEW_CHAT_STARTING_MSG, streamManager } from '@sema4ai/spar-ui';
+import { NEW_CHAT_STARTING_MSG } from '~/lib/constants';
+import { streamManager } from '~/hooks/useMessageStream';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 
 import { AgentNotFound } from '~/components/AgentNotFound';
 import { isValidRoute } from '~/lib/utils';
-import { getAgentQueryOptions } from '~/queries/agents';
+import { agentQueryOptions } from '~/queries/agents';
 import { getThreadQueryOptions, listThreadsQueryOptions } from '~/queries/thread';
 import { getPreferenceKey, getUserPreferenceId, isWorkerAgent, removeUserPreferenceId } from '~/utils';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/')({
   loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId }, location }) => {
-    const agentResult = await queryClient.fetchQuery(getAgentQueryOptions({ tenantId, agentId, agentAPIClient }));
+    const agent = await queryClient.fetchQuery(agentQueryOptions({ agentAPIClient, agentId }));
 
-    if (!agentResult.success) {
+    if (!agent) {
       throw redirect({
         to: '/tenants/$tenantId/home',
         params: { tenantId },
       });
     }
-
-    const agent = agentResult.data;
 
     if (isWorkerAgent(agent)) {
       throw redirect({
@@ -29,7 +28,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     }
 
     const threadsResult = await queryClient.fetchQuery(
-      listThreadsQueryOptions({ tenantId, agentId, params: { limit: 100 }, agentAPIClient }),
+      listThreadsQueryOptions({ agentId, params: { limit: 100 }, agentAPIClient }),
     );
     if (!threadsResult.success) {
       throw redirect({
@@ -57,15 +56,15 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       : '/tenants/$tenantId/conversational/$agentId/$threadId';
 
     const startWebsocketStream = async (agentId: string) => {
-      const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId, tenantId });
+      const { url, token, withBearerTokenAuth } = await agentAPIClient.getWsStreamUrl({ agentId });
       return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
     };
 
-    const oAuthState = await agentAPIClient.getAgentPermissions({ agentId, tenantId });
+    const oAuthState = await agentAPIClient.getAgentPermissions({ agentId });
     const hasUnauthorizedProviders = oAuthState.some((provider) => !provider.isAuthorized);
 
     if (initialThreadMessage) {
-      const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
+      const newThread = await agentAPIClient.agentFetch('post', '/api/v2/threads/', {
         body: {
           name: 'New Conversation',
           agent_id: agentId,
@@ -106,7 +105,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
 
     if (preferedThreadId) {
       const thread = await queryClient.fetchQuery(
-        getThreadQueryOptions({ threadId: preferedThreadId, tenantId, agentAPIClient }),
+        getThreadQueryOptions({ threadId: preferedThreadId, agentAPIClient }),
       );
 
       if (thread.success) {
@@ -151,7 +150,7 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
     const role = shouldSendUserMessage ? 'user' : 'agent';
     const text = shouldSendUserMessage ? (agent?.extra?.conversation_starter as string) : NEW_CHAT_STARTING_MSG;
 
-    const newThread = await agentAPIClient.agentFetch(tenantId, 'post', '/api/v2/threads/', {
+    const newThread = await agentAPIClient.agentFetch('post', '/api/v2/threads/', {
       body: {
         name: 'Conversation 1',
         agent_id: agentId,

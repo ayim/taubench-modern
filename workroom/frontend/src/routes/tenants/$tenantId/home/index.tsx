@@ -12,13 +12,16 @@ import {
 } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
 import { IconArrowRight, IconSearch } from '@sema4ai/icons';
-import { AgentContextMenu, AgentDeploymentForm, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
+import { AgentContextMenu } from '~/components/Agents/AgentContextMenu';
+import { AgentDeploymentForm } from '~/components/AgentDeploymentForm';
+import { sortByCreatedAtDesc } from '~/lib/utils';
 import { SearchRules, fuzzyDataSearcher } from '@sema4ai/robocloud-ui-utils';
-import { AgentPackageInspectionResponse, useAgentsQuery } from '@sema4ai/spar-ui/queries';
 import { components } from '@sema4ai/agent-server-interface';
 import { styled } from '@sema4ai/theme';
 import { IconAgents } from '@sema4ai/icons/logos';
 
+import { useAgentsQuery } from '~/queries/agents';
+import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
 import { Page } from '~/components/layout/Page';
 import { isConversationalAgent, isWorkerAgent } from '~/utils';
 import { EmptyView } from '~/components/EmptyView';

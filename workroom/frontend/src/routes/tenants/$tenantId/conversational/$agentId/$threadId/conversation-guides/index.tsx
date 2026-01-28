@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ConversationGuidesView } from '@sema4ai/spar-ui';
+import { ConversationGuidesView } from '~/components/ConversationGuides/components/View/View';
 import { Sidebar } from '~/components/Sidebar';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/')({

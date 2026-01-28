@@ -1,4 +1,4 @@
-import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
+import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
 
 export const getDefaultAgentTemplate = (
   mode: 'conversational' | 'worker',

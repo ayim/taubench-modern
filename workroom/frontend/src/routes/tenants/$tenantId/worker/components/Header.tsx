@@ -7,8 +7,8 @@ import {
   IconPaperclip,
   IconPoll,
 } from '@sema4ai/icons';
-import { WorkerHeader } from '@sema4ai/spar-ui';
-import { useAgentQuery } from '@sema4ai/spar-ui/queries';
+import { WorkerHeader } from '~/components/WorkerHeader';
+import { useAgentQuery } from '~/queries/agents';
 import { useParams, useRouter, useSearch } from '@tanstack/react-router';
 
 import { RouterMenuLink, RouterSideNavigationLink } from '~/components/RouterLink';

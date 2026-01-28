@@ -5,11 +5,10 @@ import { getListAuditLogsQueryOptions } from '~/queries/auditLogs.ts';
 import { AuditLogsTable } from './components/AuditLogsTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/auditLogs/')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
+  loader: async ({ context: { queryClient, agentAPIClient } }) => {
     const auditLogs = await queryClient.ensureQueryData(
       getListAuditLogsQueryOptions({
         agentAPIClient,
-        tenantId,
       }),
     );
     return { auditLogs };

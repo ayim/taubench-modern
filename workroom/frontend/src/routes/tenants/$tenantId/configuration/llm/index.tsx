@@ -2,10 +2,10 @@ import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, Button, useSnackbar } from '@sema4ai/components';
-import { usePlatformsQuery } from '@sema4ai/spar-ui/queries';
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
 import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 import { getAlowedModelFromPlatform } from '~/lib/utils';
+import { usePlatformsQuery } from '~/queries/llms';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   component: RouteComponent,
@@ -25,7 +25,7 @@ function RouteComponent() {
   const handleDelete = () => {
     if (deleteTarget) {
       deleteMutation.mutate(
-        { tenantId, platformId: deleteTarget.id },
+        { platformId: deleteTarget.id },
         {
           onSuccess: () => {
             addSnackbar({

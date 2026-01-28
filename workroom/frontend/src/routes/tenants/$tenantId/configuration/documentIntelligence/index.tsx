@@ -1,19 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, EmptyState, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { useDeleteConfirm } from '@sema4ai/layouts';
-import { useDataConnectionsQuery } from '@sema4ai/spar-ui/queries';
-import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, useNavigate, useRouteContext } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import z from 'zod';
 
+import { useDataConnectionsQuery } from '~/queries/dataConnections';
 import errorIllustration from '~/assets/error.svg';
 import { InputControlled } from '~/components/InputControlled';
 import { useTenantContext } from '~/lib/tenantContext';
 import { getApiKeyValue } from '~/queries/agent-interface-patches';
 import {
-  getDocumentIntelligenceQueryOptions,
   useClearDocumentIntelligenceConfigMutation,
+  useDocumentIntelligenceQuery,
   useUpsertDocumentIntelligenceConfigMutation,
 } from '~/queries/documentIntelligence';
 
@@ -28,31 +27,19 @@ const Configuration = z.object({
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/documentIntelligence/')({
   component: View,
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
-    const documentIntelligence = await queryClient.ensureQueryData(
-      getDocumentIntelligenceQueryOptions({ agentAPIClient, tenantId }),
-    );
-    return { documentIntelligence };
-  },
 });
 
 function View() {
   const navigate = useNavigate();
   const { tenantId } = Route.useParams();
   const { addSnackbar } = useSnackbar();
-  const { documentIntelligence: documentIntelligenceFromRoute } = Route.useLoaderData();
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const documentIntelligence = useQuery({
-    ...getDocumentIntelligenceQueryOptions({ agentAPIClient, tenantId }),
-    initialData: documentIntelligenceFromRoute,
-  });
+  const { data: documentIntelligence } = useDocumentIntelligenceQuery({});
 
   const { features } = useTenantContext();
 
   const dataConnections = useDataConnectionsQuery({});
 
-  const currentConfig =
-    documentIntelligence.data.status === 'configured' ? documentIntelligence.data.configuration : null;
+  const currentConfig = documentIntelligence?.status === 'configured' ? documentIntelligence?.configuration : null;
 
   const formProps = useForm<Configuration>({
     defaultValues: {
@@ -106,28 +93,25 @@ function View() {
   );
 
   const handleClearConfig = onClearConfirm(async () => {
-    await clearDocumentIntelligenceConfiguration(
-      { tenantId },
-      {
-        onSuccess: () => {
-          addSnackbar({
-            message: 'Document Intelligence successfully cleared!',
-            variant: 'success',
-          });
-          formProps.reset({
-            documentIntelligenceEndpoint: SEMA4_HOSTED_DOCUMENT_INTELLIGENCE_ENDPOINT,
-            documentIntelligenceApiKey: '',
-            dataConnectionId: '',
-          });
-        },
-        onError: (error) => {
-          addSnackbar({
-            message: error.message,
-            variant: 'danger',
-          });
-        },
+    await clearDocumentIntelligenceConfiguration(undefined, {
+      onSuccess: () => {
+        addSnackbar({
+          message: 'Document Intelligence successfully cleared!',
+          variant: 'success',
+        });
+        formProps.reset({
+          documentIntelligenceEndpoint: SEMA4_HOSTED_DOCUMENT_INTELLIGENCE_ENDPOINT,
+          documentIntelligenceApiKey: '',
+          dataConnectionId: '',
+        });
       },
-    );
+      onError: (error) => {
+        addSnackbar({
+          message: error.message,
+          variant: 'danger',
+        });
+      },
+    });
   });
 
   if (!features.documentIntelligence.enabled) {

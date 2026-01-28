@@ -1,29 +1,23 @@
-import { Worker } from '@sema4ai/spar-ui';
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
-import { Button } from '@sema4ai/components';
-import { getAgentMetaQueryOptions } from '~/queries/agents';
+import { Button, Progress } from '@sema4ai/components';
+import { Worker } from '~/components/Worker';
 import { AgentMetaContext } from '~/lib/agentMetaContext';
 import { EmptyView } from '~/components/EmptyView';
 import { Header } from './components/Header';
 import { Layout } from './components/Layout';
+import { useAgentMetaQuery } from '~/queries/agents';
 
 export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
-    const agentMeta = await queryClient.ensureQueryData(
-      getAgentMetaQueryOptions({
-        agentId,
-        tenantId,
-        agentAPIClient,
-      }),
-    );
-
-    return { agentMeta };
-  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { agentMeta } = Route.useLoaderData();
+  const { agentId } = Route.useParams();
+  const { data: agentMeta, isLoading } = useAgentMetaQuery({ agentId });
+
+  if (isLoading) {
+    return <Progress variant="page" />;
+  }
 
   if (agentMeta?.workroomUi && !agentMeta.workroomUi.conversations.enabled) {
     return (
