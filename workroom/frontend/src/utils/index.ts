@@ -1,7 +1,7 @@
-export * from './base';
-
 import { OAuthClient, OAuthProvider, OAuthProviderSettings } from '@sema4ai/oauth-client';
 import { components } from '@sema4ai/agent-server-interface';
+
+export * from './base';
 
 type Agent = components['schemas']['AgentCompat'];
 

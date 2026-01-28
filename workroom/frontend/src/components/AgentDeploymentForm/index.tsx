@@ -60,11 +60,14 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, ru
             if (data.agent_id) {
               if (payload.mode === 'worker') {
                 navigate({
-                  to: '/tenants/$tenantId/conversational/$agentId',
+                  to: '/tenants/$tenantId/worker/$agentId',
                   params: { agentId: data.agent_id, tenantId },
                 });
               } else {
-                navigate({ to: '/tenants/$tenantId/worker/$agentId', params: { agentId: data.agent_id, tenantId } });
+                navigate({
+                  to: '/tenants/$tenantId/conversational/$agentId',
+                  params: { agentId: data.agent_id, tenantId },
+                });
               }
             }
           },
@@ -82,11 +85,11 @@ export const AgentDeploymentForm: FC<Props> = ({ agentTemplate, agentPackage, ru
             if (agentId) {
               if (payload.mode === 'worker') {
                 navigate({
-                  to: '/tenants/$tenantId/conversational/$agentId',
+                  to: '/tenants/$tenantId/worker/$agentId',
                   params: { agentId, tenantId },
                 });
               } else {
-                navigate({ to: '/tenants/$tenantId/worker/$agentId', params: { agentId, tenantId } });
+                navigate({ to: '/tenants/$tenantId/conversational/$agentId', params: { agentId, tenantId } });
               }
             }
           },

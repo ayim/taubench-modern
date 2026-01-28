@@ -52,7 +52,7 @@ Outline the agent's tasks with step-by-step instructions. Include user interacti
 
 **Tips:**
 
-1. **Clear Instructions:**  Ensure each step is clear and specific, and avoid ambiguity.
+1. **Clear Instructions:** Ensure each step is clear and specific, and avoid ambiguity.
 2. **Break Down Tasks:** Divide complex tasks into smaller, manageable steps.
 3. **Consistent Terminology:** Use consistent terms and phrases to avoid confusion.
 4. **Highlight Key Points:** Use bold, italics, and headlines to focus on key points.

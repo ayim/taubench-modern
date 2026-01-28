@@ -1,13 +1,12 @@
 /* eslint-disable camelcase */
 import { describe, expect, it } from 'vitest';
+import { QueryParameter, SemanticModel } from '~/queries/semanticData';
 import {
   getDataConnectionId,
   getQueryParameterValue,
   applyQueryParameterValue,
   applyQueryParameterName,
 } from './SemanticDataModels';
-import { QueryParameter } from '~/queries/semanticData';
-import { SemanticModel } from '~/queries/semanticData';
 
 describe('getDataConnectionId', () => {
   it('returns data connection ID from first table with one', () => {

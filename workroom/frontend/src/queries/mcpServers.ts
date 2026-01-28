@@ -6,6 +6,8 @@ import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError
 import { AgentPackageInspectionResponse } from './agentPackageInspection';
 
 export type ListMcpServersResponse = ServerResponse<'get', '/api/v2/mcp-servers/'>;
+type McpServerCreateInput = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
+export type McpServerCreateResponse = ServerResponse<'post', '/api/v2/mcp-servers/'>;
 
 const mcpServersQueryKey = () => ['mcp-servers'];
 
@@ -140,9 +142,6 @@ export const useDeleteMcpServerMutation = createSparMutation<object, { mcpServer
  * This mutation uploads an agent package ZIP file and creates a hosted MCP server.
  * Only available in Workroom (not Studio).
  */
-
-type McpServerCreateInput = ServerRequest<'post', '/api/v2/mcp-servers/', 'requestBody'>;
-export type McpServerCreateResponse = ServerResponse<'post', '/api/v2/mcp-servers/'>;
 
 export const useCreateHostedMcpServerMutation = createSparMutation<
   object,

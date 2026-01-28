@@ -42,7 +42,7 @@ export const useDeleteLLMMutation = () => {
         errorMsg: 'Failed to delete LLM',
       });
     },
-    onSuccess: async (_data) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['platforms'] });
     },
   });
@@ -80,7 +80,7 @@ export const useCreateLLMMutation = () => {
 
       return response.data;
     },
-    onSuccess: async (_data) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['platforms'] });
     },
   });
@@ -101,7 +101,7 @@ export const useUpdateLLMMutation = () => {
       body: UpdatePlatformBody;
     }) => {
       if (validateLLM) {
-        const { credentials, id, ...updatedBody } = body;
+        const { credentials, ...updatedBody } = body;
         const flattenedBody = {
           ...updatedBody,
           ...(credentials || {}),

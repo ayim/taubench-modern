@@ -9,7 +9,7 @@ export const getGetConfigQueryKey = () => ['config'];
 export const getGetConfigQueryOptions = createSparQueryOptions()(({ agentAPIClient }) => ({
   queryKey: getGetConfigQueryKey(),
   queryFn: async () => {
-    return await agentAPIClient.agentFetch('get', '/api/v2/config/', {
+    return agentAPIClient.agentFetch('get', '/api/v2/config/', {
       params: {},
       errorMsg: 'Config Not Found',
     });
@@ -27,7 +27,7 @@ export const useUpdateConfigMutation = () => {
       config: { config_type: AgentServerConfigType; current_value: string }[];
     }) => {
       const results = await sequentialMap(config, async (configPair) => {
-        return await agentAPIClient.agentFetch('post', '/api/v2/config/', {
+        return agentAPIClient.agentFetch('post', '/api/v2/config/', {
           body: configPair,
           errorMsg: 'Failed to update settings',
         });

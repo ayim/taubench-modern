@@ -14,6 +14,7 @@ type InitParam<Init> =
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface OpenAPIClient<P extends Record<string, any>> {
+  // eslint-disable-next-line no-use-before-define
   <Path extends PathsWithMethod<P, Method>, Method extends HttpMethod>(
     method: Method,
     path: Path,

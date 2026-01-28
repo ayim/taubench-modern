@@ -1,6 +1,7 @@
 import { ComponentProps } from 'react';
-import { Illustration } from '../components/Illustration';
+
 import { QueryError, ResourceType } from '~/queries/shared';
+import { Illustration } from '../components/Illustration';
 
 type ErrorDetails = Exclude<QueryError['details'], undefined>;
 

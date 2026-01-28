@@ -6,9 +6,8 @@ import { TRPCClientError } from '@trpc/client';
 import errorIllustration from '~/assets/error.svg';
 import { RequestError } from '~/lib/Error';
 import { useTenantId } from '~/hooks/tenant';
-import { InferrableClientTypes } from '@trpc/server/unstable-core-do-not-import';
 
-type ExpectedError = RequestError | TRPCClientError<InferrableClientTypes> | Error;
+type ExpectedError = RequestError | TRPCClientError<unknown> | Error;
 
 type ParsedExpectedError = {
   httpStatus: number | null;
@@ -88,8 +87,8 @@ export const ErrorRoute: FC<ErrorComponentProps<ExpectedError>> = ({ error }) =>
               </Typography>
               <Box mb="$16">
                 <List>
-                  {errorAction.tenants.map(({ url, name }, idx) => (
-                    <a href={url} key={idx}>
+                  {errorAction.tenants.map(({ url, name }) => (
+                    <a href={url} key={name}>
                       <List.Item icon={<Avatar placeholder={name} size="small" />}>{name}</List.Item>
                     </a>
                   ))}

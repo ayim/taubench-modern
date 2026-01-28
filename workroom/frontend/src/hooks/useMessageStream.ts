@@ -13,6 +13,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 
 import {
+  threadMessagesQueryKey,
+  threadQueryKey,
+  threadsQueryKey,
+  useThreadFilesRefetch,
+  useUploadThreadFilesMutation,
+} from '~/queries/threads';
+import {
   AgentErrorStreamPayload,
   StreamingDelta,
   StreamingDeltaMessageContent,
@@ -21,13 +28,6 @@ import {
 } from '../lib/AgentServerTypes';
 import { AgentAPIClient } from '../lib/AgentAPIClient';
 import { useSparUIContext } from '../api/context';
-import {
-  threadMessagesQueryKey,
-  threadQueryKey,
-  threadsQueryKey,
-  useThreadFilesRefetch,
-  useUploadThreadFilesMutation,
-} from '~/queries/threads';
 
 type MessageListener = (
   messages: ThreadMessage[] | undefined,

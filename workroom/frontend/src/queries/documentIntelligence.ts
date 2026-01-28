@@ -40,7 +40,7 @@ export const useUpsertDocumentIntelligenceConfigMutation = () => {
     }) => {
       await agentAPIClient.SPAR_upsertDocumentIntelligenceConfiguration({ configuration });
     },
-    onSuccess: async (_) => {
+    onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
       await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },
@@ -65,7 +65,7 @@ export const useClearDocumentIntelligenceConfigMutation = () => {
       }
       return response.data;
     },
-    onSuccess: async (_) => {
+    onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
       await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },

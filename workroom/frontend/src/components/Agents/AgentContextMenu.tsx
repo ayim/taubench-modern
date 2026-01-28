@@ -10,7 +10,6 @@ type Props = {
   agent: components['schemas']['AgentCompat'];
   onAgentDelete?: () => void;
 };
-
 /**
  * Displays single Agent related actions context menu
  */

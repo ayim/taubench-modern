@@ -1,10 +1,10 @@
 import { FC, useMemo } from 'react';
 import { Box, EmptyState, Progress } from '@sema4ai/components';
-import { Illustration } from '../components/Illustration';
 import { ButtonLink } from '~/components/link';
 import { QueryError, ResourceType } from '~/queries/shared';
 import { getParsedQueryError } from '~/utils/error';
 import { FileRouteTypes } from '~/routeTree.gen';
+import { Illustration } from '../components/Illustration';
 
 type RouteType = FileRouteTypes['to'];
 

@@ -8,6 +8,7 @@ export const useMeta = (): Meta | null => {
     getMeta()
       .then((newMeta) => setMeta(newMeta))
       .catch((err) => {
+        // eslint-disable-next-line no-console
         console.error('Failed retrieving meta', err);
       });
   }, []);

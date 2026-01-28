@@ -1,25 +1,24 @@
 module.exports = {
   root: true,
-  env: { browser: true, es2020: true },
-  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:react-hooks/recommended'],
-  ignorePatterns: ['dist', '.eslintrc.cjs'],
-  parser: '@typescript-eslint/parser',
-  plugins: ['react-refresh'],
+  extends: ['@sema4ai/eslint-config-frontend'],
+  settings: {
+    'import/resolver': {
+      typescript: {},
+    },
+  },
   rules: {
-    'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-    'react-hooks/exhaustive-deps': 'off',
-    'react-refresh/only-export-components': 'off',
-    '@typescript-eslint/no-unused-vars': [
+    'no-shadow': 'off',
+    '@typescript-eslint/no-shadow': 'warn',
+    '@typescript-eslint/no-use-before-define': 'off',
+    'react/function-component-definition': 'off',
+    'import/no-extraneous-dependencies': [
+      'error',
+      { devDependencies: ['**/*.test.ts', '**/*.test.tsx', 'vitest.config.ts'] },
+    ],
+    'no-use-before-define': [
       'error',
       {
-        vars: 'all',
-        args: 'after-used',
-        caughtErrors: 'all',
-        caughtErrorsIgnorePattern: '^_[a-zA-Z0-9_]*$',
-        argsIgnorePattern: '^_[a-zA-Z0-9_]*$',
-        destructuredArrayIgnorePattern: '^_[a-zA-Z0-9_]*$',
-        varsIgnorePattern: '^_[a-zA-Z0-9_]*$',
-        ignoreRestSiblings: true,
+        functions: false,
       },
     ],
   },
