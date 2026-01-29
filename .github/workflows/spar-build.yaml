@@ -162,8 +162,8 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
           NODE_OPTIONS: '--max_old_space_size=4096'
-          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar'
-          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/spar' # Note: Caches live on the manual channel
+          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/moonraker/spar'
+          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/moonraker/spar' # Note: Caches live on the manual channel
           version: ${{ steps.build-metadata.outputs.version }}
           tag: ${{ steps.build-metadata.outputs.tag }}
         with:
@@ -198,7 +198,7 @@ jobs:
         id: print-image-uri
         if: success()
         env:
-          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.build-metadata.outputs.tag }}'
+          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/moonraker/spar:${{ steps.build-metadata.outputs.tag }}'
         run: |
           echo "image-uri=${IMAGE_URI}" >> "${GITHUB_OUTPUT}"
           echo "Docker image URI: ${IMAGE_URI}"

@@ -16,7 +16,7 @@ set -euo pipefail
 
 # Tag + repos for `spar` image
 spar_tag="2.1.21_91f96704a.20251118T094228Z"
-spar_ecr_repository="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/spar"
+spar_ecr_repository="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar"
 spar_ghcr_repository="ghcr.io/sema4ai-external/s4te-spar"
 
 # Tag + repos for `data-server` image

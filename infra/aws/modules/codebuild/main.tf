@@ -112,7 +112,7 @@ resource "aws_codebuild_project" "deployer" {
 
   source {
     type            = "GITHUB"
-    location        = "https://github.com/Sema4AI/agent-platform.git"
+    location        = "https://github.com/Sema4AI/moonraker.git"
     git_clone_depth = 1
     buildspec       = "infra/aws/ecs-fargate/codebuild/deploy-main/buildspec.yml"
   }
@@ -260,7 +260,7 @@ resource "aws_codebuild_project" "dev-deployer" {
 
   source {
     type            = "GITHUB"
-    location        = "https://github.com/Sema4AI/agent-platform.git"
+    location        = "https://github.com/Sema4AI/moonraker.git"
     git_clone_depth = 1
     buildspec       = "infra/aws/ecs-fargate/codebuild/deploy-dev/buildspec.yml"
   }
