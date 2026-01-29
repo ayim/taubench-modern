@@ -183,7 +183,6 @@ endif
 	SQL_AGENT_VISIBILITY=$${SQL_AGENT_VISIBILITY:-NOT_HIDDEN} \
 	$(OTEL_ENV) \
 	$(DB_ENV) \
-	mkdir -p tmp && \
 	AWS_EC2_METADATA_DISABLED=$${AWS_EC2_METADATA_DISABLED:-true} \
 	uv run uvicorn agent_platform.server.dev:create_dev_app \
 		--factory \
