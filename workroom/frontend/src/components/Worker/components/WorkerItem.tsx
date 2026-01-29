@@ -7,9 +7,12 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { RenameDialog } from '~/components/dialogs/RenameDialog';
 import { formatDateTime } from '~/components/helpers';
 import { ListItemLink } from '~/components/link';
+import { useThreadMessagesQuery } from '~/queries/threads';
+import { downloadMarkdown, sanitizeFileName } from '~/lib/utils';
 import { useUpdateWorkItemMutation, useWorkItemQuery } from '~/queries/workItems';
 import { WORK_ITEM_STATUS_CONFIG } from '../../../constants/workItemStatus';
 import { ThreadListLinkContainer } from '../../Thread/components/ThreadsList/styles';
+import { getWorkItemMarkdown } from '../../Chat/utils/threadContentMarkdown';
 
 type WorkItem = components['schemas']['WorkItem'];
 
@@ -104,6 +107,36 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
   const threadId = workItem?.thread_id;
   const displayName = workItem?.work_item_name || workItem?.work_item_id || '';
 
+  const { refetch: fetchThreadMessages } = useThreadMessagesQuery({ threadId: threadId ?? '' }, { enabled: false });
+
+  const onWorkItemDownload = async () => {
+    if (!workItem || !threadId) {
+      return;
+    }
+
+    try {
+      const messagesResult = await fetchThreadMessages();
+
+      if (messagesResult.error) {
+        throw messagesResult.error;
+      }
+
+      if (!Array.isArray(messagesResult.data)) {
+        throw new Error('Invalid thread messages format');
+      }
+
+      const markdownContent = getWorkItemMarkdown(workItem, messagesResult.data);
+      const fileName = sanitizeFileName(displayName || workItem.work_item_id);
+      downloadMarkdown(`${fileName}.md`, markdownContent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to download work item transcript';
+      addSnackbar({
+        message,
+        variant: 'danger',
+      });
+    }
+  };
+
   /**
    * When new workitem is created, it doesn't have threadId,
    * after some time threadId is attached to the workitem.
@@ -191,6 +224,7 @@ export const WorkerItem: FC<WorkItemProps> = ({ item: workItemFromListing }) => 
                 }
               >
                 <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
+                <Menu.Item onClick={onWorkItemDownload}>Download</Menu.Item>
               </Menu>
             }
           >

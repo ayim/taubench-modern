@@ -1,4 +1,4 @@
-import { ThreadMessage } from '@sema4ai/agent-server-interface';
+import { components, ThreadMessage } from '@sema4ai/agent-server-interface';
 import { formatDate } from '@sema4ai/components/utils';
 import { snakeCaseToTitleCase } from '~/components/helpers';
 import { shouldIgnoreToolCall } from '../components/renderer/Item';
@@ -9,6 +9,7 @@ import { formatThoughtTitle } from '../components/renderer/Thinking';
 import { safeParseJson } from '../../../lib/utils';
 
 type ThreadMessageContent = ThreadMessage['content'][number];
+type WorkItem = components['schemas']['WorkItem'];
 
 const EMOJI_MAP: {
   role: Record<ThreadMessage['role'], string>;
@@ -177,4 +178,25 @@ export const getThreadMakrdown = (threadId: string, messages: ThreadMessage[]): 
     .join('\n');
 
   return `# Conversation\n\n_ID: ${threadId}_\n${markdownBody}`;
+};
+
+export const getWorkItemMarkdown = (workItem: WorkItem, messages: ThreadMessage[]): string => {
+  const markdownBody = messages
+    .map((message) => getMessageMarkdown(message))
+    .filter((content) => content.trim() !== '')
+    .join('\n');
+
+  const name = workItem.work_item_name || 'Unnamed';
+  const createdAt = workItem.created_at ? formatDate(new Date(workItem.created_at), { preset: 'datetime' }) : 'Unknown';
+  const updatedAt = workItem.updated_at ? formatDate(new Date(workItem.updated_at), { preset: 'datetime' }) : 'Unknown';
+
+  let header = `# Work Item: ${name}\n\n`;
+  header += `| Property | Value |\n`;
+  header += `| --- | --- |\n`;
+  header += `| **ID** | ${workItem.work_item_id} |\n`;
+  header += `| **Status** | ${workItem.status} |\n`;
+  header += `| **Created** | ${createdAt} |\n`;
+  header += `| **Updated** | ${updatedAt} |\n`;
+
+  return `${header}\n${markdownBody}`;
 };

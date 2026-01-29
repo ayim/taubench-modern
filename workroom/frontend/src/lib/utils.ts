@@ -147,30 +147,6 @@ export const resolveWorkroomURL = (
   baseUrl: string = `${window.location.protocol}//${window.location.host}`,
 ): string => joinURL(baseUrl, getBasePath(), path);
 
-export const downloadJSON = (
-  data: unknown,
-  options: {
-    filename: string;
-    addTimestamp?: boolean;
-  },
-): void => {
-  const { filename, addTimestamp = false } = options;
-
-  const dataToDownload = addTimestamp ? { ...(data as object), exportedAt: new Date().toISOString() } : data;
-
-  const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename.endsWith('.json') ? filename : `${filename}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
 export const getPublicApiEndpointUrl = ({ origin, tenantId }: { origin: string; tenantId: string }): string =>
   `${origin}/tenants/${tenantId}/api/v1`;
 
@@ -361,6 +337,29 @@ export const downloadFile = (data: Blob, fileName: string) => {
 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+export const downloadJSON = (
+  data: unknown,
+  options: {
+    filename: string;
+    addTimestamp?: boolean;
+  },
+): void => {
+  const { filename, addTimestamp = false } = options;
+
+  const dataToDownload = addTimestamp ? { ...(data as object), exportedAt: new Date().toISOString() } : data;
+
+  const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], {
+    type: 'application/json',
+  });
+
+  downloadFile(blob, filename);
+};
+
+export const downloadMarkdown = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8;' });
+  downloadFile(blob, filename);
 };
 
 export const safeParseJson = (text: string | null | undefined) => {
