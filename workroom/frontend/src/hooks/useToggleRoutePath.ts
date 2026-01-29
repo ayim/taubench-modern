@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useLocation, useRouter } from '@tanstack/react-router';
 
 /**

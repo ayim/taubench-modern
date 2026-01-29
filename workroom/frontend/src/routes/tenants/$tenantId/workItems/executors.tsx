@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Box } from '@sema4ai/components';
-import { WorkItemExecutorsView } from '@sema4ai/spar-ui';
+import { WorkItemExecutorsView } from '~/components/WorkItemExecutorsView';
 
 import { Page } from '~/components/layout/Page';
 

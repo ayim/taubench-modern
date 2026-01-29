@@ -1,10 +1,6 @@
-import { createWorkroomClient, AgentOAuthPermission, operations } from '@sema4ai/workroom-interface';
+import { createWorkroomClient, operations } from '@sema4ai/workroom-interface';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import {
-  paths as agentServerPaths,
-  components as AgentServerComponents,
-  operations as AgentServerOperations,
-} from '@sema4ai/agent-server-interface';
+import { paths as agentServerPaths, operations as AgentServerOperations } from '@sema4ai/agent-server-interface';
 import createFetchClient, { ClientMethod, MaybeOptionalInit } from 'openapi-fetch';
 import {
   HttpMethod,
@@ -14,8 +10,8 @@ import {
   SuccessResponse,
   SuccessResponseJSON,
 } from 'openapi-typescript-helpers';
-import type { ServerResponse } from '@sema4ai/agent-server-interface';
 import { UserTenant } from '~/queries/tenants';
+import { OAuthProvider } from '@sema4ai/oauth-client';
 import { RequestError } from './Error';
 import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';
 import { getMeta } from './meta';
@@ -82,15 +78,35 @@ export type AgentServerConfigType =
 
 export class AgentAPIClient {
   private getUserToken: () => Promise<string | undefined>;
+
   private workroomToken: WorkroomToken | undefined;
+
   private tenants: UserTenant[] = [];
+
+  private tenantId: string | undefined;
 
   constructor(getUserToken: () => Promise<string | undefined>) {
     this.getUserToken = getUserToken;
   }
 
-  private async getWorkroomToken({ tenantId }: { tenantId: string }) {
-    const hasTenantAccess = await this.getTenant(tenantId);
+  private getCurrentTenantId(): string {
+    if (this.tenantId) {
+      return this.tenantId;
+    }
+
+    const metaEl = document.head.querySelector('meta[name=tenantId]');
+
+    if (!metaEl) {
+      throw new Error('No meta for tenantId found in document');
+    }
+
+    this.tenantId = metaEl.getAttribute('content') as string;
+
+    return this.tenantId;
+  }
+
+  private async getWorkroomToken() {
+    const hasTenantAccess = await this.getTenant(this.getCurrentTenantId());
 
     if (!hasTenantAccess) {
       const tenants = await this.getTenants();
@@ -134,7 +150,7 @@ export class AgentAPIClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        tenantId,
+        tenantId: this.getCurrentTenantId(),
       }),
     });
 
@@ -182,13 +198,11 @@ export class AgentAPIClient {
 
   public async getAgentMeta({
     agentId,
-    tenantId,
   }: {
-    tenantId: string;
     agentId: string;
   }): Promise<operations['getAgentMeta']['responses'][200]['content']['application/json']> {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -202,7 +216,7 @@ export class AgentAPIClient {
     const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/meta', {
       params: {
         path: {
-          tenantId,
+          tenantId: this.getCurrentTenantId(),
           agentId,
         },
       },
@@ -215,15 +229,9 @@ export class AgentAPIClient {
     return response.data;
   }
 
-  public async getAgentPermissions({
-    agentId,
-    tenantId,
-  }: {
-    tenantId: string;
-    agentId: string;
-  }): Promise<AgentOAuthPermission[]> {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+  public async getAgentPermissions({ agentId }: { agentId: string }) {
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -238,11 +246,11 @@ export class AgentAPIClient {
       const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/me/oauth/permissions', {
         params: {
           path: {
-            tenantId,
+            tenantId: this.getCurrentTenantId(),
             agentId,
           },
           query: {
-            redirectUri: `${window.location.protocol}//${window.location.host}/tenants/${tenantId}/oauth`,
+            redirectUri: `${window.location.protocol}//${window.location.host}/tenants/${this.getCurrentTenantId()}/oauth`,
           },
         },
       });
@@ -251,7 +259,13 @@ export class AgentAPIClient {
         return [];
       }
 
-      return response.data;
+      return response.data as {
+        isAuthorized: boolean;
+        id: string;
+        uri: string;
+        providerType: OAuthProvider;
+        scopes: string[];
+      }[];
     } catch (_) {
       // TODO-V2: This should not silently fail, we should have a flag present whether this endpoint is vene available
       return [];
@@ -259,16 +273,14 @@ export class AgentAPIClient {
   }
 
   public async deleteOAuthConnection({
-    tenantId,
     agentId,
     connectionId,
   }: {
-    tenantId: string;
     agentId: string;
     connectionId: string;
   }): Promise<{ agentId: string; connectionId: string }> {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -284,7 +296,7 @@ export class AgentAPIClient {
       {
         params: {
           path: {
-            tenantId,
+            tenantId: this.getCurrentTenantId(),
             agentId,
             connectionId,
           },
@@ -299,13 +311,9 @@ export class AgentAPIClient {
     return response.data;
   }
 
-  public async authorizeOAuth({
-    tenantId,
-  }: {
-    tenantId: string;
-  }): Promise<{ success: true } | { success: false; error: { code: string } }> {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+  public async authorizeOAuth(): Promise<{ success: true } | { success: false; error: { code: string } }> {
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
     }
@@ -324,12 +332,12 @@ export class AgentAPIClient {
     const response = await workroomClient.GET('/tenants/{tenantId}/workroom/oauth/authorize', {
       params: {
         path: {
-          tenantId,
+          tenantId: this.getCurrentTenantId(),
         },
         query: {
           code: params.get('code') as string,
           state: params.get('state') as string,
-          scope: scope,
+          scope,
         },
       },
     });
@@ -348,17 +356,9 @@ export class AgentAPIClient {
     } as const;
   }
 
-  public async sendFeedback(
-    tenantId: string,
-    payload: {
-      agentId: string;
-      threadId: string;
-      feedback: string;
-      comment: string;
-    },
-  ) {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+  public async sendFeedback(payload: { agentId: string; threadId: string; feedback: string; comment: string }) {
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -372,7 +372,7 @@ export class AgentAPIClient {
     const response = await workroomClient.POST('/tenants/{tenantId}/workroom/feedback', {
       params: {
         path: {
-          tenantId,
+          tenantId: this.getCurrentTenantId(),
         },
       },
       body: payload,
@@ -381,9 +381,9 @@ export class AgentAPIClient {
     return !response.error;
   }
 
-  public async listAuditLogs(tenantId: string) {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+  public async listAuditLogs() {
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -397,7 +397,7 @@ export class AgentAPIClient {
     const response = await workroomClient.GET('/tenants/{tenantId}/workroom/audit-logs', {
       params: {
         path: {
-          tenantId,
+          tenantId: this.getCurrentTenantId(),
         },
       },
     });
@@ -409,21 +409,23 @@ export class AgentAPIClient {
     return response.data;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   private createClient<Paths extends EmptyObjectType>(pathIdentifier: string) {
+    // eslint-disable-next-line func-names, @typescript-eslint/no-shadow
     return (function <Paths extends Record<string, Record<HttpMethod, EmptyObjectType>>>() {
+      // eslint-disable-next-line func-names
       return async function <
         Method extends HttpMethod,
         Path extends PathsWithMethod<Paths, Method>,
         Init extends MaybeOptionalInit<Paths[Path], Method>,
       >(
         this: AgentAPIClient,
-        tenantId: string,
         method: Method,
         path: Path,
         ...init: InitParam<Init>
       ): Promise<ApiResponse<SuccessResponseJSON<Paths[Path][Method]>>> {
-        const workroomToken = await this.getWorkroomToken({ tenantId });
-        const tenant = await this.getTenant(tenantId);
+        const workroomToken = await this.getWorkroomToken();
+        const tenant = await this.getTenant(this.getCurrentTenantId());
 
         if (!tenant) {
           return {
@@ -496,60 +498,31 @@ export class AgentAPIClient {
     return this.createClient<agentServerPaths>('agents');
   }
 
-  public async deployAgentFromPackage(
-    tenantId: string,
-    body: AgentServerComponents['schemas']['AgentPackagePayload'],
-  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
-    const response = await this.agentFetch(tenantId, 'post', '/api/v2/package/deploy/agent', {
-      body: body as never,
-    });
-
-    if (!response.success) {
-      throw new RequestError(500, response.message);
-    }
-
-    return response.data;
-  }
-
-  public async updateAgentFromPackage(
-    tenantId: string,
-    aid: string,
-    body: AgentServerComponents['schemas']['AgentPackagePayload'],
-  ): Promise<AgentServerComponents['schemas']['AgentCompat']> {
-    const response = await this.agentFetch(tenantId, 'put', '/api/v2/package/deploy/agent/{aid}', {
-      params: { path: { aid } },
-      body: body as never,
-    });
-
-    if (!response.success) {
-      throw new RequestError(500, response.message);
-    }
-
-    return response.data;
+  public async startWebsocketStream(agentId: string) {
+    const { url, token, withBearerTokenAuth } = await this.getWsStreamUrl({ agentId });
+    return withBearerTokenAuth ? new WebSocket(url, ['Bearer', token]) : new WebSocket(url);
   }
 
   public async startStream({
-    tenantId,
     args,
   }: {
-    tenantId: string;
     args: {
       input?: string;
-      thread_id: string;
+      threadId: string;
       onmessage?: (event: unknown) => void;
       onopen?: (response: Response) => Promise<void>;
       onclose?: () => void;
       onerror?: (error: Error) => void;
     };
   }) {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const { input, thread_id, ...rest } = args;
+    const { input, threadId, ...rest } = args;
 
     const environmentUrl = getTenantEnvironmentUrl(tenant);
     const url = resolveWorkroomURL('agents/api/v2/runs/stream', environmentUrl);
@@ -557,15 +530,15 @@ export class AgentAPIClient {
     await fetchEventSource(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${workroomToken}` },
-      body: JSON.stringify({ input, thread_id }),
+      body: JSON.stringify({ input, thread_id: threadId }),
       openWhenHidden: true,
       ...rest,
     });
   }
 
-  private async prepareForRequest(tenantId: string) {
-    const workroomToken = await this.getWorkroomToken({ tenantId });
-    const tenant = await this.getTenant(tenantId);
+  private async prepareForRequest() {
+    const workroomToken = await this.getWorkroomToken();
+    const tenant = await this.getTenant(this.getCurrentTenantId());
 
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
@@ -574,8 +547,8 @@ export class AgentAPIClient {
     return { workroomToken, tenant };
   }
 
-  public async getTenantMeta(tenantId: string) {
-    const { workroomToken } = await this.prepareForRequest(tenantId);
+  public async getTenantMeta() {
+    const { workroomToken } = await this.prepareForRequest();
 
     const workroomClient = createWorkroomClient({
       baseUrl: '/',
@@ -585,32 +558,28 @@ export class AgentAPIClient {
     const response = await workroomClient.GET('/tenants/{tenantId}/workroom/meta', {
       params: {
         path: {
-          tenantId,
+          tenantId: this.getCurrentTenantId(),
         },
       },
     });
 
     if (response.error) {
-      // TODO-V2: Should return a failed response and the snackbar should be triggered from the UI
-      // errorToast('Unable to fetch Tenant Meta');
-      return;
+      throw new RequestError(response.response.status, 'Unable to fetch Tenant Meta');
     }
 
     return response.data;
   }
 
   public async getActionLogHtml({
-    tenantId,
     agentId,
     threadId,
     toolCallId,
   }: {
-    tenantId: string;
     agentId: string;
     threadId: string;
     toolCallId: string;
   }): Promise<{ success: true; data: { html: string } } | { success: false; error: { message: string } }> {
-    const { workroomToken } = await this.prepareForRequest(tenantId);
+    const { workroomToken } = await this.prepareForRequest();
 
     const workroomClient = createWorkroomClient({
       baseUrl: '/',
@@ -622,7 +591,7 @@ export class AgentAPIClient {
       {
         params: {
           path: {
-            tenantId,
+            tenantId: this.getCurrentTenantId(),
             agentId,
             threadId,
             actionInvocationId: toolCallId,
@@ -648,6 +617,7 @@ export class AgentAPIClient {
     let done = false;
 
     while (!done) {
+      // eslint-disable-next-line no-await-in-loop
       const { value, done: streamDone } = await reader.read();
       done = streamDone;
 
@@ -665,13 +635,13 @@ export class AgentAPIClient {
    * another approach can be creating WebSocket object in this method and
    * return it.
    */
-  public async getWsStreamUrl({ agentId, tenantId }: { agentId: string; tenantId: string }) {
-    const tenant = await this.getTenant(tenantId);
+  public async getWsStreamUrl({ agentId }: { agentId: string }) {
+    const tenant = await this.getTenant(this.getCurrentTenantId());
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const workroomToken = await this.getWorkroomToken({ tenantId });
+    const workroomToken = await this.getWorkroomToken();
 
     const withBearerTokenAuth = (await getMeta()).deploymentType !== 'spar';
 
@@ -681,42 +651,21 @@ export class AgentAPIClient {
     return { url, token: workroomToken, withBearerTokenAuth };
   }
 
-  public async getDocumentIntelligenceConfiguration({
-    tenantId,
-  }: {
-    tenantId: string;
-  }): Promise<ServerResponse<'get', '/api/v2/document-intelligence'>> {
-    const documentIntelligence = await this.agentFetch(tenantId, 'get', '/api/v2/document-intelligence');
-
-    if (!documentIntelligence.success) {
-      throw new RequestError(Number(documentIntelligence.code), documentIntelligence.message);
-    }
-
-    return documentIntelligence.data;
-  }
-
-  public async clearDocumentIntelligenceConfiguration({ tenantId }: { tenantId: string }): Promise<{ deleted: true }> {
-    await this.agentFetch(tenantId, 'delete', '/api/v2/document-intelligence');
-    return { deleted: true };
-  }
-
   public async SPAR_upsertDocumentIntelligenceConfiguration({
-    tenantId,
     configuration,
   }: {
-    tenantId: string;
     configuration: {
       documentIntelligenceApiKey: string;
       documentIntelligenceEndpoint: string;
       dataConnectionId: string;
     };
   }): Promise<null> {
-    const tenant = await this.getTenant(tenantId);
+    const tenant = await this.getTenant(this.getCurrentTenantId());
     if (!tenant) {
       throw new RequestError(404, 'Workspace not found');
     }
 
-    const workroomToken = await this.getWorkroomToken({ tenantId });
+    const workroomToken = await this.getWorkroomToken();
 
     const environmentUrl = getTenantEnvironmentUrl(tenant);
     const url = resolveWorkroomURL('configure-document-intelligence', environmentUrl);

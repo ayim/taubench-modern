@@ -18,7 +18,6 @@ const AuthContext = createContext<AuthContext>({
   bypassAuth: false,
 });
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   return useContext(AuthContext);
 };

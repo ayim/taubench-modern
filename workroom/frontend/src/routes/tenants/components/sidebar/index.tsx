@@ -13,17 +13,17 @@ import {
 import { styled } from '@sema4ai/theme';
 import { useMatch, useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
-import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
+import { SIDEBAR_STARTING_WIDTH_PX } from '~/lib/constants';
 
-import { TenantMenu } from './components/TenantMenu';
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 
-import { AgentsMenu } from './components/AgentsMenu';
-import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
 import { EXTERNAL_LINKS } from '~/config/externalLinks';
+import { UserMenu } from './components/UserMenu';
+import { AgentsMenu } from './components/AgentsMenu';
+import { TenantMenu } from './components/TenantMenu';
 
 type Props = {
   profilePictureUrl?: string;

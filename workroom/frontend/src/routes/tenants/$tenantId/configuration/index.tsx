@@ -2,8 +2,8 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/')({
-  loader: async ({ params, context: { agentAPIClient }, params: { tenantId } }) => {
-    const tenantMeta = await agentAPIClient.getTenantMeta(tenantId);
+  loader: async ({ params, context: { agentAPIClient } }) => {
+    const tenantMeta = await agentAPIClient.getTenantMeta();
 
     if (!tenantMeta) {
       // No-op: the configuration view is only surfacing feature-gated views

@@ -4,7 +4,6 @@ The Work Room folder is an app that comprises of 3 main pieces:
 
 - `@backend`: backend (in express) responsible for routing request to the agent-server, located outside of this folder, both locally and in production
 - `@frontend`: frontend (in react) responsible for displaying the UI.
-- `@spar-ui`: re-usable react components consumed by the frontend and another service (Studio) located outside of this folder. The code written in spar-ui is run in an electron app and built using webapp. Keep that in mind for any implementation
 
 # Glossary
 
@@ -16,7 +15,7 @@ The Work Room folder is an app that comprises of 3 main pieces:
 
 ### API Types - Use Helper Types
 
-Use `ServerRequest` and `ServerResponse` from `@spar-ui/src/queries/shared.ts` instead of raw path accessors:
+Use `ServerRequest` and `ServerResponse` from `./workroom/frontend/src/queries/shared.ts` instead of raw path accessors:
 
 ```typescript
 // ✅ Preferred
@@ -79,10 +78,6 @@ Always reference Linear tickets in TODO comments with the exact link to the tick
 
 ## Component Architecture
 
-### Shared Logic Belongs in spar-ui
-
-Logic needed by both SPAR (workroom/frontend) and Studio must live in `spar-ui`. Don't write business logic in `frontend` that will need to be reimplemented.
-
 ### Self-Contained Components
 
 Shared components should fetch their own data when possible:
@@ -121,7 +116,7 @@ export const DEFAULT_MCP_TYPE = 'generic_mcp';
 export const SERVER_TYPE_LABELS = { ... };
 
 // In consuming code
-import { DEFAULT_MCP_TYPE } from '@spar-ui/components/MCPServers';
+import { DEFAULT_MCP_TYPE } from '~/components/MCPServers';
 ```
 
 ### Platform-Specific Features
@@ -136,7 +131,7 @@ When a feature is only available in one platform (Workroom vs Studio), document 
 export const useCreateHostedMcpServerMutation = ...
 ```
 
-## Working in @spar-ui
+## Working in ./frontend
 
 ### Scripts
 
@@ -144,12 +139,8 @@ export const useCreateHostedMcpServerMutation = ...
 
 ### Guidelines
 
-- When adding new business logic for queries and mutations, there are two options:
-  - A. Add the logic inside the handler of the query or mutation
-  - B. Define a new [SparAPIClient interface](@spar-ui/src/api/index.ts) handler and call it from the query or mutation body
-  - Pick A when you only need to call the `queryAgentServer`, there are no feature flag requirements nor electron-specific handling needed
-  - Pick B as a fallback or when the operator explicitly asks you to do so
-- Mutations and queries must be defined in [queries](@spar-ui/src/queries/) - find the most relevant place depending on the work at hand
+- When adding new business logic for queries and mutations add the logic inside the handler of the query or mutation
+- Mutations and queries must be defined in [queries](./frontend/src/queries/) - find the most relevant place depending on the work at hand
 
 ### Query and Mutation Patterns
 
@@ -254,7 +245,7 @@ Prefer discriminated unions in the API itself when possible.
 
 ### Document Intelligence
 
-For detailed documentation on the Document Intelligence (DocIntel) feature, see [DocIntel README](spar-ui/src/components/DocIntel/README.md).
+For detailed documentation on the Document Intelligence (DocIntel) feature, see [DocIntel README](./frontend/src/components/DocIntel/README.md).
 
 ## Testing
 

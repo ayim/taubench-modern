@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import { FC, useMemo } from 'react';
 import { Avatar, Box, Button, EmptyState, List, Typography } from '@sema4ai/components';
 import { Link, ErrorComponentProps } from '@tanstack/react-router';
@@ -88,8 +89,8 @@ export const ErrorRoute: FC<ErrorComponentProps<ExpectedError>> = ({ error }) =>
               </Typography>
               <Box mb="$16">
                 <List>
-                  {errorAction.tenants.map(({ url, name }, idx) => (
-                    <a href={url} key={idx}>
+                  {errorAction.tenants.map(({ url, name }) => (
+                    <a href={url} key={name}>
                       <List.Item icon={<Avatar placeholder={name} size="small" />}>{name}</List.Item>
                     </a>
                   ))}

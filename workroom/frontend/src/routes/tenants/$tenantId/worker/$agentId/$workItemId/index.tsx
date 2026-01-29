@@ -5,7 +5,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/$workIt
     /**
      * If workItem has threadId, redirecting to it
      */
-    const workItemResponse = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/{work_item_id}', {
+    const workItemResponse = await agentAPIClient.agentFetch('get', '/api/v2/work-items/{work_item_id}', {
       params: {
         path: {
           work_item_id: workItemId,

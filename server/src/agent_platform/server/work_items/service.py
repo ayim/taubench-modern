@@ -191,7 +191,7 @@ class WorkItemsService:
                     # This needs to be aligned with how we expect our clients
                     # to handle files (which is to upload and then insert a ThreadAttachmentContent
                     # into the thread with the appropriate metadata from the file)
-                    # See workroom/spar-ui/src/queries/threads.ts as reference
+                    # See workroom/frontend/src/queries/threads.ts as reference
                     ThreadAttachmentContent(
                         name=file.file_ref,
                         mime_type=file.mime_type,

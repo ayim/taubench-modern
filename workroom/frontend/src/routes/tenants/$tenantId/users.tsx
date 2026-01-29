@@ -12,10 +12,9 @@ export const Route = createFileRoute('/tenants/$tenantId/users')({
       throw redirect({ to: '/tenants/$tenantId/home', params: { tenantId } });
     }
   },
-  loader: async ({ context: { trpc } }) => {
-    const users = await trpc.userManagement.listUsers.ensureData();
-
-    const roles = await trpc.userManagement.listAvailableRoles.ensureData();
+  loader: async ({ context: { trpc: trpcClient } }) => {
+    const users = await trpcClient.userManagement.listUsers.ensureData();
+    const roles = await trpcClient.userManagement.listAvailableRoles.ensureData();
 
     return { roles, users };
   },

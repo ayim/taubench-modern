@@ -1,14 +1,15 @@
-import { createFileRoute, useRouteContext } from '@tanstack/react-router';
-import { Form, Box, Input, Button, Select, useSnackbar } from '@sema4ai/components';
-import { FormProvider, useForm, Controller } from 'react-hook-form';
+/* eslint-disable camelcase */
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { Form, Box, Input, Button, useSnackbar } from '@sema4ai/components';
+import { FormProvider, useForm } from 'react-hook-form';
 
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
 import { notNil } from '@sema4ai/shared-utils';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
-import { getListPlatformsQueryOptions } from '~/queries/platforms';
+import { usePlatformsQuery } from '~/queries/platforms';
 import { getAllowedModelFromPlatform } from '~/lib/utils';
+import { SelectControlled } from '~/components/form/SelectControlled';
 
 const beautifyConfigType = (key: string): string => {
   switch (key) {
@@ -24,11 +25,10 @@ const beautifyConfigType = (key: string): string => {
 };
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/settings/')({
-  loader: async ({ context: { queryClient, agentAPIClient }, params: { tenantId } }) => {
+  loader: async ({ context: { queryClient, agentAPIClient } }) => {
     const config = await queryClient.ensureQueryData(
       getGetConfigQueryOptions({
         agentAPIClient,
-        tenantId,
       }),
     );
 
@@ -44,17 +44,12 @@ export const Route = createFileRoute('/tenants/$tenantId/configuration/settings/
 function Settings() {
   const { tenantId } = Route.useParams();
   const { config } = Route.useLoaderData();
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const formProps = useForm<Record<AgentServerConfigType, string>>({
     defaultValues: Object.fromEntries(config.map(({ config_type, config_value }) => [config_type, config_value])),
   });
   const { addSnackbar } = useSnackbar();
 
-  const {
-    data: platforms,
-    isLoading: isLoadingPlatforms,
-    error: platformsError,
-  } = useQuery(getListPlatformsQueryOptions({ agentAPIClient, tenantId }));
+  const { data: platforms, isLoading: isLoadingPlatforms, error: platformsError } = usePlatformsQuery({});
 
   const evalModelItems = useMemo((): Array<{ value: string; label: string; optgroup?: string }> => {
     const configuredPlatforms = (platforms ?? []).map((platform) => ({
@@ -109,22 +104,16 @@ function Settings() {
         {config.map((configEntry) => (
           <Form.Fieldset key={configEntry.config_type}>
             {configEntry.config_type === 'GLOBAL_EVAL_PLATFORM_PARAMS_ID' ? (
-              <Controller
-                control={formProps.control}
+              <SelectControlled
                 name={configEntry.config_type}
-                render={({ field }) => (
-                  <Select
-                    label={beautifyConfigType(configEntry.config_type)}
-                    description={
-                      platformsError ? 'Failed to load available models. Please try again.' : configEntry.description
-                    }
-                    placeholder="Select a model"
-                    items={evalModelItems}
-                    disabled={isLoadingPlatforms}
-                    error={formProps.formState.errors[configEntry.config_type]?.message ?? ''}
-                    {...field}
-                  />
-                )}
+                label={beautifyConfigType(configEntry.config_type)}
+                description={
+                  platformsError ? 'Failed to load available models. Please try again.' : configEntry.description
+                }
+                items={evalModelItems}
+                disabled={isLoadingPlatforms}
+                error={formProps.formState.errors[configEntry.config_type]?.message ?? ''}
+                placeholder="Select a model"
               />
             ) : (
               <Input

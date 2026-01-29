@@ -3,7 +3,7 @@ import { getPreferenceKey, getUserPreferenceId, removeUserPreferenceId } from '~
 
 export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
   loader: async ({ context: { agentAPIClient }, params: { agentId, tenantId } }) => {
-    const agentResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
+    const agentResult = await agentAPIClient.agentFetch('get', '/api/v2/agents/{aid}', {
       params: { path: { aid: agentId } },
     });
 
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
      */
     const prefearedWorkItemId = getUserPreferenceId(getPreferenceKey({ agentId }));
     if (prefearedWorkItemId) {
-      const workItem = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/{work_item_id}', {
+      const workItem = await agentAPIClient.agentFetch('get', '/api/v2/work-items/{work_item_id}', {
         params: { path: { work_item_id: prefearedWorkItemId } },
       });
 
@@ -40,7 +40,7 @@ export const Route = createFileRoute('/tenants/$tenantId/worker/$agentId/')({
     /**
      * 2. If no prefered workItem set, redirect to the first workItem in list
      */
-    const workItemsResponse = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/work-items/', {
+    const workItemsResponse = await agentAPIClient.agentFetch('get', '/api/v2/work-items/', {
       params: {
         query: {
           limit: 1,

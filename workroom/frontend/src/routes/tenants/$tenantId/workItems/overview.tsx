@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Box } from '@sema4ai/components';
-import { WorkItemsOverview } from '@sema4ai/spar-ui';
+import { WorkItemsOverview } from '~/components/WorkItemsOverview';
 
 import { Page } from '~/components/layout/Page';
 import { NavigationTab, NavigationTabs } from '~/components/NavigationTabs';

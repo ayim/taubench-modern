@@ -701,7 +701,7 @@ export const customerFacingDataSourceEngineName = (engine: DataSourceEngineWithC
 
 #### 6.2 Add Database Icon
 
-**File**: `workroom/spar-ui/src/components/DataConnection/components/DataConnectionIcon.tsx`
+**File**: `workroom/frontend/src/components/DataConnection/components/DataConnectionIcon.tsx`
 
 ```typescript
 import { IconBigQuery } from '@sema4ai/icons'; // Ensure icon exists

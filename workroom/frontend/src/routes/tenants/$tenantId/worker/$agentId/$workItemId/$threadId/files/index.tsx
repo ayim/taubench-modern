@@ -1,5 +1,5 @@
-import { FilesView } from '@sema4ai/spar-ui';
-import { useWorkItemQuery } from '@sema4ai/spar-ui/queries';
+import { FilesView } from '~/components/FilesView';
+import { useWorkItemQuery } from '~/queries/workItems';
 import { createFileRoute } from '@tanstack/react-router';
 import { Sidebar } from '~/components/Sidebar';
 
