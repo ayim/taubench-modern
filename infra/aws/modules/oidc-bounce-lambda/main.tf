@@ -5,7 +5,7 @@ data "archive_file" "bounce" {
 }
 
 resource "aws_iam_role" "bounce" {
-  name = "lambda_http_interceptor_role"
+  name = "${var.infra_id}-lambda_http_interceptor_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
