@@ -29,7 +29,7 @@ resource "aws_iam_role_policy_attachment" "bounce" {
 # Lambda function
 resource "aws_lambda_function" "bounce" {
   filename         = data.archive_file.bounce.output_path
-  function_name    = "oidc-bounce"
+  function_name    = "${var.infra_id}-oidc-bounce"
   role             = aws_iam_role.bounce.arn
   handler          = "index.handler"
   source_code_hash = data.archive_file.bounce.output_base64sha256
