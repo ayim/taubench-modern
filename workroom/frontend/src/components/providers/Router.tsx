@@ -4,14 +4,14 @@ import { RouterProvider as RouterProviderBase, createRouter } from '@tanstack/re
 import { AgentAPIClient } from '~/lib/AgentAPIClient';
 import { FullScreenLoader } from '~/components/Loaders';
 import { routeTree } from '~/routeTree.gen';
-import { queryClient } from './QueryClient';
-import { useAuth } from '../ProtectedRoute';
-import { ErrorRoute } from '../ErrorRoute';
-import { NotFoundRoute } from '../NotFoundRoute';
 import { SPARRouter } from '~/lib/trpc';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
 import { extractUserPermissions } from '~/lib/userPermissions';
+import { queryClient } from './QueryClient';
+import { useAuth } from '../ProtectedRoute';
+import { ErrorRoute } from '../ErrorRoute';
+import { NotFoundRoute } from '../NotFoundRoute';
 
 export const router = createRouter({
   routeTree,

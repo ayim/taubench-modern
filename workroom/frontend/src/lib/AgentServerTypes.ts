@@ -33,7 +33,8 @@ export type StreamingDeltaType =
   | 'message_metadata'
   | 'message_begin'
   | 'message_end'
-  | 'request_user_input';
+  | 'request_user_input'
+  | 'thread_name_updated';
 
 export interface StreamingDeltaBase {
   timestamp: string;
@@ -97,6 +98,19 @@ export type StreamingDeltaMessage =
   | StreamingDeltaMessageBegin
   | StreamingDeltaMessageEnd;
 
+export interface StreamingDeltaThreadNameUpdated extends StreamingDeltaBase {
+  event_type: 'thread_name_updated';
+  thread_id: string;
+  agent_id: string;
+  new_name: string;
+  old_name?: string | null;
+  reason: 'auto' | 'manual';
+}
+
 export type StreamingDeltaAgent = StreamingDeltaAgentReady | StreamingDeltaAgentFinished | StreamingDeltaAgentError;
 
-export type StreamingDelta = StreamingDeltaRequestUserInput | StreamingDeltaAgent | StreamingDeltaMessage;
+export type StreamingDelta =
+  | StreamingDeltaRequestUserInput
+  | StreamingDeltaAgent
+  | StreamingDeltaMessage
+  | StreamingDeltaThreadNameUpdated;

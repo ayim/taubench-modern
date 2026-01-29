@@ -5060,7 +5060,8 @@ export interface components {
       | 'AGENT_THREAD_RETENTION_PERIOD'
       | 'POSTGRES_POOL_MAX_SIZE'
       | 'MAX_CACHE_SIZE_IN_BYTES'
-      | 'WORK_ITEM_TIMEOUT_SECONDS';
+      | 'WORK_ITEM_TIMEOUT_SECONDS'
+      | 'GLOBAL_EVAL_PLATFORM_PARAMS_ID';
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
       /** File Ref */

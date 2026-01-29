@@ -8,7 +8,7 @@ This mono-repository contains the code for both the backend and the frontend of 
 
 Primary components:
 
-- Frontend: @workroom/frontend, @workroom/spar-ui
+- Frontend: @workroom/frontend
 - Backend: @workroom/backend (SPAR proxy/router)
 
 ## Python Guidelines

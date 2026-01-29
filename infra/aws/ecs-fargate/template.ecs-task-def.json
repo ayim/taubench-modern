@@ -92,7 +92,6 @@
         },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
         { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
-        { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
         {
           "name": "SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE",
           "value": "perry@sema4.ai;karri@sema4.ai;ben@sema4.ai;michal@sema4.ai"

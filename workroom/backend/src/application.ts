@@ -7,7 +7,6 @@ import cors from 'cors';
 import express, { type Application, type NextFunction, type Request, type Response } from 'express';
 import createRouter from 'express-promise-router';
 import rateLimit from 'express-rate-limit';
-import type { AgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApiKeysManager } from './apiKeys/index.js';
 import { AuthManager } from './auth/AuthManager.js';
 import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
@@ -37,7 +36,6 @@ import {
   createAuthRedirectMiddleware,
 } from './middleware/auth/index.js';
 import { createSnowflakeImplicitSessionMiddleware } from './middleware/auth/snowflake.js';
-import { badPlatform } from './middleware/badRoute.js';
 import { noCache } from './middleware/cache.js';
 import { createRequestLogger } from './middleware/logging.js';
 import { serverHeaders } from './middleware/server.js';
@@ -48,7 +46,6 @@ import { createSessionMiddleware } from './session/middleware.js';
 import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
-import { migrateAgentServerUsersForSPCS } from './utils/snowflake.js';
 
 // TODO: Add 'rate_limit_exceeded' to ErrorResponse in @sema4ai/workroom-interface
 type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: string } };
@@ -56,12 +53,10 @@ type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: s
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
 export const createApplication = async ({
-  agentServerDatabase,
   configuration,
   database,
   monitoring,
 }: {
-  agentServerDatabase: AgentServerDatabaseClient;
   configuration: Configuration;
   database: DatabaseClient;
   monitoring: MonitoringContext;
@@ -113,16 +108,6 @@ export const createApplication = async ({
     monitoring,
     secret: configuration.session?.secret ?? SESSION_COOKIES_NOT_ACTIVE,
   });
-
-  if (configuration.auth.type === 'snowflake') {
-    // Try to migrate existing users to new system
-    await migrateAgentServerUsersForSPCS({
-      agentServerDatabase,
-      configuration,
-      database,
-      monitoring,
-    });
-  }
 
   await autoPromoteUsersWithEmailsToAdmin({
     database,
@@ -271,96 +256,6 @@ export const createApplication = async ({
     createOIDCCallbackHandler({ authManager, configuration, database, monitoring, sessionManager }),
   );
 
-  // Overrides
-  if (configuration.legacyRoutingUrl) {
-    monitoring.logger.info('Enabling legacy proxy routes', {
-      requestUrl: configuration.legacyRoutingUrl,
-    });
-
-    tenantRouter.get(
-      '/workroom/agents/:agentId/threads/:threadId/action-invocations/:actionInvocationId',
-      noCache,
-      createAuthMiddleware({
-        authentication: 'without-permissions-check',
-        authManager,
-        configuration,
-        database,
-        monitoring,
-        sessionManager,
-      }),
-      createProxyHandler({
-        apiType: 'private',
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
-        skipAuthentication: true, // Auth handled by agent-router
-        targetBaseUrl: configuration.legacyRoutingUrl,
-      }),
-    );
-
-    tenantRouter.get(
-      '/workroom/agents/:agentId/me/oauth/permissions',
-      noCache,
-      createAuthMiddleware({
-        authentication: 'without-permissions-check',
-        authManager,
-        configuration,
-        database,
-        monitoring,
-        sessionManager,
-      }),
-      createProxyHandler({
-        apiType: 'private',
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
-        skipAuthentication: true, // Auth handled by agent-router
-        targetBaseUrl: configuration.legacyRoutingUrl,
-      }),
-    );
-
-    tenantRouter.get(
-      '/workroom/oauth/authorize',
-      noCache,
-      createAuthMiddleware({
-        authentication: 'without-permissions-check',
-        authManager,
-        configuration,
-        database,
-        monitoring,
-        sessionManager,
-      }),
-      createProxyHandler({
-        apiType: 'private',
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
-        skipAuthentication: true, // Auth handled by agent-router
-        targetBaseUrl: configuration.legacyRoutingUrl,
-      }),
-    );
-
-    tenantRouter.delete(
-      '/workroom/agents/:agentId/me/oauth/connections/:connectionId',
-      createAuthMiddleware({
-        authentication: 'without-permissions-check',
-        authManager,
-        configuration,
-        database,
-        monitoring,
-        sessionManager,
-      }),
-      createProxyHandler({
-        apiType: 'private',
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (current) => current.replace(/^\//, '/backend/'),
-        skipAuthentication: true, // Auth handled by agent-router
-        targetBaseUrl: configuration.legacyRoutingUrl,
-      }),
-    );
-  }
-
   // Agent server routes
   tenantRouter.get(
     '/workroom/agents/:agentId/meta',
@@ -429,45 +324,32 @@ export const createApplication = async ({
     createConfigureDocumentIntelligence({ configuration, monitoring }),
   );
 
-  if (configuration.workroomMeta.features.publicAPI.enabled) {
-    const publicApiRateLimiter = rateLimit({
-      windowMs: configuration.publicApi.rateLimitWindowMs,
-      limit: configuration.publicApi.rateLimit,
-      standardHeaders: 'draft-8',
-      handler: (_req, res) => {
-        res.status(429).json({
-          error: { code: 'rate_limit_exceeded', message: 'Too many requests, please try again later' },
-        } satisfies RateLimitErrorResponse);
-      },
-    });
+  const publicApiRateLimiter = rateLimit({
+    windowMs: configuration.publicApi.rateLimitWindowMs,
+    limit: configuration.publicApi.rateLimit,
+    standardHeaders: 'draft-8',
+    handler: (_req, res) => {
+      res.status(429).json({
+        error: { code: 'rate_limit_exceeded', message: 'Too many requests, please try again later' },
+      } satisfies RateLimitErrorResponse);
+    },
+  });
 
-    tenantRouter.get('/api/v1', noCache, createPublicApiSpecHandler());
+  tenantRouter.get('/api/v1', noCache, createPublicApiSpecHandler());
 
-    tenantRouter.use(
-      '/api/v1',
-      publicApiRateLimiter,
-      createApiKeyAuthMiddleware({ apiKeysManager, monitoring }),
-      createProxyHandler({
-        apiType: 'public',
-        configuration,
-        monitoring,
-        rewriteAgentServerPath: (currentPath, getParam) =>
-          currentPath.replace(`/tenants/${getParam('tenantId')}`, '').replace('/api/v1', '/api/public/v1'),
-        targetBaseUrl: configuration.agentServerInternalUrl,
-      }),
-    );
-  } else {
-    tenantRouter.get('/api/v1', noCache, createPublicApiSpecHandler());
-    tenantRouter.use('/api/v1/*', badPlatform);
-  }
-
-  // "Tombstoned" routes for ACE - these are overwritten by ACE's ingress
-  // configuration, so they should work fine there but not be called in
-  // other environments.
-  tenantRouter.get('/workroom/meta', badPlatform);
-  tenantRouter.post('/workroom/feedback', badPlatform);
-  tenantRouter.get('/osb-resource-access', badPlatform);
-  tenantRouter.get('/workroom/audit-logs', badPlatform);
+  tenantRouter.use(
+    '/api/v1',
+    publicApiRateLimiter,
+    createApiKeyAuthMiddleware({ apiKeysManager, monitoring }),
+    createProxyHandler({
+      apiType: 'public',
+      configuration,
+      monitoring,
+      rewriteAgentServerPath: (currentPath, getParam) =>
+        currentPath.replace(`/tenants/${getParam('tenantId')}`, '').replace('/api/v1', '/api/public/v1'),
+      targetBaseUrl: configuration.agentServerInternalUrl,
+    }),
+  );
 
   tenantRouter.use(
     createAuthRedirectMiddleware({

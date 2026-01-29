@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createFileRoute, useNavigate, useParams } from '@tanstack/react-router';
-import { AgentDeploymentForm } from '@sema4ai/spar-ui';
+import { AgentDeploymentForm } from '~/components/AgentDeploymentForm';
 import { Box } from '@sema4ai/components';
 
 import { DEFAULT_RUNBOOK, getDefaultAgentTemplate } from '~/constants/agentTemplates';

@@ -80,12 +80,12 @@ New:
 
     Used in:
 
-        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/components/FilesView/components/AddFiles.tsx
-        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/hooks/useMessageStream.ts
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/frontend/src/components/FilesView/components/AddFiles.tsx
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/frontend/src/hooks/useMessageStream.ts
 
     Actual communication:
 
-        https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/queries/threads.ts#L210
+        https://github.com/Sema4AI/agent-platform/blob/main/workroom/frontend/src/queries/threads.ts#L210
 
         Creates a list of `ThreadAttachmentContent` objects with the following shape (which is then
         streamed back by useMessageStream.ts, along with a user message if a message was entered).

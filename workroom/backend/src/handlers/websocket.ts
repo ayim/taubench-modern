@@ -136,7 +136,6 @@ export const initializeWebSocketProxying = ({
         configuration,
         headers: extractHeadersFromRequest(req.headers),
         monitoring,
-        permissions: [],
         sessionManager,
       });
 

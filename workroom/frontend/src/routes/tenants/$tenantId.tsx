@@ -1,23 +1,19 @@
 import { useMemo } from 'react';
-import { SparUIContext } from '@sema4ai/spar-ui';
+import { SparUIContext } from '~/api/context';
 import { Outlet, createFileRoute, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenuProvider } from '@sema4ai/layouts';
 import { Box, Button, EmptyState } from '@sema4ai/components';
 
 import errorIllustration from '~/assets/error.svg';
-import { createSparAPIClient } from '~/lib/SparAPIClient';
 import { TenantContext } from '~/lib/tenantContext';
 import { getMeta } from '~/lib/meta';
 import { trpc } from '~/lib/trpc';
 import { Main } from './components/Main';
 import { Sidebar } from './components/sidebar';
-import { router } from '../../components/providers/Router';
-import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
-import { useUserPermissionsQuery } from '~/queries/userPermissions';
 
 export const Route = createFileRoute('/tenants/$tenantId')({
-  loader: async ({ context: { agentAPIClient }, params: { tenantId } }) => {
-    const tenantMeta = await agentAPIClient.getTenantMeta(tenantId);
+  loader: async ({ context: { agentAPIClient } }) => {
+    const tenantMeta = await agentAPIClient.getTenantMeta();
     const applicationMeta = await getMeta();
 
     return {
@@ -43,24 +39,15 @@ function View() {
   const extConfigStatus = trpc.externalConfiguration.getExternalConfigurationStatus.useQuery();
   const snowflakeEAIUrl = extConfigStatus.isSuccess ? extConfigStatus.data.snowflakeEAIUrl : null;
 
-  const { data: userPermissions } = useUserPermissionsQuery();
-  const isAdmin = useMemo(() => {
-    if (userPermissions?.userRole) {
-      return userPermissions.userRole === 'admin';
-    }
-    return userPermissions?.permissions.includes(ADMINISTRATION_ACCESS_PERMISSION) ?? false;
-  }, [userPermissions]);
-
   const sparUIContext = useMemo(() => {
-    return tenantMeta
-      ? {
-          sparAPIClient: createSparAPIClient(tenantId, tenantMeta, agentAPIClient, router, isAdmin),
-          platformConfig: {
-            snowflakeEAIUrl,
-          },
-        }
-      : undefined;
-  }, [agentAPIClient, tenantId, tenantMeta, snowflakeEAIUrl, isAdmin]);
+    return {
+      agentAPIClient,
+      tenantId,
+      platformConfig: {
+        snowflakeEAIUrl,
+      },
+    };
+  }, [agentAPIClient, tenantId, snowflakeEAIUrl]);
 
   if (!tenantMeta || !sparUIContext) {
     return (

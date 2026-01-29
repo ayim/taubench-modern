@@ -1,6 +1,6 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
-import { QueryProps } from './shared';
+import { createSparQueryOptions } from './shared';
 
 const getListUserTenantsQueryKey = () => ['tenants'];
 const getGetUserTenantsQueryKey = (tenantId: string) => ['tenants', tenantId];
@@ -20,25 +20,25 @@ export interface UserTenant {
   };
 }
 
-export const listUserTenantsQueryOptions = ({ agentAPIClient }: QueryProps) =>
-  queryOptions({
-    queryKey: getListUserTenantsQueryKey(),
-    queryFn: async (): Promise<UserTenant[]> => {
-      const response = await agentAPIClient.getTenants();
-      return response;
-    },
-  });
+export const listUserTenantsQueryOptions = createSparQueryOptions()(({ agentAPIClient }) => ({
+  queryKey: getListUserTenantsQueryKey(),
+  queryFn: async (): Promise<UserTenant[]> => {
+    const response = await agentAPIClient.getTenants();
+    return response;
+  },
+}));
 
 export const useListUserTenantsQuery = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   return useQuery(listUserTenantsQueryOptions({ agentAPIClient }));
 };
 
-export const getUserTenantQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
-  queryOptions({
+export const getUserTenantQueryOptions = createSparQueryOptions<{ tenantId: string }>()(
+  ({ agentAPIClient, tenantId }) => ({
     queryKey: getGetUserTenantsQueryKey(tenantId),
     queryFn: async (): Promise<UserTenant | undefined> => {
       const response = await agentAPIClient.getTenants();
       return response.find((curr) => curr.id === tenantId);
     },
-  });
+  }),
+);

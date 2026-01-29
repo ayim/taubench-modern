@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Badge, Box, Button, Link, useScreenSize } from '@sema4ai/components';
+import { Badge, Box, Button, useScreenSize } from '@sema4ai/components';
 import {
   IconAgents,
   IconSettings2,
@@ -13,17 +13,16 @@ import {
 import { styled } from '@sema4ai/theme';
 import { useMatch, useParams, useRouteContext } from '@tanstack/react-router';
 import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
-import { SIDEBAR_STARTING_WIDTH_PX } from '@sema4ai/spar-ui';
 
-import { TenantMenu } from './components/TenantMenu';
+import { SIDEBAR_STARTING_WIDTH_PX } from '~/lib/constants';
 import { RouterSideNavigationLink } from '~/components/RouterLink';
-
-import { AgentsMenu } from './components/AgentsMenu';
-import { UserMenu } from './components/UserMenu';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
-import { EXTERNAL_LINKS } from '~/config/externalLinks';
+
+import { UserMenu } from './components/UserMenu';
+import { AgentsMenu } from './components/AgentsMenu';
+import { TenantMenu } from './components/TenantMenu';
 
 type Props = {
   profilePictureUrl?: string;
@@ -171,15 +170,9 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
           <AgentsMenu />
         </ScrollContainer>
 
-        <Box display="flex" justifyContent="space-between" alignItems="center" mt="auto" pr="$8">
-          <Box display="flex" alignItems="center" gap="$4">
-            <UserMenu profilePictureUrl={profilePictureUrl} />
-            {isAdmin && <Badge label="Admin" variant="primary" size="small" />}
-          </Box>
-
-          <Link href={EXTERNAL_LINKS.MAIN_WORKROOM_HELP} variant="subtle" target="_blank" aria-label="Help">
-            Help
-          </Link>
+        <Box display="flex" alignItems="center" gap="$4" mt="auto">
+          <UserMenu profilePictureUrl={profilePictureUrl} />
+          {isAdmin && <Badge label="Admin" variant="primary" size="small" />}
         </Box>
       </SidebarMenu>
     </>

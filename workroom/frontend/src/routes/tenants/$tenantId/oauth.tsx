@@ -29,9 +29,7 @@ function View() {
         agentId: string;
       };
 
-      const result = await agentAPIClient.authorizeOAuth({
-        tenantId,
-      });
+      const result = await agentAPIClient.authorizeOAuth();
 
       if (!result.success) {
         if (result.error.code === 'failed_to_get_access_token_spcs') {

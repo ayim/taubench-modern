@@ -1,5 +1,6 @@
 import type { components } from '@sema4ai/agent-server-interface';
 import { z } from 'zod';
+
 export const OPENAI_MODEL_VALUES = [
   'openai:gpt-5-2-xhigh',
   'openai:gpt-5-2-high',
@@ -55,7 +56,7 @@ export const GROQ_MODEL_VALUES = [
 ] as const;
 export const GOOGLE_MODEL_VALUES = [
   'google:gemini-3-pro-high',
-  //'google:gemini-3-pro-medium',
+  // 'google:gemini-3-pro-medium',
   'google:gemini-3-pro-low',
   'google:gemini-3-flash-high',
   'google:gemini-3-flash-medium',

@@ -12,7 +12,7 @@ export const Row: FC<TableRowProps<ListMcpServersResponse[string]>> = ({ rowData
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { addSnackbar } = useSnackbar();
 
-  const { mutate: deleteMcpServer } = useDeleteMcpServerMutation();
+  const { mutate: deleteMcpServer } = useDeleteMcpServerMutation({});
 
   const onEdit = () => {
     navigate({
@@ -31,7 +31,7 @@ export const Row: FC<TableRowProps<ListMcpServersResponse[string]>> = ({ rowData
 
   const onDelete = onDeleteConfirm(() => {
     deleteMcpServer(
-      { tenantId, mcpServerId: rowData.mcp_server_id },
+      { mcpServerId: rowData.mcp_server_id },
       {
         onSuccess: () => {
           addSnackbar({

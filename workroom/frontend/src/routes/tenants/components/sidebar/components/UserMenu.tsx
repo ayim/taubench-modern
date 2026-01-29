@@ -32,7 +32,6 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
 
     if (!bypassAuth) {
       logout();
-      return;
     }
   }, [bypassAuth, logout, meta]);
 
@@ -65,11 +64,9 @@ export const UserMenu: FC<Props> = ({ profilePictureUrl }) => {
         Help
       </Menu.Link>
       {canLogout && (
-        <>
-          <Menu.Item onClick={handleLogout} icon={IconLogOut}>
-            Log out
-          </Menu.Item>
-        </>
+        <Menu.Item onClick={handleLogout} icon={IconLogOut}>
+          Log out
+        </Menu.Item>
       )}
     </Menu>
   );

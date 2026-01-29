@@ -2,8 +2,9 @@ import { Box } from '@sema4ai/components';
 import { AgentIcon } from '@sema4ai/layouts';
 import { styled } from '@sema4ai/theme';
 import { useParams, useRouteContext } from '@tanstack/react-router';
-import { AgentContextMenu, sortByCreatedAtDesc } from '@sema4ai/spar-ui';
-import { useAgentsQuery } from '@sema4ai/spar-ui/queries';
+import { AgentContextMenu } from '~/components/Agents/AgentContextMenu';
+import { sortByCreatedAtDesc } from '~/lib/utils';
+import { useAgentsQuery } from '~/queries/agents';
 
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { isConversationalAgent } from '~/utils';

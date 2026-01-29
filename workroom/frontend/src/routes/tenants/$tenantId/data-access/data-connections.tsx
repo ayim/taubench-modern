@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { Box } from '@sema4ai/components';
-import { DataConnectionTable } from '@sema4ai/spar-ui';
+import { DataConnectionTable } from '~/components/DataConnection/DataConnectionsTable';
 
 import { Page } from '~/components/layout/Page';
 import { NavigationTabs, NavigationTab } from '~/components/NavigationTabs';
