@@ -1,16 +1,16 @@
 locals {
-  resource_group_name     = azurerm_resource_group.team_edition.name
-  resource_group_location = azurerm_resource_group.team_edition.location
+  resource_group_name     = azurerm_resource_group.moonraker.name
+  resource_group_location = azurerm_resource_group.moonraker.location
 }
 
 data "azurerm_client_config" "current" {}
 
-resource "azurerm_resource_group" "team_edition" {
-  name     = "team-edition-${var.infra_id}"
+resource "azurerm_resource_group" "moonraker" {
+  name     = "moonraker-${var.infra_id}"
   location = var.infra_location
 }
 
-resource "azurerm_log_analytics_workspace" "team_edition" {
+resource "azurerm_log_analytics_workspace" "moonraker" {
   name                = "logs-${var.infra_id}"
   location            = local.resource_group_location
   resource_group_name = local.resource_group_name
@@ -18,12 +18,12 @@ resource "azurerm_log_analytics_workspace" "team_edition" {
   retention_in_days   = 30 # days, this is the minimum retention allowed
 }
 
-resource "azurerm_container_app_environment" "team_edition" {
+resource "azurerm_container_app_environment" "moonraker" {
   name                       = "app-${var.infra_id}"
-  location                   = azurerm_resource_group.team_edition.location
+  location                   = azurerm_resource_group.moonraker.location
   resource_group_name        = local.resource_group_name
   logs_destination           = "log-analytics"
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.team_edition.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.moonraker.id
   infrastructure_subnet_id   = module.networking.container_apps_subnet_id
 
   workload_profile {
@@ -47,7 +47,7 @@ resource "azurerm_user_assigned_identity" "app_identity" {
 }
 
 # Key Vault for Application
-resource "azurerm_key_vault" "team_edition" {
+resource "azurerm_key_vault" "moonraker" {
   name                = "kv-${var.infra_id}"
   location            = local.resource_group_location
   resource_group_name = local.resource_group_name
@@ -74,7 +74,7 @@ resource "azurerm_key_vault_secret" "uai_client_id" {
   name  = "uai-client-id"
   value = azurerm_user_assigned_identity.app_identity.client_id
 
-  key_vault_id = azurerm_key_vault.team_edition.id
+  key_vault_id = azurerm_key_vault.moonraker.id
 }
 
 # Grant ACR registry pull access for app UAI
@@ -101,7 +101,7 @@ module "az-flexible-pg" {
 
   db_subnet_id = module.networking.db_subnet_id
   vnet_id      = module.networking.vnet_id
-  key_vault_id = azurerm_key_vault.team_edition.id
+  key_vault_id = azurerm_key_vault.moonraker.id
 }
 
 module "container-registry" {
@@ -111,13 +111,13 @@ module "container-registry" {
   resource_group_name     = local.resource_group_name
   resource_group_location = local.resource_group_location
 
-  app_environment_principal_id = azurerm_container_app_environment.team_edition.identity[0].principal_id
+  app_environment_principal_id = azurerm_container_app_environment.moonraker.identity[0].principal_id
 }
 
 module "app-auth" {
   source = "../modules/app-auth"
 
-  key_vault_id = azurerm_key_vault.team_edition.id
+  key_vault_id = azurerm_key_vault.moonraker.id
 }
 
 module "agent-files-storage" {
@@ -125,7 +125,7 @@ module "agent-files-storage" {
 
   container_apps_subnet_id = module.networking.container_apps_subnet_id
   infra_id                 = var.infra_id
-  key_vault_id             = azurerm_key_vault.team_edition.id
+  key_vault_id             = azurerm_key_vault.moonraker.id
   resource_group_name      = local.resource_group_name
   resource_group_location  = local.resource_group_location
   vnet_id                  = module.networking.vnet_id
