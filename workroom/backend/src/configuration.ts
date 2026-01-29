@@ -16,12 +16,6 @@ export interface Configuration {
   allowInsecureRequests: boolean;
   auth: {
     autoPromoteEmails: Array<string>;
-    /**
-     * Transitionary flag to know if an auth type should handle permissions
-     * and role management, provided by SPAR itself. Once our own SSO-OIDC
-     * is removed in the future, in favour of OIDC, this may be refactored
-     * to only check `auth.type` vs 'none'.
-     */
     roleManagement: boolean;
     tokenIssuer: string;
   } & (
@@ -31,12 +25,6 @@ export interface Configuration {
     | {
         jwtPrivateKeyB64: string;
         type: 'snowflake';
-      }
-    | {
-        controlPlaneUrl: string;
-        jwtPrivateKeyB64: string;
-        tokenIssuers: Array<string>;
-        type: 'sema4-oidc-sso';
       }
     | {
         clientId: string;
@@ -97,7 +85,6 @@ export interface Configuration {
         storageAccountName: string;
       };
   frontendMode: 'disk' | 'middleware';
-  legacyRoutingUrl: string | null;
   logLevel: LogSeverity;
   metaUrl: string | null;
   ports: {
@@ -172,18 +159,6 @@ export const getConfiguration = (): Configuration => {
           type: 'snowflake',
         };
       }
-      case 'sema4-oidc-sso':
-        return {
-          autoPromoteEmails,
-          controlPlaneUrl: parseEnvVariable('SEMA4AI_WORKROOM_CONTROL_PLANE_URL'),
-          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          roleManagement: false,
-          tokenIssuer,
-          tokenIssuers: parseEnvVariable('SEMA4AI_WORKROOM_TOKEN_ISSUERS')
-            .split(';')
-            .filter((issuer) => issuer.trim() !== ''),
-          type: 'sema4-oidc-sso',
-        };
       case 'oidc': {
         const oidcServer = parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SERVER');
 
@@ -294,7 +269,6 @@ export const getConfiguration = (): Configuration => {
         };
 
       case 'none':
-      case 'sema4-oidc-sso':
         return null;
 
       default:
@@ -324,30 +298,12 @@ export const getConfiguration = (): Configuration => {
           tenantName: 'Team Edition',
         };
 
-      case 'sema4-oidc-sso': {
-        const tenantId = parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID');
-
-        return {
-          tenantId,
-          tenantName: tenantId,
-        };
-      }
-
       default:
         exhaustiveCheck(authMode);
     }
   })();
 
-  const legacyRoutingUrl = process.env.SEMA4AI_WORKROOM_AGENT_ROUTER_URL
-    ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_ROUTER_URL')
-    : null;
-
-  const enableSparOnlyFeatures = process.env.SEMA4AI_ENABLE_SPAR_ONLY_FEATURES
-    ? parseEnvVariableBoolean('SEMA4AI_ENABLE_SPAR_ONLY_FEATURES')
-    : false;
-  const sparOnlyFeature = enableSparOnlyFeatures
-    ? { enabled: true, reason: null }
-    : { enabled: false, reason: 'This feature is not available for this deployment' };
+  const enabledFeature = { enabled: true, reason: null };
 
   const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE ?? 'http://localhost';
 
@@ -381,7 +337,6 @@ export const getConfiguration = (): Configuration => {
     featuresUrl,
     files,
     frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
-    legacyRoutingUrl,
     logLevel,
     metaUrl,
     ports: {
@@ -408,27 +363,19 @@ export const getConfiguration = (): Configuration => {
     },
     workroomMeta: {
       features: {
-        // For ACE the values are defined here: https://github.com/Sema4AI/ace/blob/86a89c91c3d6f3623992e7a952a2cccb26b5059f/applications/router-service/src/interface.ts#L205
-        // SPAR & SPCS: defined here - anything that is SPAR Only will be disabled in SPCS
-        agentAuthoring: sparOnlyFeature,
-        agentConfiguration: sparOnlyFeature,
-        agentDetails: {
-          enabled: true,
-          reason: null,
-        },
-        agentEvals: sparOnlyFeature,
-        deploymentWizard: sparOnlyFeature,
-        developerMode: {
-          enabled: true,
-          reason: null,
-        },
-        documentIntelligence: sparOnlyFeature,
-        mcpServersManagement: sparOnlyFeature,
-        publicAPI: sparOnlyFeature,
-        semanticDataModels: sparOnlyFeature,
-        settings: sparOnlyFeature,
-        userManagement: sparOnlyFeature,
-        workerAgents: sparOnlyFeature,
+        agentAuthoring: enabledFeature,
+        agentConfiguration: enabledFeature,
+        agentDetails: enabledFeature,
+        agentEvals: enabledFeature,
+        deploymentWizard: enabledFeature,
+        developerMode: enabledFeature,
+        documentIntelligence: enabledFeature,
+        mcpServersManagement: enabledFeature,
+        publicAPI: enabledFeature,
+        semanticDataModels: enabledFeature,
+        settings: enabledFeature,
+        userManagement: enabledFeature,
+        workerAgents: enabledFeature,
       },
     },
   };

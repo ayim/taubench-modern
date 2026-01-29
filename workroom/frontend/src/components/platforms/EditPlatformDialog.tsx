@@ -16,7 +16,7 @@ import {
   type Platform,
 } from '~/components/platforms/llms/components/llmSchemas';
 import { VertexServiceAccountUploadField } from '~/components/platforms/llms/components/VertexServiceAccountUploadField';
-import { beautifyLabel, getAlowedModelFromPlatform } from '~/lib/utils';
+import { beautifyLabel, getAllowedModelFromPlatform } from '~/lib/utils';
 import { type PlatformForEditing } from '~/queries/agent-interface-patches';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 
@@ -39,7 +39,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   const kind = platform.kind as Platform;
   const router = useRouter();
 
-  const firstModel = getAlowedModelFromPlatform(platform);
+  const firstModel = getAllowedModelFromPlatform(platform);
   const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
 
   const platformConfig = useMemo(() => {

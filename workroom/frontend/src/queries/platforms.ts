@@ -11,6 +11,24 @@ export type UpdatePlatformBody =
 export type GetPlatformResponse =
   paths['/api/v2/platforms/{platform_id}']['get']['responses']['200']['content']['application/json'];
 
+export const getPlatformsQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: ['platforms'],
+  queryFn: async () => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/platforms/', {});
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch platforms', {
+        code: response.code,
+        resource: ResourceType.LLMPlatform,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const usePlatformsQuery = createSparQuery(getPlatformsQueryOptions);
+
 export const getPlatformQueryOptions = createSparQueryOptions<{ platformId: string }>()(
   ({ agentAPIClient, platformId }) => ({
     queryKey: ['platform', platformId],

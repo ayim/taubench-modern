@@ -2,9 +2,10 @@ import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, Button, useSnackbar } from '@sema4ai/components';
+
 import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/LLMsTable';
 import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
-import { getAlowedModelFromPlatform } from '~/lib/utils';
+import { getAllowedModelFromPlatform } from '~/lib/utils';
 import { usePlatformsQuery } from '~/queries/llms';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
@@ -53,7 +54,7 @@ function RouteComponent() {
         id: p.platform_id as string,
         name: p.name,
         platform: p.kind,
-        model: getAlowedModelFromPlatform(p),
+        model: getAllowedModelFromPlatform(p),
         createdAt: p.created_at || '',
       }));
   }, [data, queryClient, tenantId]);
