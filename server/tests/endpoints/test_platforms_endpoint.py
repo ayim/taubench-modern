@@ -307,6 +307,27 @@ def test_delete_platform_not_found(client: TestClient):
     assert response.status_code == 404
 
 
+async def test_delete_platform_used_in_global_eval_config(
+    client: TestClient,
+    storage,
+    sample_openai_platform_payload: dict,
+):
+    """Test deleting a platform used by the global eval config returns 409 Conflict."""
+    from agent_platform.core.configurations.config_validation import ConfigType
+
+    create_response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
+    assert create_response.status_code == 200
+    platform_id = create_response.json()["platform_id"]
+
+    await storage.set_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID, platform_id)
+
+    response = client.delete(f"/api/v2/private/platforms/{platform_id}")
+    assert response.status_code == 409
+
+    get_response_after = client.get(f"/api/v2/private/platforms/{platform_id}")
+    assert get_response_after.status_code == 200
+
+
 def test_create_platform_validation_error_missing_required_fields(client: TestClient):
     """Test that creating a platform with missing required fields returns 422."""
     invalid_payload = {

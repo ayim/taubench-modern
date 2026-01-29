@@ -12533,6 +12533,7 @@ export const spec = {
           'POSTGRES_POOL_MAX_SIZE',
           'MAX_CACHE_SIZE_IN_BYTES',
           'WORK_ITEM_TIMEOUT_SECONDS',
+          'GLOBAL_EVAL_PLATFORM_PARAMS_ID',
         ],
         title: 'ConfigType',
       },

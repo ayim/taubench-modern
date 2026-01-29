@@ -4,22 +4,21 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocalStorage } from '@sema4ai/robocloud-ui-utils';
 import { Button, Progress } from '@sema4ai/components';
 
-import { Thread } from '@sema4ai/spar-ui';
+import { Thread } from '~/components/Thread';
 import { EmptyView } from '~/components/EmptyView';
 import { getAgentMetaQueryOptions } from '~/queries/agents';
-import { ThreadsUIContext } from './components/ThreadsUIContext';
-import { Layout } from './components/Layout';
-import { Header } from './components/Header';
 import { AgentMetaContext } from '~/lib/agentMetaContext';
 import { getPreferenceKey, setUserPreferenceId } from '~/utils';
 import { getThreadQueryOptions } from '~/queries/thread';
+import { ThreadsUIContext } from './components/ThreadsUIContext';
+import { Layout } from './components/Layout';
+import { Header } from './components/Header';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
+  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId } }) => {
     const agentMeta = await queryClient.ensureQueryData(
       getAgentMetaQueryOptions({
         agentId,
-        tenantId,
         agentAPIClient,
       }),
     );
@@ -32,11 +31,11 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
 
 function View() {
   const { agentMeta } = Route.useLoaderData();
-  const { agentId, threadId, tenantId } = Route.useParams();
+  const { agentId, threadId } = Route.useParams();
 
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
   const { data: threadResult, isLoading: isThreadLoading } = useQuery(
-    getThreadQueryOptions({ threadId, tenantId, agentAPIClient }),
+    getThreadQueryOptions({ threadId, agentAPIClient }),
   );
 
   const { storageValue: threadsExpanded, setStorageValue: setThreadsExpanded } = useLocalStorage<boolean>({

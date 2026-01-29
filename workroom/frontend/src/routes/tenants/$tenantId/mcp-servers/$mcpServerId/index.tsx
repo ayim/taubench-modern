@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { EditMcpServerDialog } from '@sema4ai/spar-ui';
+import { EditMcpServerDialog } from '~/components/MCPServers/MCPServerDialog/EditMcpServerDialog';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerId/')({
   component: RouteComponent,

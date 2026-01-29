@@ -4,8 +4,8 @@ import { IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { useNavigate, useParams } from '@tanstack/react-router';
 
-import { Row } from './McpServersRow';
 import { ListMcpServersResponse } from '~/queries/mcpServers';
+import { Row } from './McpServersRow';
 
 export const getServerTypeLabel = (server: ListMcpServersResponse[string]): string => {
   if (server.url) return 'Remote';

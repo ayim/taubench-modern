@@ -4,8 +4,8 @@ import { trpc } from '~/lib/trpc';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/api-keys')({
   component: RouteComponent,
-  loader: async ({ context: { trpc } }) => {
-    const apiKeysData = await trpc.apiKeys.list.ensureData();
+  loader: async ({ context: { trpc: trpcClient } }) => {
+    const apiKeysData = await trpcClient.apiKeys.list.ensureData();
     return { apiKeysData };
   },
 });

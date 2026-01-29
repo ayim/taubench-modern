@@ -6,25 +6,25 @@ type AuthMeta =
   | { status: 'unauthenticated'; permissions: Array<UserPermission> }
   | { status: 'authenticated'; userId: string; permissions: Array<UserPermission>; userRole: UserRole };
 
-let __metaPromise: Promise<AuthMeta> | null = null;
+let metaPromise: Promise<AuthMeta> | null = null;
 
 const getAuthMeta = async (): Promise<AuthMeta> => {
-  if (__metaPromise) {
-    return __metaPromise;
+  if (metaPromise) {
+    return metaPromise;
   }
 
-  __metaPromise = (async () => {
+  metaPromise = (async () => {
     const url = resolveWorkroomURL('/auth/meta');
     const response = await fetch(url, {
       method: 'GET',
-    }).then(async (res) => await res.json());
+    }).then(async (res) => res.json());
 
-    __metaPromise = null;
+    metaPromise = null;
 
     return response as AuthMeta;
   })();
 
-  return __metaPromise;
+  return metaPromise;
 };
 
 export const userPermissionsQueryKey = ['me'];

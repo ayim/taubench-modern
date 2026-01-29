@@ -133,7 +133,7 @@ async def test_thread_attachment_content_as_text_content_with_description(
         name=sample_file.file_ref,
         mime_type=sample_file.mime_type,
         # That's what the UI does for description:
-        # https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/queries/threads.ts#L210
+        # https://github.com/Sema4AI/agent-platform/blob/main/workroom/frontend/src/queries/threads.ts#L210
         description="1kb",
         uri=f"agent-server-file://{file_id}",
     )

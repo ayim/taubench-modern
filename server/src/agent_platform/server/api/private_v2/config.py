@@ -36,8 +36,28 @@ async def set_config(
     """Set a configuration value by config_type and current_value."""
     logger.info("Setting configuration", config_type=payload.config_type, user_id=user.user_id)
 
-    quotas_service = await QuotasService.get_instance()
-    await quotas_service.set_config(payload.config_type, payload.current_value)
+    if payload.config_type is ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID:
+        from agent_platform.server.storage import StorageService
+
+        storage = StorageService.get_instance()
+        current_value = payload.current_value
+        if current_value is not None and current_value.strip() == "":
+            current_value = ""
+        if current_value is not None:
+            from uuid import UUID
+
+            try:
+                UUID(current_value)
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=422, detail="Global eval platform params ID must be a valid UUID"
+                ) from e
+        await storage.set_config(payload.config_type, current_value)
+    else:
+        if payload.current_value is None:
+            raise HTTPException(status_code=422, detail="current_value cannot be null")
+        quotas_service = await QuotasService.get_instance()
+        await quotas_service.set_config(payload.config_type, payload.current_value)
 
     return {
         "message": "Configuration set successfully",
@@ -57,9 +77,9 @@ async def get_all_configs(
         all_quotas = quotas_service.get_all_configs()
     except Exception as e:
         logger.error("Failed to get all configurations", error=str(e))
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise HTTPException(status_code=500, detail="Failed to retrieve configuration") from e
 
-    return [
+    configs = [
         ConfigResponse(
             config_type=quota_data["storage_key"],
             config_value=str(quota_data["value"]),
@@ -67,3 +87,28 @@ async def get_all_configs(
         )
         for quota_data in all_quotas.values()
     ]
+
+    eval_platform_params_description = "Default platform configuration used for evaluation runs."
+    eval_platform_params_value = ""
+    try:
+        from agent_platform.server.storage import StorageService
+        from agent_platform.server.storage.errors import ConfigNotFoundError
+
+        storage = StorageService.get_instance()
+        eval_config = await storage.get_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID)
+        eval_platform_params_value = eval_config.config_value
+    except ConfigNotFoundError:
+        eval_platform_params_value = ""
+    except Exception as e:
+        logger.error("Failed to get global eval platform params configuration", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve configuration") from e
+
+    configs.append(
+        ConfigResponse(
+            config_type=ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID,
+            config_value=eval_platform_params_value,
+            description=eval_platform_params_description,
+        )
+    )
+
+    return configs

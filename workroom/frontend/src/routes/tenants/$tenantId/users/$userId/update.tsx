@@ -9,6 +9,7 @@ export const Route = createFileRoute('/tenants/$tenantId/users/$userId/update')(
       throw redirect({ to: '/tenants/$tenantId/users', params: { tenantId } });
     }
   },
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   loader: async ({ context: { trpc }, params: { userId } }) => {
     const user = await trpc.userManagement.getUserDetails.ensureData({ userId });
     const roles = await trpc.userManagement.listAvailableRoles.ensureData();

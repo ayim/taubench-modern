@@ -1,29 +1,28 @@
 import { useCallback } from 'react';
 import { Outlet, createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { McpServersTable } from './mcp-servers/components/McpServersTable';
-import { useListMcpServersQuery } from '~/queries/mcpServers';
+import { useMcpServersQuery } from '~/queries/mcpServers';
 import { Page } from '~/components/layout/Page';
+import { McpServersTable } from './mcp-servers/components/McpServersTable';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { tenantId } = Route.useParams();
   const navigate = useNavigate();
-  const { data: mcpServersById = {} } = useListMcpServersQuery({ tenantId });
+  const { data: mcpServersById = {} } = useMcpServersQuery({});
   const mcpServers = Object.values(mcpServersById);
 
   const onSearchQueryUpdate = useCallback(
     (searchQuery: string) => {
-      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : '?${searchQuery}');
+      const params = new URLSearchParams(searchQuery.startsWith('?') ? searchQuery : `?${searchQuery}`);
       const nextSearch: Record<string, unknown> = {};
       params.forEach((_v, key) => {
         const all = params.getAll(key);
         nextSearch[key] = all.length > 1 ? all : params.get(key);
       });
-      navigate({ to: '.', search: (prev) => ({ ...(prev as Record<string, unknown>), ...nextSearch }) });
+      navigate({ to: '.', search: (prev: Record<string, unknown>) => ({ ...prev, ...nextSearch }) });
     },
     [navigate],
   );

@@ -23,6 +23,9 @@ def mock_storage():
     storage = AsyncMock()
     storage.set_config = AsyncMock()
     storage.list_all_configs = AsyncMock()
+    from agent_platform.server.storage.errors import ConfigNotFoundError
+
+    storage.get_config = AsyncMock(side_effect=ConfigNotFoundError())
     return storage
 
 
@@ -85,9 +88,15 @@ def client(test_user, mock_storage, mock_quotas_service):
     async def mock_get_instance():
         return mock_quotas_service
 
-    with patch(
-        "agent_platform.server.api.private_v2.config.QuotasService.get_instance",
-        side_effect=mock_get_instance,
+    with (
+        patch(
+            "agent_platform.server.api.private_v2.config.QuotasService.get_instance",
+            side_effect=mock_get_instance,
+        ),
+        patch(
+            "agent_platform.server.storage.StorageService.get_instance",
+            return_value=mock_storage,
+        ),
     ):
         yield TestClient(app)
 
@@ -144,7 +153,11 @@ class TestSetConfigEndpoint:
     def test_set_config_all_valid_config_types(self, client: TestClient, mock_quotas_service):
         """Test that all defined config types are accepted."""
         for config_type in ConfigType:
-            payload = {"config_type": config_type, "current_value": "100"}
+            current_value = "100"
+            if config_type is ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID:
+                current_value = "00000000-0000-0000-0000-000000000000"
+
+            payload = {"config_type": config_type, "current_value": current_value}
 
             response = client.post("/api/v2/private/config/", json=payload)
 
@@ -177,6 +190,14 @@ class TestSetConfigEndpoint:
         response = client.post("/api/v2/private/config/", json={})
         assert response.status_code == 422
 
+    def test_set_config_global_eval_platform_params_requires_uuid(self, client: TestClient, mock_storage):
+        """Test that global eval platform params config rejects non-UUID values."""
+        payload = {"config_type": "GLOBAL_EVAL_PLATFORM_PARAMS_ID", "current_value": "not-a-uuid"}
+
+        response = client.post("/api/v2/private/config/", json=payload)
+
+        assert response.status_code == 422
+
 
 class TestGetAllConfigsEndpoint:
     """Tests for the GET /config/ endpoint."""
@@ -188,8 +209,8 @@ class TestGetAllConfigsEndpoint:
         assert response.status_code == 200
         data = response.json()
 
-        # Should return all quotas from QuotasService
-        assert len(data) == 6
+        # Should return all quotas from QuotasService plus global eval platform params ID
+        assert len(data) == 7
 
         # Verify structure of returned data
         config_types = {item["config_type"] for item in data}
@@ -200,6 +221,7 @@ class TestGetAllConfigsEndpoint:
             "MAX_PARALLEL_WORK_ITEMS_IN_PROCESS",
             "MAX_MCP_SERVERS_IN_AGENT",
             "POSTGRES_POOL_MAX_SIZE",
+            "GLOBAL_EVAL_PLATFORM_PARAMS_ID",
         }
         assert config_types == expected_config_types
 
@@ -207,7 +229,7 @@ class TestGetAllConfigsEndpoint:
         for item in data:
             assert "config_type" in item
             assert "config_value" in item
-            # ConfigResponse only has config_type and config_value
+            assert "description" in item
 
     def test_get_all_configs_empty_quotas_service(self, client: TestClient, mock_quotas_service):
         """Test retrieving configs when QuotasService returns empty."""
@@ -217,7 +239,13 @@ class TestGetAllConfigsEndpoint:
 
         assert response.status_code == 200
         data = response.json()
-        assert data == []
+        assert data == [
+            {
+                "config_type": "GLOBAL_EVAL_PLATFORM_PARAMS_ID",
+                "config_value": "",
+                "description": "Default platform configuration used for evaluation runs.",
+            }
+        ]
 
 
 class TestConfigValidationIntegration:

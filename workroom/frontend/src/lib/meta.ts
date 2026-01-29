@@ -27,21 +27,21 @@ export type Meta =
       };
     };
 
-let __metaPromise: Promise<Meta> | null = null;
+let metaPromise: Promise<Meta> | null = null;
 
 export const getMeta = async (): Promise<Meta> => {
-  if (__metaPromise) {
-    return __metaPromise;
+  if (metaPromise) {
+    return metaPromise;
   }
 
-  __metaPromise = (async () => {
+  metaPromise = (async () => {
     const url = resolveWorkroomURL('/meta');
     const response = await fetch(url, {
       method: 'GET',
-    }).then(async (res) => await res.json());
+    }).then(async (res) => res.json());
 
     return response as Meta;
   })();
 
-  return __metaPromise;
+  return metaPromise;
 };
