@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 import structlog
 
 if TYPE_CHECKING:
+    from opentelemetry.sdk._logs.export import LogExporter
+    from opentelemetry.sdk.metrics.export import MetricExporter
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -74,7 +76,7 @@ class OtelProvider(ABC):
         self._ensure_initialized()
         return self._trace_processor
 
-    def get_metrics_exporter(self):
+    def get_metrics_exporter(self) -> "MetricExporter | None":
         """Return metrics exporter, or None if metrics not supported.
 
         Returns:
@@ -82,7 +84,7 @@ class OtelProvider(ABC):
         """
         return None
 
-    def get_logs_processor(self):
+    def get_logs_processor(self) -> "LogExporter | None":
         """Return logs processor, or None if logs not supported.
 
         Returns:

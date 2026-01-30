@@ -122,7 +122,9 @@
         "POSTGRES_PORT": "5432",
         "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
         "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-        "SQL_AGENT_VISIBILITY": "NOT_HIDDEN"
+        "SQL_AGENT_VISIBILITY": "NOT_HIDDEN",
+        "SEMA4AI_AGENT_SERVER_OTEL_ENABLED": "true",
+        "SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL": "http://localhost:4318"
       }
     },
     {
@@ -151,7 +153,10 @@
         // Setting AGENT_SERVER_DATA_DIR to . will use the current working directory
         // for the SQLite database.
         "AGENT_SERVER_DATA_DIR": ".",
-        "LOG_LEVEL": "DEBUG"
+        "LOG_LEVEL": "DEBUG",
+        "SQL_AGENT_VISIBILITY": "NOT_HIDDEN",
+        "SEMA4AI_AGENT_SERVER_OTEL_ENABLED": "true",
+        "SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL": "http://localhost:4318"
       }
     },
     {

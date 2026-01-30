@@ -18,9 +18,7 @@ def setup_telemetry(agent_trace_dir: Path | None = None):
     from agent_platform.core.telemetry.telemetry import OTELConfig
     from agent_platform.server.telemetry.config_local_tracer import config_local_tracer_provider
 
-    collector_url = OTELConfig.collector_url
     otel_enabled = OTELConfig.is_enabled
-    collector_url_set = True
 
     if not otel_enabled:
         logger.info("OTEL v2 is not enabled. Using no-op providers.")
@@ -35,28 +33,15 @@ def setup_telemetry(agent_trace_dir: Path | None = None):
         meter_provider = metrics.get_meter_provider()
         return tracer_provider, meter_provider
 
-    from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-    from opentelemetry.sdk.metrics import MeterProvider
-    from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
     from opentelemetry.sdk.resources import Resource
 
     from agent_platform.core.conditional_langsmith_processor import ConditionalLangSmithProcessor
     from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
 
-    # Validate collector URL before proceeding
-    if not collector_url or not collector_url.strip():
-        logger.warning("OTEL is enabled but collector_url is empty.")
-        collector_url_set = False
-
-    # Ensure collector_url has proper scheme
-    if collector_url_set and not collector_url.startswith(("http://", "https://")):
-        logger.warning(f"Collector URL '{collector_url}' missing scheme. Adding http://")
-        collector_url = f"http://{collector_url}"
-
     logger.info("Setting up OTEL v2")
-    logger.info(f"Collector URL: {collector_url}")
-    # Set up resource with service info
     logger.info(f"Service version: {server.__version__}")
+
+    # Set up resource with service info
     resource = Resource.create(
         attributes={
             "service.name": "sema4ai.agent_server",
@@ -86,23 +71,8 @@ def setup_telemetry(agent_trace_dir: Path | None = None):
     # Important: Set as the global tracer provider so AgentServerContext can use it
     trace.set_tracer_provider(tracer_provider)
 
-    # Create and configure meter provider
-    try:
-        if collector_url_set:
-            otlp_metric_exporter = OTLPMetricExporter(endpoint=f"{collector_url}/v1/metrics")
-            reader = PeriodicExportingMetricReader(
-                exporter=otlp_metric_exporter,
-                export_interval_millis=15000,
-            )
-            meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-            logger.info(f"Successfully configured metric exporter for {collector_url}/v1/metrics")
-        else:
-            logger.warning("Collector URL is not set. Skipping metric exporter configuration.")
-            meter_provider = MeterProvider(resource=resource)
-    except Exception as e:
-        logger.error(f"Failed to create metric exporter for {collector_url}/v1/metrics: {e}")
-        # Use basic meter provider without OTLP export if metrics export fails
-        meter_provider = MeterProvider(resource=resource)
+    # Create and configure meter provider via orchestrator
+    meter_provider = orchestrator.create_meter_provider(resource)
 
     # Important: Set as the global meter provider so AgentServerContext can use it
     metrics.set_meter_provider(meter_provider)
