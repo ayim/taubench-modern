@@ -1,21 +1,26 @@
 """OTEL trace orchestrator for multiple observability providers."""
 
-import logging
-import threading
+from __future__ import annotations
 
+import threading
+from typing import TYPE_CHECKING
+
+import structlog
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
 from agent_platform.core.telemetry.helpers import (
     build_routing_map,
     compute_config_hash,
     extract_agent_id,
-    shutdown_processors,
 )
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
+    from agent_platform.core.telemetry.providers.base import OtelProvider
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
 class OtelOrchestrator(SpanProcessor):
@@ -26,18 +31,21 @@ class OtelOrchestrator(SpanProcessor):
     2. Observability integrations (LangSmith, Grafana, etc.) - external backends
 
     Thread-safe singleton that supports hot-reload of integrations.
+
+    Uses OtelProvider abstraction for backend-specific logic. Each provider
+    manages its own handlers (BatchSpanProcessor) for trace export.
     """
 
-    _instance: "OtelOrchestrator | None" = None
+    _instance: OtelOrchestrator | None = None
     _instance_lock = threading.Lock()
 
     @classmethod
-    def get_instance(cls) -> "OtelOrchestrator":
+    def get_instance(cls) -> OtelOrchestrator:
         """Get singleton instance."""
         with cls._instance_lock:
             if cls._instance is None:
                 cls._instance = cls()
-                logger.debug("Created OtelOrchestrator singleton instance")
+                logger.debug("Created OtelOrchestrator singleton instance", instance_id=id(cls._instance))
             return cls._instance
 
     @classmethod
@@ -55,18 +63,20 @@ class OtelOrchestrator(SpanProcessor):
                 try:
                     cls._instance.shutdown()
                 except Exception as e:
-                    logger.warning(f"Error shutting down orchestrator during reset: {e}")
+                    logger.warning("Error shutting down orchestrator during reset", error=str(e))
                 cls._instance = None
                 logger.debug("Reset OtelOrchestrator singleton instance")
 
     def __init__(self):
         """Initialize orchestrator."""
-
         # Complete map: agent_id → processors (global + agent-specific)
         self._agent_id_to_processors: dict[str, set[BatchSpanProcessor]] = {}
 
         # Global processors - used as fallback when agent_id not in map
         self._global_processors: set[BatchSpanProcessor] = set()
+
+        # Providers keyed by config hash - for lifecycle management
+        self._hash_to_provider: dict[str, OtelProvider] = {}
 
         # Collector processor - used to export spans to the OTEL collector
         # (defined using environment variables SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL)
@@ -104,49 +114,48 @@ class OtelOrchestrator(SpanProcessor):
             endpoint = f"{collector_url}/v1/traces"
             exporter = OTLPSpanExporter(endpoint=endpoint)
             self._collector_processor = BatchSpanProcessor(exporter)
-            logger.info(f"Loaded OTEL collector processor: {endpoint}")
+            logger.info("Loaded OTEL collector processor", endpoint=endpoint)
         except Exception as e:
-            logger.error(f"Failed to create OTEL collector processor: {e}")
+            logger.error("Failed to create OTEL collector processor", error=str(e))
 
-    def _create_processor(self, integration: ObservabilityIntegration) -> BatchSpanProcessor:
-        """Create a BatchSpanProcessor for an observability integration.
-        Delegates to the integration's settings to create the OTLPSpanExporter.
-
-        Args:
-            integration: ObservabilityIntegration with kind='observability'
-
-        Returns:
-            BatchSpanProcessor configured for the provider
-
-        Raises:
-            ValueError: If provider unsupported
-        """
-        # Create OTEL exporter
-        exporter = integration.settings.provider_settings.make_exporter()
-        logger.debug(f"Created OTEL exporter for {integration.settings.provider_kind}")
-
-        # Wrap in BatchSpanProcessor
-        return BatchSpanProcessor(exporter)
-
-    def _get_or_create_processor(
+    def _get_or_create_provider(
         self,
         integration: ObservabilityIntegration,
-        hash_to_processor: dict[str, BatchSpanProcessor],
-    ) -> BatchSpanProcessor | None:
-        """Get existing processor for config hash, or create new one."""
+        hash_to_provider: dict[str, OtelProvider],
+    ) -> OtelProvider | None:
+        """Get existing provider for config hash, or create new one.
+
+        Providers are deduplicated by config hash - multiple integrations with
+        identical settings share a single provider instance. Each provider manages
+        its own trace processor internally.
+
+        Args:
+            integration: ObservabilityIntegration to create provider for
+            hash_to_provider: Cache of config hash -> provider (for deduplication and lifecycle)
+
+        Returns:
+            OtelProvider for the integration, or None if creation failed
+        """
+        from agent_platform.core.telemetry.providers.factory import OtelProviderFactory
+
         config_hash = compute_config_hash(integration)
 
-        if config_hash in hash_to_processor:
-            logger.debug(f"Integration {integration.id} shares processor {config_hash}")
-            return hash_to_processor[config_hash]
+        if config_hash in hash_to_provider:
+            logger.debug("Integration shares existing provider", integration_id=integration.id, config_hash=config_hash)
+            return hash_to_provider[config_hash]
 
         try:
-            processor = self._create_processor(integration)
-            hash_to_processor[config_hash] = processor
-            logger.info(f"Created processor for {integration.id}: hash {config_hash}")
-            return processor
+            provider = OtelProviderFactory.create(integration.settings.settings)
+            hash_to_provider[config_hash] = provider
+            logger.info(
+                "Created provider for integration",
+                provider_kind=provider.provider_kind,
+                integration_id=integration.id,
+                config_hash=config_hash,
+            )
+            return provider
         except Exception as e:
-            logger.error(f"Failed to create processor for {integration.id}: {e}")
+            logger.error("Failed to create provider for integration", integration_id=integration.id, error=str(e))
             return None
 
     def _get_processors_for_agent(self, agent_id: str | None) -> list[BatchSpanProcessor]:
@@ -188,11 +197,26 @@ class OtelOrchestrator(SpanProcessor):
 
         return result
 
+    def _shutdown_providers(self, providers: list[OtelProvider]) -> None:
+        """Shutdown providers, logging any errors.
+
+        Args:
+            providers: List of providers to shutdown
+        """
+        for provider in providers:
+            try:
+                provider.shutdown()
+            except Exception as e:
+                logger.error("Error shutting down provider", provider_kind=provider.provider_kind, error=str(e))
+
     async def reload_from_storage(self, storage) -> None:
         """Rebuild agent-to-processors map from storage.
 
         Builds complete map: each agent_id -> (global processors + agent-specific processors).
         This pre-computes everything so the hot path is a simple dict lookup.
+
+        Uses OtelProviderFactory to create providers from integration settings,
+        then extracts trace handlers from providers for routing.
 
         Args:
             storage: Storage instance to query integrations, scopes, and agents
@@ -202,8 +226,9 @@ class OtelOrchestrator(SpanProcessor):
         agent_ids = [agent.agent_id for agent in agents]
         integrations = await storage.list_enabled_observability_integrations()
 
-        # For each integration, query scopes and create processors (deduped by hash)
-        temp_hash_to_processor: dict[str, BatchSpanProcessor] = {}
+        # For each integration, query scopes and create providers (deduped by config hash).
+        # Providers manage their own trace processors internally.
+        temp_hash_to_provider: dict[str, OtelProvider] = {}
         integration_id_to_processor: dict[str, BatchSpanProcessor] = {}
         integration_scopes: dict[str, list] = {}
 
@@ -211,36 +236,45 @@ class OtelOrchestrator(SpanProcessor):
             try:
                 scopes = await storage.list_integration_scopes(integration.id)
             except Exception as e:
-                logger.error(f"Error loading scopes for {integration.id}: {e}", exc_info=True)
+                logger.error(
+                    "Error loading scopes for integration", integration_id=integration.id, error=str(e), exc_info=True
+                )
                 continue
 
             if not scopes:
                 continue
 
-            processor = self._get_or_create_processor(integration, temp_hash_to_processor)
-            if processor:
-                integration_scopes[integration.id] = scopes
-                integration_id_to_processor[integration.id] = processor
+            provider = self._get_or_create_provider(integration, temp_hash_to_provider)
+            if provider:
+                # Get trace processor from provider (providers manage their own processors)
+                processor = provider.get_trace_processor()
+                if processor:
+                    integration_scopes[integration.id] = scopes
+                    integration_id_to_processor[integration.id] = processor
+                else:
+                    logger.warning("Provider does not support traces", provider_kind=provider.provider_kind)
 
         # Build routing map and swap
         new_map, new_global = build_routing_map(agent_ids, integration_id_to_processor, integration_scopes)
 
         with self._lock:
-            # Collect all old processors (global + per-agent, deduplicated)
-            old_processors: set[BatchSpanProcessor] = set(self._global_processors)
-            for processors in self._agent_id_to_processors.values():
-                old_processors.update(processors)
+            # Collect old providers for shutdown
+            old_providers = list(self._hash_to_provider.values())
+
             # Swap in new maps
             self._agent_id_to_processors = new_map
             self._global_processors = new_global
+            self._hash_to_provider = temp_hash_to_provider
 
-        # Shutdown old processors (may still flush pending spans)
-        # Note: Can't use _get_all_processors() here because it includes collector
-        shutdown_processors(list(old_processors))
+        # Shutdown old providers (may still flush pending spans)
+        self._shutdown_providers(old_providers)
 
         logger.info(
-            f"Reloaded: {len(agent_ids)} agents, {len(integrations)} integrations, "
-            f"{len(temp_hash_to_processor)} unique processors, {len(new_global)} global"
+            "Reloaded observability integrations",
+            agent_count=len(agent_ids),
+            integration_count=len(integrations),
+            unique_provider_count=len(temp_hash_to_provider),
+            global_processor_count=len(new_global),
         )
 
     def on_start(self, span, parent_context=None):
@@ -249,7 +283,7 @@ class OtelOrchestrator(SpanProcessor):
             try:
                 processor.on_start(span, parent_context)
             except Exception as e:
-                logger.error(f"Error in processor on_start: {e}")
+                logger.error("Error in processor on_start", error=str(e))
 
     def on_end(self, span):
         """Route span end to deduplicated processors based on agent_id."""
@@ -257,10 +291,10 @@ class OtelOrchestrator(SpanProcessor):
             try:
                 processor.on_end(span)
             except Exception as e:
-                logger.error(f"Error in processor on_end: {e}")
+                logger.error("Error in processor on_end", error=str(e))
 
     def shutdown(self):
-        """Shutdown collector + all processors.
+        """Shutdown collector + all providers.
 
         WARNING: Not thread-safe with active span processing!
         If spans are actively flowing through on_start/on_end, calling this
@@ -269,22 +303,48 @@ class OtelOrchestrator(SpanProcessor):
         Only call during application shutdown or in tests (via reset_instance).
         """
         logger.debug("Shutting down OtelOrchestrator")
-        shutdown_processors(self._get_all_processors())
+
+        # Shutdown collector processor directly (not managed by provider)
+        if self._collector_processor:
+            try:
+                self._collector_processor.shutdown()
+            except Exception as e:
+                logger.error("Error shutting down collector processor", error=str(e))
+
+        # Shutdown all providers
         with self._lock:
+            providers = list(self._hash_to_provider.values())
+            self._hash_to_provider.clear()
             self._agent_id_to_processors.clear()
+            self._global_processors.clear()
+
+        self._shutdown_providers(providers)
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
-        """Force flush collector + all processors."""
+        """Force flush collector + all providers."""
         logger.debug("Force flushing OtelOrchestrator")
 
         results = []
-        for processor in self._get_all_processors():
+
+        # Flush collector processor
+        if self._collector_processor:
             try:
-                results.append(processor.force_flush(timeout_millis))
+                results.append(self._collector_processor.force_flush(timeout_millis))
             except Exception as e:
-                logger.error(f"Error flushing processor: {e}")
+                logger.error("Error flushing collector processor", error=str(e))
+                results.append(False)
+
+        # Flush all providers
+        with self._lock:
+            providers = list(self._hash_to_provider.values())
+
+        for provider in providers:
+            try:
+                results.append(provider.force_flush(timeout_millis))
+            except Exception as e:
+                logger.error("Error flushing provider", provider_kind=provider.provider_kind, error=str(e))
                 results.append(False)
 
         overall_result = all(results) if results else True
-        logger.debug(f"OtelOrchestrator force flush overall result: {overall_result}")
+        logger.debug("OtelOrchestrator force flush completed", overall_result=overall_result)
         return overall_result
