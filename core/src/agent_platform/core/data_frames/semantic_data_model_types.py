@@ -7,6 +7,7 @@ which describe collections of tables with their relationships and metadata.
 from __future__ import annotations
 
 import typing
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
@@ -944,13 +945,18 @@ class VerifiedQuery(BaseModel):
         context: VerifiedQueryValidationContext,
         dialect: str,
     ) -> None:
-        """Validate parameters in SQL against the parameter definitions."""
-        from agent_platform.server.data_frames.sql_parameter_utils import (
+        """Validate parameters in SQL against the parameter definitions.
+
+        Checks that:
+        - No extra parameters are defined that aren't used in SQL
+        - No parameters are defined when SQL has no placeholders
+        """
+        from agent_platform.core.data_frames.semantic_data_model_utils import (
             extract_parameters_from_sql,
-            validate_parameter_definitions,
         )
 
         provided_params_list = self.parameters or []
+        provided_params_by_name = {p.name: p for p in provided_params_list}
 
         try:
             extracted_param_names = extract_parameters_from_sql(self.sql, dialect=dialect)
@@ -959,48 +965,18 @@ class VerifiedQuery(BaseModel):
             return
 
         if extracted_param_names:
-            # SQL contains parameters - validate definitions
-            if not provided_params_list:
-                param_names_str = ", ".join(extracted_param_names)
+            # Check for extra parameters (defined but not in SQL)
+            extra_params = set(provided_params_by_name.keys()) - set(extracted_param_names)
+            if extra_params:
+                param_name = next(iter(sorted(extra_params)))
                 raise VerifiedQueryParameterError(
                     message=(
-                        f"SQL query contains {len(extracted_param_names)} "
-                        f"parameter(s) ({param_names_str}) but no parameter "
-                        "definitions were provided. Please provide parameter "
-                        "definitions with name, data_type, example_value, and "
-                        "description."
+                        f"Parameter definition for '{param_name}' is provided but "
+                        "not used in the SQL query. Please remove this definition "
+                        f"or add :{param_name} to the SQL."
                     ),
+                    level=ValidationMessageLevel.WARNING,
                 )
-            else:
-                # Validate parameter definitions
-                validation_result = validate_parameter_definitions(
-                    self.sql,
-                    provided_params_list,
-                    dialect=dialect,
-                )
-
-                # Raise immediately on missing parameters (errors)
-                if validation_result.missing_in_definitions:
-                    param_name = next(iter(validation_result.missing_in_definitions))
-                    raise VerifiedQueryParameterError(
-                        message=(
-                            f"SQL query contains parameter '{param_name}' that is not "
-                            "defined. Please add a parameter definition with name, "
-                            "data_type, example_value, and description."
-                        ),
-                    )
-
-                # Raise immediately on extra parameters (warnings)
-                if validation_result.extra_in_definitions:
-                    param_name = next(iter(validation_result.extra_in_definitions))
-                    raise VerifiedQueryParameterError(
-                        message=(
-                            f"Parameter definition for '{param_name}' is provided but "
-                            "not used in the SQL query. Please remove this definition "
-                            f"or add :{param_name} to the SQL."
-                        ),
-                        level=ValidationMessageLevel.WARNING,
-                    )
 
         elif provided_params_list:
             # No parameters in SQL but definitions provided - raise warning
@@ -1194,6 +1170,7 @@ class SemanticDataModel(BaseModel):
         exclude_none: bool = True,  # Defaulting to always excluding None for SDM, which pydantic doesn't do by default
         round_trip: bool = False,
         warnings: bool | Literal["none", "warn", "error"] = True,
+        fallback: Callable[[Any], Any] | None = None,
         serialize_as_any: bool = False,
     ) -> dict[str, Any]:
         """Dump the model to a dictionary.

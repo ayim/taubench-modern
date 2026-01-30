@@ -14,10 +14,10 @@
       }
     },
     /**
-        
+
        You need JWT Tokens
        For testing only, you can generate them with http://jwtbuilder.jamiekurtz.com/
-       
+
        Fields
        - iss: ace
        - aud: agent_server
@@ -27,7 +27,7 @@
        In Ace we set also sub field to
        - /tenant/{tenant_id}
        - /tenant/{tenant_id}/user/{user_id}
-       
+
        Make http requests with this header
 
        - Authorization: Bearer YOUR_TOKEN

@@ -68,11 +68,11 @@ export const VerifiedQuery = z.object({
   verified_at: z.string(),
   verified_by: z.string(),
   sql: z.string(),
-  parameters: z.array(QueryParameter).optional(),
-  sql_errors: z.array(ValidationMessage).optional(),
-  nlq_errors: z.array(ValidationMessage).optional(),
-  name_errors: z.array(ValidationMessage).optional(),
-  parameter_errors: z.array(ValidationMessage).optional(),
+  parameters: z.array(QueryParameter).optional().catch(undefined),
+  sql_errors: z.array(ValidationMessage).optional().catch(undefined),
+  nlq_errors: z.array(ValidationMessage).optional().catch(undefined),
+  name_errors: z.array(ValidationMessage).optional().catch(undefined),
+  parameter_errors: z.array(ValidationMessage).optional().catch(undefined),
 });
 export type VerifiedQuery = z.infer<typeof VerifiedQuery>;
 
