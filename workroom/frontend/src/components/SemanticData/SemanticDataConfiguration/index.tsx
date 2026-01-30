@@ -190,7 +190,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
               setDatabaseInspectionState({
                 isLoading: false,
                 error: error.message,
-                errorDetails: error.details.details,
+                errorDetails: error.details?.details,
                 inspectionResult: undefined,
                 requiresInspection: false,
               });

@@ -46,9 +46,12 @@ function View() {
   );
 
   useEffect(() => {
+    if (!thread) {
+      return;
+    }
     // Only save non-evaluation threads as preferred threads
     // Evaluation threads are identified by having a scenario_id in metadata
-    const isEvaluationThread = Boolean(thread?.metadata?.scenario_id);
+    const isEvaluationThread = Boolean(thread.metadata?.scenario_id);
     if (!isEvaluationThread) {
       setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
     }
