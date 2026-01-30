@@ -324,8 +324,8 @@ export const useDeployAgentMutation = createSparMutation<
       body: {
         name: payload.name,
         agent_architecture: {
-          name: 'agent',
-          version: 'V2.0',
+          name: 'agent_platform.architectures.experimental_1',
+          version: '2.0.0',
         },
         version: '1.0.0',
         mode: payload.mode,
