@@ -44,7 +44,7 @@ jobs:
           script: |
             const branchName = '${{ env.BRANCH_NAME }}';
             const cleanBranchName = branchName.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const url = `https://team-edition-1.sema4ai.dev/tenants/${cleanBranchName}/home`
+            const url = `https://moonraker.sema4ai.dev/tenants/${cleanBranchName}/home`
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

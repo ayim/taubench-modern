@@ -87,7 +87,7 @@ resource "aws_rds_cluster_instance" "serverless" {
   instance_class     = "db.serverless" # Aurora Serverless v2
 }
 
-resource "aws_secretsmanager_secret" "ace-db-credentials" {
+resource "aws_secretsmanager_secret" "moonraker-db-credentials" {
   count = var.admin_credentials_secret_name != null ? 1 : 0
 
   name        = var.admin_credentials_secret_name
@@ -95,10 +95,10 @@ resource "aws_secretsmanager_secret" "ace-db-credentials" {
   kms_key_id  = var.encryption_key_arn
 }
 
-resource "aws_secretsmanager_secret_version" "ace-db-credentials" {
+resource "aws_secretsmanager_secret_version" "moonraker-db-credentials" {
   count = var.admin_credentials_secret_name != null ? 1 : 0
 
-  secret_id = aws_secretsmanager_secret.ace-db-credentials[0].id
+  secret_id = aws_secretsmanager_secret.moonraker-db-credentials[0].id
   secret_string = jsonencode({
     cluster_name = aws_rds_cluster.cluster.id
     username     = local.cluster_username

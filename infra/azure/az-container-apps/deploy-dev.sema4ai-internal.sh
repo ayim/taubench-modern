@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Component tags on CI ECR
-spar_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/ace/spar:2.1.21_ec51afea6.20251119T082059Z"
+spar_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar:2.1.21_ec51afea6.20251119T082059Z"
 data_server_ecr_ref="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:1.4.0_952c28f.20251106T060331Z"
 
 # Extract image tags
