@@ -3,15 +3,15 @@ import { Box, Button, Typography } from '@sema4ai/components';
 import { oAuthProviderIcons } from '@sema4ai/oauth-client/icons';
 import { OAuthProvider } from '@sema4ai/oauth-client';
 import { IconInformation } from '@sema4ai/icons';
-import { useParams } from '@tanstack/react-router';
 
 import { authorizeOAuthProvider } from '~/utils/oAuth';
 import { useAgentOAuthStateQuery } from '~/queries/agents';
 import { snakeCaseToTitleCase } from '~/components/helpers';
 import { DetailsDialog } from './components/DetailsDialog';
+import { useVioletChatContext } from '../../../context';
 
 export const OAuth: FC = () => {
-  const { agentId = '' } = useParams({ strict: false });
+  const { agentId } = useVioletChatContext();
   const { data: oAuthState = [] } = useAgentOAuthStateQuery({ agentId });
   const [detailsProvider, setDetailsProvider] = useState<{ provider: OAuthProvider; scopes: string[] } | undefined>(
     undefined,

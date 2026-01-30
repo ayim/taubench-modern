@@ -1,11 +1,11 @@
 import { Box, Button, Tooltip } from '@sema4ai/components';
 import * as Icons from '@sema4ai/icons';
 import { FC, useMemo } from 'react';
-import { useParams } from '@tanstack/react-router';
 
 import { useMessageStream } from '~/hooks';
 import { useThreadMessagesQuery } from '~/queries/threads';
 import { InteractionComponent } from './shared';
+import { useVioletChatContext } from '../../../context';
 
 type IconsType = typeof Icons;
 
@@ -54,7 +54,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
 };
 
 export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payload: { data: choices }, messageId }) => {
-  const { agentId = '', threadId = '' } = useParams({ strict: false });
+  const { agentId, threadId } = useVioletChatContext();
 
   /**
    * Use only cached messages without fetching

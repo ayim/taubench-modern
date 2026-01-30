@@ -3,9 +3,9 @@ import { FC, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useParams } from '@tanstack/react-router';
 
 import { useSendFeedbackMutation } from '~/queries/feedback';
+import { useVioletChatContext } from '../../context';
 
 const feedbackFormSchema = z.object({
   feedback: z.string().min(1, 'Feedback is required').max(1000, 'Feedback must be less than 1000 characters'),
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export const FeedbackDialog: FC<Props> = ({ open, onClose }) => {
-  const { agentId = '', threadId = '' } = useParams({ strict: false });
+  const { agentId, threadId } = useVioletChatContext();
   const { addSnackbar } = useSnackbar();
 
   const form = useForm<FeedbackFormData>({

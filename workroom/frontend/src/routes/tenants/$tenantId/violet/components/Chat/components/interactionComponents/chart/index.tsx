@@ -1,7 +1,6 @@
 import { FC, useCallback, useMemo, useRef } from 'react';
 import type { View } from 'vega';
 import { VisualizationSpec } from 'vega-embed';
-import { useParams } from '@tanstack/react-router';
 
 import { useToggle } from '~/hooks';
 import { useDataFrameQuery } from '~/queries/dataFrames';
@@ -10,6 +9,7 @@ import LoadingBox from './components/Loading';
 import { ChartContainer } from './components/Container';
 import { ChartEmbed } from './components/Embed';
 import { specHasDataFrameUrl } from './components/utils';
+import { useVioletChatContext } from '../../../../context';
 
 const VEGA_BASE_URL = 'https://vega.github.io/schema/vega';
 const VEGA_LITE_BASE_URL = 'https://vega.github.io/schema/vega-lite';
@@ -141,7 +141,7 @@ const DataFrameChart: FC<{ themedSpec: VisualizationSpec; rawSpec: Visualization
   rawSpec,
   dataFrameName,
 }) => {
-  const { threadId = '' } = useParams({ strict: false });
+  const { threadId } = useVioletChatContext();
   const { data, isLoading } = useDataFrameQuery({ threadId, dataFrameName });
 
   const patchedSpecs = useMemo(() => {

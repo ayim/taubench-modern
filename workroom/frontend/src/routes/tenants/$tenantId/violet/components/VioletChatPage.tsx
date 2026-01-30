@@ -11,6 +11,7 @@ import { NewThreadItem } from '~/components/Thread/components/NewThreadItem';
 import { ThreadItem } from '~/components/Thread/components/ThreadItem';
 import { getThreadQueryOptions } from '~/queries/thread';
 import { Chat } from './Chat';
+import { VioletChatContext } from './context';
 
 const LITELLM_BASE_URL = 'https://llm.backend.sema4ai.dev';
 
@@ -345,137 +346,141 @@ export const VioletChatPage: FC<Props> = ({ agentId, violetAgent, initialThreadM
     [agentAPIClient],
   );
 
+  const violetChatContextValue = useMemo(() => ({ threadId: threadId ?? '', setThreadId }), [threadId, setThreadId]);
+
   return (
     <SparUIContext.Provider value={sparAPIContextValue}>
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'row',
-          height: '100vh',
-          maxHeight: '100vh',
-          minHeight: 0,
-          width: '100%',
-          overflow: 'hidden',
-        }}
-      >
+      <VioletChatContext.Provider value={violetChatContextValue}>
         <div
           style={{
-            width: 280,
-            borderRight: '1px solid #e0e0e0',
-            padding: '12px',
+            position: 'relative',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            height: '100%',
+            flexDirection: 'row',
+            height: '100vh',
+            maxHeight: '100vh',
             minHeight: 0,
+            width: '100%',
             overflow: 'hidden',
           }}
         >
-          <Typography variant="body-medium" fontWeight="bold">
-            History
-          </Typography>
-          <NewThreadItem />
           <div
             style={{
+              width: 280,
+              borderRight: '1px solid #e0e0e0',
+              padding: '12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 16,
-              overflowY: 'auto',
-              flex: 1,
+              gap: '12px',
+              height: '100%',
               minHeight: 0,
+              overflow: 'hidden',
             }}
           >
-            {threadsWithScenario.map((thread) => (
-              <ThreadItem key={thread.thread_id} item={thread} />
-            ))}
-            {!threadsWithScenario.length && !isThreadsLoading && (
-              <Typography variant="body-small" style={{ color: '#6f6f6f' }}>
-                No chats yet
+            <Typography variant="body-medium" fontWeight="bold">
+              History
+            </Typography>
+            <NewThreadItem />
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+                overflowY: 'auto',
+                flex: 1,
+                minHeight: 0,
+              }}
+            >
+              {threadsWithScenario.map((thread) => (
+                <ThreadItem key={thread.thread_id} item={thread} />
+              ))}
+              {!threadsWithScenario.length && !isThreadsLoading && (
+                <Typography variant="body-small" style={{ color: '#6f6f6f' }}>
+                  No chats yet
+                </Typography>
+              )}
+            </div>
+            <div style={{ marginTop: 'auto' }}>
+              <Link to="/tenants/$tenantId/home" params={{ tenantId }} style={{ textDecoration: 'none' }}>
+                <Button variant="ghost" size="small" round>
+                  Home
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '16px',
+              gap: '12px',
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="body-medium" fontWeight="bold">
+                  {violetAgent.name}
+                </Typography>
+                <Typography variant="body-small" style={{ color: '#6f6f6f' }}>
+                  Zero-config Violet assistant
+                </Typography>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
+                <div style={{ minWidth: 180 }}>
+                  <Select
+                    label="Platform"
+                    items={platformPresets}
+                    value={platformId}
+                    onChange={(value) => setPlatformId(String(value))}
+                  />
+                </div>
+                <div style={{ minWidth: 220 }}>
+                  <Input
+                    label="API key"
+                    type="password"
+                    value={apiKey}
+                    onChange={(event) => setApiKey(event.target.value)}
+                    placeholder="Paste key"
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Badge variant={statusBadge.variant} label={statusBadge.label} />
+                  <Button size="small" onClick={handleSave} disabled={!canSave || !isDirty}>
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <Typography variant="body-small" style={{ color: '#b42318' }}>
+                {error}
               </Typography>
             )}
-          </div>
-          <div style={{ marginTop: 'auto' }}>
-            <Link to="/tenants/$tenantId/home" params={{ tenantId }} style={{ textDecoration: 'none' }}>
-              <Button variant="ghost" size="small" round>
-                Home
-              </Button>
-            </Link>
+            {loadConfigError && (
+              <Typography variant="body-small" style={{ color: '#b42318' }}>
+                {loadConfigError}
+              </Typography>
+            )}
+            {saveError && (
+              <Typography variant="body-small" style={{ color: '#b42318' }}>
+                {saveError}
+              </Typography>
+            )}
+
+            {!threadId || isThreadLoading ? (
+              <Progress variant="page" />
+            ) : (
+              <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+                <Chat agentId={agentId} threadId={threadId} agentType="conversational" thread={currentThread} />
+              </div>
+            )}
           </div>
         </div>
-
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '16px',
-            gap: '12px',
-            minHeight: 0,
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="body-medium" fontWeight="bold">
-                {violetAgent.name}
-              </Typography>
-              <Typography variant="body-small" style={{ color: '#6f6f6f' }}>
-                Zero-config Violet assistant
-              </Typography>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
-              <div style={{ minWidth: 180 }}>
-                <Select
-                  label="Platform"
-                  items={platformPresets}
-                  value={platformId}
-                  onChange={(value) => setPlatformId(String(value))}
-                />
-              </div>
-              <div style={{ minWidth: 220 }}>
-                <Input
-                  label="API key"
-                  type="password"
-                  value={apiKey}
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="Paste key"
-                />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Badge variant={statusBadge.variant} label={statusBadge.label} />
-                <Button size="small" onClick={handleSave} disabled={!canSave || !isDirty}>
-                  Save
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <Typography variant="body-small" style={{ color: '#b42318' }}>
-              {error}
-            </Typography>
-          )}
-          {loadConfigError && (
-            <Typography variant="body-small" style={{ color: '#b42318' }}>
-              {loadConfigError}
-            </Typography>
-          )}
-          {saveError && (
-            <Typography variant="body-small" style={{ color: '#b42318' }}>
-              {saveError}
-            </Typography>
-          )}
-
-          {!threadId || isThreadLoading ? (
-            <Progress variant="page" />
-          ) : (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
-              <Chat agentId={agentId} threadId={threadId} agentType="conversational" thread={currentThread} />
-            </div>
-          )}
-        </div>
-      </div>
+      </VioletChatContext.Provider>
     </SparUIContext.Provider>
   );
 };

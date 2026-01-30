@@ -2,19 +2,19 @@
 import { ThreadAttachmentContent } from '@sema4ai/agent-server-interface';
 import { Box, FileItem, useSnackbar } from '@sema4ai/components';
 import { FC } from 'react';
-import { useParams } from '@tanstack/react-router';
 
 import { getFileTypeIcon } from '~/components/helpers';
 
 import { useDownloadThreadFileMutation } from '~/queries/threads';
 import { getSnackbarContent } from '~/queries/shared';
+import { useVioletChatContext } from '../../context';
 
 type Props = {
   content: ThreadAttachmentContent;
 };
 
 export const Attachment: FC<Props> = ({ content: { name, mime_type, description } }) => {
-  const { threadId } = useParams({ strict: false });
+  const { threadId } = useVioletChatContext();
 
   const { mutateAsync: downloadFile, isPending: isDownloading } = useDownloadThreadFileMutation({ type: 'download' });
   const { addSnackbar } = useSnackbar();

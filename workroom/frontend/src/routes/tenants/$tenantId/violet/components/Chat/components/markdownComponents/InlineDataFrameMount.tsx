@@ -1,8 +1,8 @@
 import { Box, Button, DataFrame, ListSkeleton, SkeletonLoader, Typography } from '@sema4ai/components';
 import { FC, useMemo, useState } from 'react';
-import { useParams } from '@tanstack/react-router';
 
 import { useDataFrameSliceInfiniteQuery, useDataFramesQuery } from '~/queries/dataFrames';
+import { useVioletChatContext } from '../../../context';
 
 interface InlineDataFrameMountProps {
   name?: string;
@@ -11,7 +11,7 @@ interface InlineDataFrameMountProps {
 }
 
 export const InlineDataFrameMount: FC<InlineDataFrameMountProps> = ({ name, columns, rows }) => {
-  const { threadId = '' } = useParams({ strict: false });
+  const { threadId } = useVioletChatContext();
   const pageSize = rows && rows > 0 ? rows : 10;
   const [expanded, setExpanded] = useState(true);
 

@@ -2,7 +2,6 @@ import { FC, Fragment, ReactNode, useMemo, useRef } from 'react';
 import { ThreadContent, ThreadThoughtContent, ThreadToolUsageContent } from '@sema4ai/agent-server-interface';
 import { Box, Button, Chat, ChatActionRefType, useSnackbar } from '@sema4ai/components';
 import { IconCode } from '@sema4ai/icons';
-import { useParams } from '@tanstack/react-router';
 
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 import { snakeCaseToTitleCase } from '~/components/helpers';
@@ -12,6 +11,7 @@ import { useUserPermissionsQuery } from '~/queries/userPermissions';
 import { useShowActionLogsMutation } from '~/queries/agents';
 import { ToolCallResult } from '~/components/Chat/components/ToolCallResult';
 import { formatThoughtTitle } from './renderer/Thinking';
+import { useVioletChatContext } from '../../context';
 
 type ActionState = 'in_progress' | 'done' | 'failed';
 type Props = {
@@ -186,7 +186,7 @@ const isActionServerToolCall = (content: ThreadToolUsageContent) => {
 };
 
 export const ToolCall: FC<Props> = ({ content }) => {
-  const { agentId = '', threadId = '' } = useParams({ strict: false });
+  const { agentId, threadId } = useVioletChatContext();
   const { enabled: showActionLogs } = useFeatureFlag(FeatureFlag.showActionLogs);
   const { addSnackbar } = useSnackbar();
   const { mutateAsync, isPending } = useShowActionLogsMutation({});

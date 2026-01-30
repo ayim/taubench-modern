@@ -4,7 +4,6 @@ import { Badge, Box, Button, Tabs, Typography } from '@sema4ai/components';
 import { IconChevronDown, IconChevronRight } from '@sema4ai/icons';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Document, Page } from 'react-pdf';
-import { useParams } from '@tanstack/react-router';
 
 import { Code } from '~/components/code';
 
@@ -14,6 +13,7 @@ import {
   useThreadMessageMetadataOpsMutation,
 } from '~/queries/threads';
 import { DocumentViewer } from '../../../DocIntel/shared/components/DocumentViewer';
+import { useVioletChatContext } from '../../../context';
 
 export type DocCard = {
   file_ref: string;
@@ -475,7 +475,7 @@ const DocCardItem: FC<{
 };
 
 export const DocCards: FC<{ cards: DocCard[]; messageId: string }> = ({ cards, messageId }) => {
-  const { threadId = '' } = useParams({ strict: false });
+  const { threadId } = useVioletChatContext();
   const queryClient = useQueryClient();
   const { mutateAsync: downloadFileInline, isPending: isDownloading } = useDownloadThreadFileMutation({
     type: 'inline',
