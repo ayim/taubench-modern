@@ -1,12 +1,12 @@
-import { Dropzone, DropzoneConfig } from '@sema4ai/components';
+import { Dropzone as DropzoneBase, DropzoneConfig } from '@sema4ai/components';
 import { styled } from '@sema4ai/theme';
 import { FC, useCallback } from 'react';
 
+import { FeatureFlag, useFeatureFlag, useMessageStream } from '~/hooks';
+import { useThreadFilesRefetch } from '~/queries/threads';
 import { useAgentOAuthStateQuery } from '~/queries/agents';
-import { useFeatureFlag, FeatureFlag } from '../../../hooks';
-import { useMessageStream } from '../../../hooks/useMessageStream';
 
-type props = {
+type Props = {
   agentId: string;
   threadId: string;
   dropzoneOptions?: DropzoneConfig;
@@ -17,7 +17,12 @@ const AccentText = styled.span<{ disabled: boolean }>`
     disabled ? theme.colors.content.disabled.color : theme.colors.content.accent.color};
 `;
 
-export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
+const Dropzone = styled(DropzoneBase)`
+  height: 100%;
+`;
+
+export const AddFiles: FC<Props> = ({ threadId, agentId, dropzoneOptions }) => {
+  const refetchFiles = useThreadFilesRefetch({ threadId, agentId });
   const { enabled: isChatInteractive } = useFeatureFlag(FeatureFlag.agentChatInput);
 
   const { streamingMessages, uploadingFiles, sendMessage } = useMessageStream({ agentId, threadId });
@@ -31,7 +36,7 @@ export const AddFiles: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
     async (files: File[]) => {
       await sendMessage({ text: '' }, files);
     },
-    [sendMessage],
+    [sendMessage, refetchFiles],
   );
 
   return (

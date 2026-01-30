@@ -4,10 +4,11 @@ import { styled } from '@sema4ai/theme';
 import { FC, useCallback } from 'react';
 
 import { getFileSize, getFileTypeIcon } from '~/components/helpers';
+import { FeatureFlag, useFeatureFlag } from '~/hooks';
 import { ThreadFiles, useThreadFilesQuery, useDownloadThreadFileMutation } from '~/queries/threads';
 import { useDocumentIntelligenceConfigQuery } from '~/queries/documentIntelligence';
 import { getSnackbarContent } from '~/queries/shared';
-import { useFeatureFlag, FeatureFlag } from '../../../hooks/useFeatureFlag';
+
 import { useAgentDocIntelCapabilities, useDocIntelDialogManager } from '../../DocIntel/shared/hooks';
 import { getDocIntelLabel } from '../../DocIntel/shared/constants/interfaceLabels';
 
@@ -57,27 +58,15 @@ const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDo
   if (isDocIntelConfigured) {
     return (
       <Tooltip text="Use document intelligence UI to analyze this file" placement="top">
-        <Box
-          pl="32px"
-          height="46px"
-          minHeight="46px"
-          marginLeft="-32px"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+        <Menu
+          trigger={<Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />}
         >
-          <Menu
-            trigger={
-              <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} />
-            }
-          >
-            {docIntelInterfaces.map((interfaceType) => (
-              <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
-                {getDocIntelLabel(interfaceType)}
-              </Menu.Item>
-            ))}
-          </Menu>
-        </Box>
+          {docIntelInterfaces.map((interfaceType) => (
+            <Menu.Item key={interfaceType} onClick={() => handleDocIntelClick(interfaceType)}>
+              {getDocIntelLabel(interfaceType)}
+            </Menu.Item>
+          ))}
+        </Menu>
       </Tooltip>
     );
   }
@@ -87,17 +76,7 @@ const DocumentIntelligenceItem: FC<ItemProps> = ({ file, agentId, threadId, onDo
       text="Configure Document Intelligence in settings before it can be used to analyze this file"
       placement="top"
     >
-      <Box
-        pl="32px"
-        height="46px"
-        minHeight="46px"
-        marginLeft="-32px"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-      >
-        <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
-      </Box>
+      <Button aria-label="Document Intelligence" variant="ghost-subtle" icon={IconDocumentIntelligence} disabled />
     </Tooltip>
   );
 };
@@ -125,7 +104,7 @@ const ItemAction: FC<ItemProps> = ({ file, agentId, threadId, onDocumentIntellig
   );
 };
 
-type props = {
+type Props = {
   agentId: string;
   threadId: string;
 };
@@ -158,23 +137,23 @@ const FileListItem = ({
   };
 
   return (
-    <Box display="flex" alignItems="center">
-      <FileItem
-        key={file.file_id}
-        label={file.file_ref}
-        icon={getFileTypeIcon(file.mime_type)}
-        description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
-        downloading={isDownloadingThreadFile}
-        onDownloadClick={onDownload}
-      />
-
-      <ItemAction
-        file={file}
-        agentId={agentId}
-        threadId={threadId}
-        onDocumentIntelligenceClick={onDocumentIntelligenceClick}
-      />
-    </Box>
+    <FileItem
+      key={file.file_id}
+      label={file.file_ref}
+      icon={getFileTypeIcon(file.mime_type)}
+      description={file.file_size_raw ? getFileSize(file.file_size_raw) : undefined}
+      downloading={isDownloadingThreadFile}
+      onDownloadClick={onDownload}
+      actions={
+        <ItemAction
+          file={file}
+          agentId={agentId}
+          threadId={threadId}
+          onDocumentIntelligenceClick={onDocumentIntelligenceClick}
+        />
+      }
+      stretch
+    />
   );
 };
 
@@ -183,18 +162,11 @@ const Container = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.space.$16};
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 `;
 
-const FilesListContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.space.$12};
-  overflow-y: scroll;
-  padding-bottom: ${({ theme }) => theme.space.$8};
-  padding-top: ${({ theme }) => theme.space.$8};
-`;
-
-export const FilesList: FC<props> = ({ agentId, threadId }) => {
+export const FilesList: FC<Props> = ({ agentId, threadId }) => {
   const { data: files, isLoading: isFilesLoading } = useThreadFilesQuery({ threadId });
 
   // Use the dialog manager hook - handles dialog state and rendering logic
@@ -202,17 +174,25 @@ export const FilesList: FC<props> = ({ agentId, threadId }) => {
 
   if (isFilesLoading) {
     return (
-      <Box display="flex" alignItems="center" justifyContent="center">
-        <IconLoading />
-      </Box>
+      <>
+        <DocIntelDialog />
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <IconLoading />
+        </Box>
+      </>
     );
   }
 
   const conversationFiles = files?.filter((file) => !file.work_item_id) || [];
   const workItemFiles = files?.filter((file) => file.work_item_id) || [];
 
+  // If no files, return just the dialog without taking up space
+  if (conversationFiles.length === 0 && workItemFiles.length === 0) {
+    return <DocIntelDialog />;
+  }
+
   return (
-    <Box display="flex" flexDirection="column" gap={16}>
+    <Box display="flex" flexDirection="column" gap={16} height="100%" overflow="hidden">
       <DocIntelDialog />
 
       {/* Work Item Files Section */}
@@ -221,7 +201,7 @@ export const FilesList: FC<props> = ({ agentId, threadId }) => {
           <Typography variant="body-medium" fontWeight={600}>
             Work Item Files
           </Typography>
-          <FilesListContent>
+          <Box display="flex" flexDirection="column" gap="$12" overflow="auto" flex="1" minHeight="0">
             {workItemFiles.map((file) => (
               <FileListItem
                 file={file}
@@ -231,7 +211,7 @@ export const FilesList: FC<props> = ({ agentId, threadId }) => {
                 onDocumentIntelligenceClick={openDialog}
               />
             ))}
-          </FilesListContent>
+          </Box>
         </Container>
       )}
 
@@ -241,7 +221,7 @@ export const FilesList: FC<props> = ({ agentId, threadId }) => {
           <Typography variant="body-medium" fontWeight={600}>
             Conversation Files
           </Typography>
-          <FilesListContent>
+          <Box display="flex" flexDirection="column" gap="$12" overflow="auto" flex="1" minHeight="0">
             {conversationFiles.map((file) => (
               <FileListItem
                 file={file}
@@ -251,7 +231,7 @@ export const FilesList: FC<props> = ({ agentId, threadId }) => {
                 onDocumentIntelligenceClick={openDialog}
               />
             ))}
-          </FilesListContent>
+          </Box>
         </Container>
       )}
     </Box>
