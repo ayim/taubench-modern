@@ -20,6 +20,7 @@
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/view": "^6.0.0",
+    "@fullstory/browser": "^2.0.6",
     "@hookform/resolvers": "^5.2.1",
     "@jsonjoy.com/json-pointer": "^1.0.1",
     "@lexical/code": "0.17.0",
@@ -94,8 +95,8 @@
     "tsx": "^4.20.3",
     "typescript": "^5.9.2",
     "vite": "^7.0.4",
-    "vite-tsconfig-paths": "^5.1.4",
     "vite-plugin-compression2": "^2.3.1",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.14"
   },
   "optionalDependencies": {
