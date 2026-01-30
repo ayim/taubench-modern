@@ -4,9 +4,11 @@ import { Box, Button, Chat, ChatActionRefType, useSnackbar } from '@sema4ai/comp
 import { IconCode } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 
+import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 import { snakeCaseToTitleCase } from '~/components/helpers';
 import { useFeatureFlag, FeatureFlag, useStateTransitionCallback } from '~/hooks';
 import { DataFrameClientTools } from '~/components/DataFrame/tools/Definitions';
+import { useUserPermissionsQuery } from '~/queries/userPermissions';
 import { useShowActionLogsMutation } from '~/queries/agents';
 import { ToolCallResult } from '~/components/Chat/components/ToolCallResult';
 import { formatThoughtTitle } from './renderer/Thinking';
@@ -196,7 +198,6 @@ export const ToolCall: FC<Props> = ({ content }) => {
       {
         agentId,
         threadId,
-        actionServerRunId: content.action_server_run_id ?? null,
         toolCallId: content.tool_call_id,
       },
       {
@@ -245,7 +246,9 @@ export const ToolCallGroup: FC<{
   rawMessageContent?: ThreadContent[];
 }> = ({ children, messageContent, messageComplete, platform, rawMessageContent }) => {
   const groupActionRef = useRef<ChatActionRefType>(null);
-  const { enabled: isAdminMode } = useFeatureFlag(SparUIFeatureFlag.adminMode);
+  const { data: userPermissions } = useUserPermissionsQuery();
+
+  const isAdminMode = userPermissions?.permissions.includes(ADMINISTRATION_ACCESS_PERMISSION) ?? false;
 
   // Check raw content for unable_to_satisfy_request (it's hidden from UI but we need to detect it)
   const hasUnableToSatisfy = useMemo(() => {

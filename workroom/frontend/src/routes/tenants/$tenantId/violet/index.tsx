@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { createFileRoute, redirect, useRouteContext } from '@tanstack/react-router';
 import { Progress } from '@sema4ai/components';
 
@@ -17,6 +18,9 @@ export const Route = createFileRoute('/tenants/$tenantId/violet/')({
       throw redirect({ to: '/tenants/$tenantId/home', params: { tenantId } });
     }
   },
+  validateSearch: z.object({
+    initial_thread_message: z.string().optional(),
+  }),
   errorComponent: AgentNotFound,
   component: VioletChatRoute,
 });

@@ -1,6 +1,7 @@
 import { Box, Button, Tooltip } from '@sema4ai/components';
 import * as Icons from '@sema4ai/icons';
 import { FC, useMemo } from 'react';
+import { useParams } from '@tanstack/react-router';
 
 import { useMessageStream } from '~/hooks';
 import { useThreadMessagesQuery } from '~/queries/threads';
@@ -53,7 +54,7 @@ const QuickOptionButton: FC<OptionProps> = ({ choice, onSelect, disabled, isRunn
 };
 
 export const QuickOptions: InteractionComponent<QuickOptionsPayload> = ({ payload: { data: choices }, messageId }) => {
-  const { agentId, threadId } = useParams('/thread/$agentId/$threadId');
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
 
   /**
    * Use only cached messages without fetching

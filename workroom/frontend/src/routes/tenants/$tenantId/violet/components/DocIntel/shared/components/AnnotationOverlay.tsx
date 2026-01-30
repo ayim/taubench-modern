@@ -500,7 +500,7 @@ export const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
                   pointerEvents: 'auto',
                   zIndex: 3500,
                 }}
-                onClick={(e) => {
+                onClick={(e: MouseEvent) => {
                   e.stopPropagation();
                   handleCommentBadgeClick(fieldId);
                 }}
@@ -524,7 +524,7 @@ export const AnnotationOverlay: FC<AnnotationOverlayProps> = ({
             padding: 12,
             pointerEvents: 'auto',
           }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e: MouseEvent) => e.stopPropagation()}
         >
           <Typography fontSize="$12" fontWeight="bold" marginBottom="$4">
             Comment
