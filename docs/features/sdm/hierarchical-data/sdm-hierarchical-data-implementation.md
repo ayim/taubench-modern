@@ -275,6 +275,8 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 
 ## Data Structures
 
+**TypedDict policy:** Do not use `TypedDict` or raw dictionaries for domain models or pipeline objects. Use Pydantic `BaseModel` (preferred) or `@dataclass` to enforce invariants and validation. This follows the Python guidelines.
+
 ### Existing Infrastructure to Reuse
 
 
@@ -293,22 +295,24 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 Add to `core/src/agent_platform/core/data_frames/semantic_data_model_types.py`:
 
 ```python
-class SchemaTransformation(TypedDict):
+from pydantic import BaseModel, Field
+
+class SchemaTransformation(BaseModel):
     target: str
-    description: NotRequired[str]
+    description: str | None = None
     jq: str
 
-class SchemaValidation(TypedDict):
+class SchemaValidation(BaseModel):
     name: str
-    description: NotRequired[str]
+    description: str | None = None
     jq: str
 
-class Schema(TypedDict, total=False):
-    name: Required[str]
-    description: str
-    jsonschema: Required[dict]
-    transformations: list[SchemaTransformation]
-    validations: list[SchemaValidation]
+class Schema(BaseModel):
+    name: str
+    description: str | None = None
+    jsonschema: dict[str, object] = Field(description="JSON Schema document")
+    transformations: list[SchemaTransformation] = Field(default_factory=list)
+    validations: list[SchemaValidation] = Field(default_factory=list)
 ```
 
 **Note:** Schemas do not have explicit `sources`, `parent_schema`, or `related_schemas` fields. Data is associated with schemas at runtime via DI extraction or MCP. The LLM infers relationships between schemas from semantic annotations.
@@ -326,6 +330,8 @@ class SemanticDataModel(BaseModel):
 ### Runtime Types (Epic B-3)
 
 ```python
+JsonValue = dict[str, object] | list[object] | str | int | float | bool | None
+
 @dataclass
 class RawSchemaData:
     """Input to pipeline from B-1 or B-2."""
@@ -334,7 +340,7 @@ class RawSchemaData:
     source_metadata: dict | None
     schema_name: str
     sdm_name: str
-    raw_data: dict
+    raw_data: JsonValue
 
 @dataclass
 class ValidationResult:
@@ -358,7 +364,7 @@ class SchemaEnrichment:
     source_schema_name: str      # Original schema (e.g., costco_receipt)
     target_schema_name: str      # Final schema (e.g., generic_receipt)
     sdm_name: str
-    extracted_data: dict         # Final transformed data
+    extracted_data: JsonValue    # Final transformed data
     extraction_timestamp: datetime
     validation_results: list[ValidationResult]
 ```
