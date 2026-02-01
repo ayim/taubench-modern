@@ -132,18 +132,37 @@ schemas:
 
 ### Data Flow
 
+**Design Time (SDM Definition):**
+```mermaid
+flowchart LR
+    A[Define SDM YAML] --> B[Validate]
+    B --> C[Store in DB]
+```
+
+**Runtime (Data Acquisition - Epic B):**
 ```mermaid
 flowchart TD
-    A[Define SDM] --> B[Validate]
-    B --> C[Store]
-    C --> D[User Question]
-    D --> E[LLM]
-    E --> F{Table or Schema?}
-    F -->|Table| G[Generate SQL]
-    F -->|Schema| H[Generate JQ]
-    G --> I[Execute]
-    H --> I
-    I --> J[Results]
+    A[Document/API] --> B{Source Type}
+    B -->|Document| C[B-1: Reducto Extract]
+    B -->|API| D[B-2: Receive JSON]
+    C --> E[Raw JSON]
+    D --> E
+    E --> F[B-3: Pipeline]
+    F --> G[C-1: Transform]
+    G --> H[C-2: Validate]
+    H --> I[Store Enrichment]
+```
+
+**Runtime (Query - Epic D):**
+```mermaid
+flowchart TD
+    A[User Question] --> B[LLM]
+    B --> C{Table or Schema?}
+    C -->|Table| D[Generate SQL]
+    C -->|Schema| E[Generate JQ]
+    D --> F[Execute]
+    E --> F
+    F --> G[Results]
 ```
 
 ---
@@ -176,6 +195,31 @@ flowchart TD
 ---
 
 ## Epics & Stories
+
+### Epic Overview
+
+| Epic | Focus | Stories | Order |
+| ---- | ----- | ------- | ----- |
+| **A: Schema Definition** | Design time — defining schemas in SDM YAML | A-1, A-2 | 1st |
+| **C: Transformations & Validations** | Processing logic — JQ transform and validate engines | C-1, C-2 | 2nd |
+| **B: Data Acquisition** | Getting data in — extraction pipeline | B-1, B-2, B-3 | 3rd |
+| **D: Natural Language Queries** | Getting data out — LLM prompts and JQ execution | D-1, D-2 | 4th |
+
+### Epic Order: A → C → B → D
+
+```
+A (Define Schemas)
+       ↓
+C (Transform/Validate Engines)
+       ↓
+B (Extraction Pipeline - uses C)
+       ↓
+D (NL Queries)
+```
+
+**Why this order?** The extraction pipeline (Epic B) applies transformations and validations at extraction time, so Epic C must be implemented first.
+
+---
 
 ### Epic A: Schema Definition
 
@@ -273,53 +317,187 @@ This approach keeps schema definitions self-contained—all metadata lives in th
 
 ---
 
-### Epic B: DI Integration
+### Epic B: Data Acquisition
 
-**Goals:** Execute DI extractions using SDM schemas and store extracted data.
+**Goals:** Execute DI extractions, receive API responses, and process through transform/validate pipeline.
+
+**Dependencies:** Epic A (schemas defined), Epic C (transform/validate engines implemented)
 
 ---
 
-**Story B-1: Execute DI Extraction with SDM Schema**
+**Story B-1: DI Extraction with Reducto**
 
-> As a developer, I want to run DI extractions using SDM schemas so that extracted data is automatically associated with the schema.
+> As a developer, I want to extract structured JSON from documents using Reducto with SDM schemas so that the raw extracted data can be processed by the pipeline.
 
 **Context:**
 
-Document Intelligence extracts JSON from uploaded documents (PDFs, images). Currently this data is accessible only through DI-specific APIs. A thread file can be enriched with DI extractions, where each extraction references the SDM schema used. Multiple DI extractions (using different schemas) can be performed on the same thread file.
+When a user uploads a document (e.g., `CostcoReceipt.pdf`), this story extracts structured JSON using Reducto. This story focuses **only on the extraction step** — calling Reducto with the appropriate SDM schema and returning raw extracted data.
 
-MCP servers can interact with external APIs and use Schemas to interpret the API responses. This is useful for integrating with systems that expose JSON APIs. The implementation reuses the existing MCP servers infrastructure.
+Schema selection is implicit — the LLM already has all SDM schemas in context (same pattern as tabular data) and selects the appropriate schema before calling extraction.
 
 **Scope:**
 
 *What this story produces:*
-- Enrichments of thread files with Schema and extracted data
-- DI service integration for executing extractions with a specific schema
+- `get_schema_jsonschema(schema_name, sdm_name)` — retrieve schema from SDM
+- `parse_document(file_id)` — call Reducto parse
+- `extract_with_schema(parsed_doc, jsonschema)` — call Reducto extract
+- `di_extract(file_id, schema_name, sdm_name)` — convenience function
 
-*What this enables:*
-- Extract data from thread files using known SDM Schemas
-- Interpret external API responses via known SDM Schemas
+*What this story does NOT produce:*
+- Schema selection (implicit — LLM has SDM context)
+- Transformation (Story B-3)
+- Validation (Story B-3)
+- Enrichment storage (Story B-3)
 
 **Acceptance Criteria:**
 
-- [ ] Run extractions using different schemas against one file, interact with all outputs
-- [ ] Fetch JSON data via MCP, interpret resulting object as an SDM schema
-- [ ] Multiple extractions stored per thread file
-- [ ] Extracted data queryable via NL
+- [ ] `get_schema_jsonschema()` retrieves jsonschema from SDM
+- [ ] `parse_document()` calls Reducto parse API
+- [ ] `extract_with_schema()` calls Reducto extraction with jsonschema
+- [ ] `di_extract()` combines parse + extract
+- [ ] Returns raw data (no transformation applied)
+- [ ] Error handling includes file and schema info
 
-**Performance Target:** TBD
+**Performance Target:** Depends on document size (pass-through to Reducto)
 
 **Edge Cases:**
 
-- API returns non-JSON: Error with content-type info
-- DI extraction fails: Error with extraction details
+- Schema not found in SDM: Error with list of available schemas
+- Document parse fails: Error with Reducto details
+- Unsupported file type: Error before calling Reducto
 
 **Dependencies:** Story A-1 (schema definition), DI service API (existing)
 
 ---
 
+**Story B-2: MCP/API Response Handling**
+
+> As a developer, I want to receive JSON data from MCP servers and external APIs so that the raw data can be processed by the pipeline.
+
+**Context:**
+
+MCP servers fetch JSON from external APIs (CRM, ERP, REST services). This story **receives and packages the data** — returning raw JSON for pipeline processing. Unlike B-1, which must call Reducto to extract JSON from documents, B-2 receives JSON directly from the API.
+
+**Scope:**
+
+*What this story produces:*
+- Schema existence validation
+- `receive_api_response(json_data, schema_name, sdm_name, source_metadata)` function
+- `RawSchemaData` structure for pipeline input
+
+*What this story does NOT produce:*
+- Schema selection (implicit — LLM has SDM context)
+- Transformation (Story B-3)
+- Validation (Story B-3)
+- Enrichment storage (Story B-3)
+- MCP server implementation (existing infrastructure)
+
+**Acceptance Criteria:**
+
+- [ ] Validates schema exists in SDM
+- [ ] `receive_api_response()` returns `RawSchemaData`
+- [ ] Source metadata captured (endpoint, MCP server, timestamp)
+- [ ] Output compatible with B-3 pipeline input
+- [ ] Clear error when schema not found
+
+**Performance Target:** < 10ms
+
+**Edge Cases:**
+
+- Schema not found: Error with list of available schemas
+- API returns non-JSON: Error with content-type info
+- Large JSON response (>10MB): Package with size warning
+
+**Dependencies:** Story A-1 (schema definition), MCP infrastructure (existing)
+
+---
+
+**Story B-3: Extraction Pipeline Orchestration**
+
+> As a developer, I want a unified pipeline that transforms, validates, and stores extracted data so that it's ready for natural language queries.
+
+**Context:**
+
+After B-1 (Reducto) or B-2 (API) returns raw JSON data, the pipeline must:
+1. **Transform** the data from source schema to generic schema (if transformation defined)
+2. **Validate** the data against validation rules
+3. **Store** the data as a `SchemaEnrichment` in thread runtime metadata
+
+This story orchestrates the full extraction-to-storage flow, using the transformation engine (C-1) and validation engine (C-2).
+
+**Scope:**
+
+*What this story produces:*
+- `process_pipeline(thread_id, raw_data)` — main orchestration function
+- Transformation integration (calls C-1)
+- Validation integration (calls C-2)
+- `SchemaEnrichment` dataclass
+- Enrichment storage/retrieval APIs
+
+*What this story does NOT produce:*
+- DI extraction (Story B-1)
+- API response handling (Story B-2)
+- Transform engine (Story C-1)
+- Validate engine (Story C-2)
+
+**Data Flow:**
+
+```
+RawSchemaData from B-1/B-2
+         ↓
+1. Get schema definition (transformations, validations)
+         ↓
+2. Transform: source_schema → generic_schema (C-1)
+   e.g., costco_receipt → generic_receipt
+         ↓
+3. Validate: run validation rules (C-2)
+   Collect pass/fail results
+         ↓
+4. Store: SchemaEnrichment in thread metadata
+         ↓
+Ready for NL Queries (D-2)
+```
+
+**Key Principle: Design Time vs Runtime**
+
+| Aspect | SDM (Design Time) | Enrichments (Runtime) |
+|--------|------------------|----------------------|
+| **What** | Schema definitions | Extracted data per file |
+| **Volume** | 10s of schemas | 1000s of files |
+| **Lifecycle** | Long-lived | Tied to thread |
+| **Storage** | SDM YAML → JSONB | Thread metadata |
+
+Enrichments reference SDM schemas by name. They are NOT stored in the SDM.
+
+**Acceptance Criteria:**
+
+- [ ] `process_pipeline()` orchestrates transform → validate → store
+- [ ] Calls C-1 transformation engine
+- [ ] Calls C-2 validation engine
+- [ ] Respects validation modes: `warn` (continue) vs `reject` (error)
+- [ ] `SchemaEnrichment` stored in thread metadata
+- [ ] `get_enrichments()` retrieves by thread/source/schema
+- [ ] Enrichments deleted when thread deleted
+- [ ] Same source can have multiple enrichments (different schemas)
+
+**Performance Target:** < 500ms (excluding transformation complexity)
+
+**Edge Cases:**
+
+- No transformation defined: Store raw data with source_schema = target_schema
+- Transformation fails: Error with JQ details, no enrichment created
+- Validation fails (warn mode): Store enrichment with failed validation results
+- Validation fails (reject mode): Error, no enrichment created
+
+**Dependencies:** Story B-1 (raw data), Story B-2 (raw data), Story C-1 (transform engine), Story C-2 (validate engine)
+
+---
+
 ### Epic C: Transformations & Validations
 
-**Goals:** Execute JQ transformations and validations with clear error messages.
+**Goals:** Implement JQ transformation and validation engines that Epic B will use.
+
+**Note:** Epic C is implemented BEFORE Epic B because the extraction pipeline (B-3) uses these engines.
 
 ---
 
@@ -375,7 +553,7 @@ We reuse the existing `apply_jq_transform()` function from the orchestrator, whi
 
 Business rules like "invoice total must equal sum of line items" or "date must be in the past" are hard to enforce without application code. JQ validations let data engineers express these rules as JQ predicates that return true/false. Validations should strive to include context as to the reason for the failure.
 
-Validations run when data is resolved. Failed validations can be configured to warn or reject. The validation results are available in query responses so users understand data quality issues.
+Validations run at **extraction time** (in the B-3 pipeline) after transformations are applied. Failed validations can be configured to `warn` (log and continue) or `reject` (error, no enrichment stored). Validation results are stored with the enrichment and available in query responses.
 
 **Scope:**
 
@@ -501,7 +679,7 @@ Users can see generated schemas, edit them, and save the schema in an SDM for fu
 - JQ produces no results: Return empty with explanation
 - JQ produces too many results (>1000): Truncate with warning
 
-**Dependencies:** Story D-1 (schema context in prompts), Story B-1 (DI integration)
+**Dependencies:** Story D-1 (schema context in prompts), Story B-3 (enrichments stored)
 
 ---
 
@@ -555,3 +733,4 @@ Users can see generated schemas, edit them, and save the schema in an SDM for fu
 ## References
 
 - [Implementation Guide](./sdm-hierarchical-data-implementation.md) - Technical implementation details
+- [Schema Linking Specification](../schema-linking/schema-linking-specification.md) - Schema linking for tabular and hierarchical data
