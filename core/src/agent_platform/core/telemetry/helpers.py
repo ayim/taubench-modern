@@ -1,13 +1,18 @@
 """Helper functions for OTEL orchestrator."""
 
-import logging
+from typing import TYPE_CHECKING
 
+import structlog
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from agent_platform.core.integrations.integration_scope import IntegrationScope
+    from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
-def compute_config_hash(integration) -> str:
+def compute_config_hash(integration: "ObservabilityIntegration") -> str:
     """Compute MD5 hash of integration config for deduplication.
 
     Include: provider_kind, provider_settings (url, api_key, tokens, etc.)
@@ -32,7 +37,7 @@ def compute_config_hash(integration) -> str:
 def build_routing_map(
     agent_ids: list[str],
     integration_id_to_processor: dict[str, BatchSpanProcessor],
-    integration_scopes: dict[str, list],
+    integration_scopes: dict[str, list["IntegrationScope"]],
 ) -> tuple[dict[str, set[BatchSpanProcessor]], set[BatchSpanProcessor]]:
     """Build complete agent_id → processors routing map.
 
@@ -79,7 +84,7 @@ def shutdown_processors(processors: list[BatchSpanProcessor]) -> None:
         try:
             processor.shutdown()
         except Exception as e:
-            logger.error(f"Error shutting down processor: {e}")
+            logger.error("Error shutting down processor", error=str(e))
 
 
 def extract_agent_id(span) -> str | None:

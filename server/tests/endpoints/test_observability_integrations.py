@@ -158,25 +158,14 @@ def test_validate_integration_placeholder_response(client, monkeypatch):
     mock_exporter.export.return_value = SpanExportResult.SUCCESS
     mock_exporter.shutdown.return_value = None
 
-    def mock_make_exporter(self):
-        return mock_exporter
+    # Mock provider that returns our mock exporter
+    mock_provider = MagicMock()
+    mock_provider._create_trace_exporter.return_value = mock_exporter
 
-    # Patch all provider make_exporter methods
+    # Patch OtelProviderFactory.create to return our mock provider
     monkeypatch.setattr(
-        "agent_platform.core.integrations.observability.models.GrafanaObservabilitySettings.make_exporter",
-        mock_make_exporter,
-    )
-    monkeypatch.setattr(
-        "agent_platform.core.integrations.observability.models.LangSmithObservabilitySettings.make_exporter",
-        mock_make_exporter,
-    )
-    monkeypatch.setattr(
-        "agent_platform.core.integrations.observability.models.OtlpBasicAuthObservabilitySettings.make_exporter",
-        mock_make_exporter,
-    )
-    monkeypatch.setattr(
-        "agent_platform.core.integrations.observability.models.OtlpCustomHeadersObservabilitySettings.make_exporter",
-        mock_make_exporter,
+        "agent_platform.core.telemetry.providers.factory.OtelProviderFactory.create",
+        lambda settings: mock_provider,
     )
 
     create_resp = client.post("/api/v2/observability/integrations", json=_make_payload())

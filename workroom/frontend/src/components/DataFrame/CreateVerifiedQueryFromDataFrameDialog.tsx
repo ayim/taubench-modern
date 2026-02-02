@@ -36,6 +36,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
     sql_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     nlq_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
     name_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
+    parameter_errors?: Array<{ message: string; level: 'error' | 'warning' }>;
   }>({});
 
   const selectedModel = useMemo(() => {

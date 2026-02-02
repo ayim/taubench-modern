@@ -5,7 +5,7 @@ import { DropzoneConfig } from '@sema4ai/components';
 import { AddFiles } from './components/AddFiles';
 import { FilesList } from './components/FilesList';
 
-type props = {
+type Props = {
   threadId: string;
   agentId: string;
   /**
@@ -23,13 +23,19 @@ const Container = styled.div`
   overflow: hidden;
   padding: ${({ theme }) => theme.space.$8};
 
+  & > *:nth-child(1) {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   & > *:nth-child(2) {
-    flex-grow: 1;
-    flex-shrink: 0;
+    flex: 1 1 auto;
+    min-height: 100px;
   }
 `;
 
-export const FilesView: FC<props> = ({ threadId, agentId, dropzoneOptions }) => {
+export const FilesView: FC<Props> = ({ threadId, agentId, dropzoneOptions }) => {
   return (
     <Container>
       <FilesList agentId={agentId} threadId={threadId} />

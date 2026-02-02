@@ -11,4 +11,4 @@ storage_account_name = "sema4aiteameditiontf"
 container_name       = "tfstate"
 
 # The name of the blob within the storage account container to write the state file to
-key                  = "s4-team-edition/terraform.tfstate"
+key                  = "s4-moonraker/terraform.tfstate"
