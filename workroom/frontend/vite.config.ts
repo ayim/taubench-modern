@@ -15,6 +15,9 @@ const tenantReplacementPlugin = () => ({
 export default defineConfig({
   root: path.resolve(__dirname),
   base: './',
+  optimizeDeps: {
+    include: ['@sema4ai/data-interface'],
+  },
   build: {
     outDir: './dist',
     emptyOutDir: true,

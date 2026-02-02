@@ -9,6 +9,7 @@ type Props = {
 enum SnowflakeCredentialType {
   Linked = 'linked',
   KeyPair = 'custom-key-pair',
+  ProgrammaticAccessToken = 'programmatic-access-token',
   UsernamePassword = 'password',
 }
 
@@ -24,6 +25,7 @@ export const SnowflakeCredentialField: FC<Props> = ({ snowflakeLinkedUser }) => 
 
   const items = [
     { label: 'Key Pair', value: SnowflakeCredentialType.KeyPair },
+    { label: 'Programmatic Access Token (PAT)', value: SnowflakeCredentialType.ProgrammaticAccessToken },
     { label: 'Username & Password (Legacy)', value: SnowflakeCredentialType.UsernamePassword },
     ...(snowflakeLinkedUser
       ? [{ label: `Linked Account ${snowflakeLinkedUser}`, value: SnowflakeCredentialType.Linked }]
