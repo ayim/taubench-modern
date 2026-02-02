@@ -22,6 +22,7 @@ export const SnowflakeCredentialField: FC<Props> = ({ snowflakeLinkedUser }) => 
   const { watch, setValue, formState } = useFormContext();
   const value = watch(FIELD_NAME);
   const error = formState.errors[FIELD_NAME];
+  const errorMessage = typeof error?.message === 'string' ? error.message : undefined;
 
   const items = [
     { label: 'Key Pair', value: SnowflakeCredentialType.KeyPair },
@@ -36,7 +37,7 @@ export const SnowflakeCredentialField: FC<Props> = ({ snowflakeLinkedUser }) => 
     <Select
       label="Credentials"
       value={value}
-      error={error?.message as string}
+      error={errorMessage}
       onChange={(newValue) => {
         setValue(FIELD_NAME, newValue, { shouldDirty: true });
       }}
