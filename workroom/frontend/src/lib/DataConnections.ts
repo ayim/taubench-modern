@@ -35,13 +35,12 @@ export const getGeneralDataConnectionDetails = (dataConnection: DataConnection):
         api_base: dataConnection.configuration.api_base,
       };
     case 'snowflake': {
-      const configuration = dataConnection.configuration;
+      const {configuration} = dataConnection;
       const isLinkedCredential = configuration.credential_type === 'linked';
-      const account = isLinkedCredential
-        ? 'Linked Account'
-        : 'account' in configuration
-          ? configuration.account
-          : 'Linked Account';
+      let account = 'Linked Account';
+      if (!isLinkedCredential && 'account' in configuration) {
+        account = configuration.account;
+      }
 
       return {
         account,
