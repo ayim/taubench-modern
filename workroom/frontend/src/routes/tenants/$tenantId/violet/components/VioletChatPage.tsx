@@ -346,7 +346,10 @@ export const VioletChatPage: FC<Props> = ({ agentId, violetAgent, initialThreadM
     [agentAPIClient],
   );
 
-  const violetChatContextValue = useMemo(() => ({ threadId: threadId ?? '', setThreadId }), [threadId, setThreadId]);
+  const violetChatContextValue = useMemo(
+    () => ({ agentId, threadId: threadId ?? '', setThreadId }),
+    [threadId, setThreadId],
+  );
 
   return (
     <SparUIContext.Provider value={sparAPIContextValue}>
