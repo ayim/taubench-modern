@@ -81,6 +81,7 @@
     "@tanstack/router-vite-plugin": "^1.45.0",
     "@trpc/server": "^11.8.1",
     "@types/jsonpointer": "^4.0.2",
+    "@types/lodash.clonedeep": "^4.5.9",
     "@types/mark.js": "^8.11.12",
     "@types/node": "^24.0.14",
     "@types/react": "^19.0.3",
