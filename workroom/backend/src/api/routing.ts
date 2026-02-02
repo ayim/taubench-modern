@@ -66,6 +66,7 @@ function getRouteMap(): {
     'post /api/v2/package/read': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/metadata': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/build': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/agents/': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
@@ -92,7 +93,6 @@ function getRouteMap(): {
     'get /api/v2/threads/{tid}/state': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/agents/{aid}/agent-details': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'delete /api/v2/agents/{aid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
-    'post /api/v2/agents/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/work-items': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/work-items/status': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
