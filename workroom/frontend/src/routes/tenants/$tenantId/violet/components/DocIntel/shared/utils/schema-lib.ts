@@ -1,4 +1,3 @@
- 
 /**
  * JSON Schema Traversal & Mutation Library
  *
