@@ -9,7 +9,7 @@ import { App } from './App';
 
 setupPdfWorker(pdfjsWorker);
 
-if (import.meta.env.PROD) {
+if (import.meta.env.VITE_3RDPARTY_FULLSTORY_ORG_ID) {
   initFullStory({
     orgId: import.meta.env.VITE_3RDPARTY_FULLSTORY_ORG_ID,
   });
