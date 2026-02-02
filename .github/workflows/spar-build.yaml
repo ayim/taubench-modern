@@ -51,7 +51,7 @@ env:
 jobs:
   prepare:
     name: Detect changed paths
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     outputs:
       changed-paths: ${{ steps.determine-changes.outputs.changed-paths }}
     steps:
@@ -81,7 +81,7 @@ jobs:
 
   build:
     name: Build SPAR
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     outputs:
       tag: ${{ steps.build-metadata.outputs.tag }}
       image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
@@ -207,7 +207,7 @@ jobs:
   deploy-to-ecs:
     name: Deploy to ECS
     needs: [build]
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     if: always() && github.event_name == 'push' && github.ref_name == 'main' && needs.build.result == 'success'
     steps:
       - name: Configure AWS credentials
@@ -228,7 +228,7 @@ jobs:
   dynamic-deploy:
     name: Deploy to dynamic instance (AWS)
     needs: [build]
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     if: always() && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dev_deploy_aws') && needs.build.result == 'success'
     steps:
       - name: Configure AWS credentials
