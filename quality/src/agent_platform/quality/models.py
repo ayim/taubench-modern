@@ -629,8 +629,8 @@ class AgentPackage:
         if self.zip_path is None:
             raise ValueError(f"Agent package zip not found for {self.name}")
 
-        handler = await AgentPackageHandler.from_path(self.zip_path)
-        async with handler:
+        handler = await AgentPackageHandler.from_file_path(str(self.zip_path))
+        with handler:
             metadata = await AgentMetadataGenerator.generate_from_handler(handler)
             return [metadata.model_dump()]
 
