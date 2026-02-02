@@ -1,0 +1,45 @@
+{
+  "name": "@sema4ai/data-interface",
+  "version": "3.2.1",
+  "description": "Sema4.ai Data API Typescript interface",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "author": {
+    "name": "Sema4.ai",
+    "email": "dev@sema4.ai",
+    "url": "https://sema4.ai"
+  },
+  "repository": {
+    "url": "git://github.com/sema4ai/data.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "setup": "npm install",
+    "test": "vitest run",
+    "build": "tsup",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "prettier": "^3.3.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.6"
+  },
+  "peerDependencies": {
+    "zod": "^4.1.11"
+  }
+}

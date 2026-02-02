@@ -34,14 +34,23 @@ export const getGeneralDataConnectionDetails = (dataConnection: DataConnection):
       return {
         api_base: dataConnection.configuration.api_base,
       };
-    case 'snowflake':
+    case 'snowflake': {
+      const { configuration } = dataConnection;
+      const account = (() => {
+        if (configuration.credential_type === 'linked') {
+          return 'Linked Account';
+        }
+        if ('account' in configuration) {
+          return configuration.account;
+        }
+        return 'Linked Account';
+      })();
+
       return {
-        account:
-          dataConnection.configuration.credential_type === 'custom-key-pair'
-            ? dataConnection.configuration.account
-            : 'Linked Account',
-        warehouse: dataConnection.configuration.warehouse,
+        account,
+        warehouse: configuration.warehouse,
       };
+    }
     case 'slack':
     case 'salesforce':
     case 'sema4_knowledge_base':

@@ -57,7 +57,7 @@
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",
     "dotenv-cli": "^10.0.0",
-    "esbuild": "^0.25.9",
+    "esbuild": "^0.27.2",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.32.0",
     "expect-type": "^1.2.2",
