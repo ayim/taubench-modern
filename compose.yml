@@ -26,6 +26,7 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_PORT_INTERNAL: 8002
     SEMA4AI_WORKROOM_TENANT_ID: spar
     SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE: http://data-server
+    VITE_3RDPARTY_FULLSTORY_ORG_ID: "o-23NME2-na1"
 
 x-service-spar: &template-service-spar
     build:
