@@ -13,14 +13,7 @@ type Props = {
 };
 
 export const Attachment: FC<Props> = ({ content: { name, mime_type, description } }) => {
-  /**
-   * This component can be rendered in either conversational or worker agent.
-   * trying to get threadId from both possible routes.
-   */
-  const { threadId: convThreadId } = useParams({ from: '/tenants/$tenantId/conversational/$agentId/$threadId' });
-  const { threadId: workerThreadId } = useParams({ from: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId' });
-
-  const threadId = convThreadId || workerThreadId;
+  const { threadId } = useParams({ strict: false });
 
   const { mutateAsync: downloadFile, isPending: isDownloading } = useDownloadThreadFileMutation({ type: 'download' });
   const { addSnackbar } = useSnackbar();
