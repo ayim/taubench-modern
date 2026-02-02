@@ -18,6 +18,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
+    from agent_platform.server.storage.base import BaseStorage
 
 
 logger = get_logger(__name__)
@@ -39,6 +40,44 @@ async def get_semantic_data_model_name(data_frame: PlatformDataFrame) -> str | N
     for source in data_frame.computation_input_sources.values():
         if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
             return source.semantic_data_model_name
+    return None
+
+
+async def get_dialect_from_semantic_data_model(
+    semantic_data_model: SemanticDataModel,
+    storage: BaseStorage,
+) -> str | None:
+    """Get SQL dialect from the semantic data model's data connections.
+
+    Iterates through tables in the SDM to find the first available data connection
+    and returns its engine type as the dialect.
+
+    Args:
+        semantic_data_model: The semantic data model to extract dialect from
+        storage: Storage instance to fetch data connections
+
+    Returns:
+        SQL dialect string (e.g., 'postgres', 'snowflake', 'duckdb') or None if not found
+    """
+    tables = semantic_data_model.tables or []
+    for table in tables:
+        base_table = table.get("base_table")
+        if base_table:
+            data_connection_id = base_table.get("data_connection_id")
+            if data_connection_id:
+                try:
+                    data_connection = await storage.get_data_connection(data_connection_id)
+                    if data_connection:
+                        return data_connection.engine
+                except Exception:
+                    # If we can't get the connection, continue to next table
+                    logger.warning(
+                        "Failed to fetch data connection", data_connection_id=data_connection_id, exc_info=True
+                    )
+                    continue
+            elif "file_reference" in base_table:
+                # File-based tables use DuckDB
+                return "duckdb"
     return None
 
 

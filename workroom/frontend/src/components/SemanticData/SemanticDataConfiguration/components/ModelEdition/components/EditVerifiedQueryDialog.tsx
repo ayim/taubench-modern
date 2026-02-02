@@ -128,7 +128,8 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       setValue('verifiedQueries', updatedQueries);
     } else {
       // Create new query
-      setValue('verifiedQueries', [...verifiedQueries, newQuery]);
+      const newQueries = [...verifiedQueries, newQuery];
+      setValue('verifiedQueries', newQueries);
     }
     onClose();
   }, [formData, isEditMode, queryIndex, query, verifiedQueries, setValue, onClose, semanticDataModel]);

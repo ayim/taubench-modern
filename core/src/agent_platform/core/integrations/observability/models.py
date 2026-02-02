@@ -1,12 +1,9 @@
-import base64
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal, cast
 
 import structlog
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
-from agent_platform.core.network.utils import build_network_session
 from agent_platform.core.utils import SecretString
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
@@ -91,38 +88,6 @@ class GrafanaObservabilitySettings:
             }
         return data
 
-    def make_exporter(self):
-        """Create an OTLPSpanExporter for Grafana.
-
-        Returns:
-            Configured OTLPSpanExporter ready for use
-        """
-        # Normalize endpoint (ensure /v1/traces suffix)
-        endpoint = self.url.rstrip("/")
-        if not endpoint.endswith("/v1/traces"):
-            endpoint = f"{endpoint}/v1/traces"
-
-        # Authorization value should be "base64<grafana_instance_id:api_token>"
-        api_key = self.api_token.get_secret_value() if isinstance(self.api_token, SecretString) else self.api_token
-        basic_auth_value = base64.b64encode(f"{self.grafana_instance_id}:{api_key}".encode()).decode()
-
-        # Sent as HTTP Basic Auth
-        headers = {"Authorization": f"Basic {basic_auth_value}"}
-
-        if self.additional_headers:
-            headers.update(self.additional_headers)
-
-        # Build fresh session for this exporter
-        # (each exporter needs its own to avoid header conflicts)
-        session = build_network_session()
-
-        exporter = OTLPSpanExporter(
-            endpoint=endpoint,
-            headers=headers,
-            session=session,
-        )
-        return exporter
-
 
 @dataclass(frozen=True)
 class LangSmithObservabilitySettings:
@@ -150,34 +115,6 @@ class LangSmithObservabilitySettings:
             "api_key": _secret_or_redact(self.api_key, redact_secret),
         }
 
-    def make_exporter(self):
-        """Create an OTLPSpanExporter for LangSmith.
-
-        Returns:
-            Configured OTLPSpanExporter ready for use
-        """
-
-        # Normalize endpoint (ensure /otel/v1/traces suffix)
-        endpoint = self.url.rstrip("/")
-        if not endpoint.endswith("/otel/v1/traces"):
-            endpoint = f"{endpoint}/otel/v1/traces"
-
-        # Build LangSmith-specific headers
-        headers = {
-            "x-api-key": _to_plain_str(self.api_key),
-            "Langsmith-Project": self.project_name,
-        }
-
-        # Build fresh session for this exporter
-        # (each exporter needs its own to avoid header conflicts)
-        session = build_network_session()
-
-        return OTLPSpanExporter(
-            endpoint=endpoint,
-            headers=headers,
-            session=session,
-        )
-
 
 @dataclass(frozen=True)
 class OtlpBasicAuthObservabilitySettings:
@@ -204,34 +141,6 @@ class OtlpBasicAuthObservabilitySettings:
             "username": self.username,
             "password": _secret_or_redact(self.password, redact_secret),
         }
-
-    def make_exporter(self):
-        """Create an OTLPSpanExporter with Basic Authentication.
-
-        Returns:
-            Configured OTLPSpanExporter ready for use
-        """
-        # Normalize endpoint (ensure /v1/traces suffix)
-        endpoint = self.url.rstrip("/")
-        if not endpoint.endswith("/v1/traces"):
-            endpoint = f"{endpoint}/v1/traces"
-
-        # Create Basic Auth header: base64(username:password)
-        password = self.password.get_secret_value() if isinstance(self.password, SecretString) else self.password
-        basic_auth_value = base64.b64encode(f"{self.username}:{password}".encode()).decode()
-
-        # Sent as HTTP Basic Auth
-        headers = {"Authorization": f"Basic {basic_auth_value}"}
-
-        # Build fresh session for this exporter
-        # (each exporter needs its own to avoid header conflicts)
-        session = build_network_session()
-
-        return OTLPSpanExporter(
-            endpoint=endpoint,
-            headers=headers,
-            session=session,
-        )
 
 
 @dataclass(frozen=True)
@@ -275,30 +184,6 @@ class OtlpCustomHeadersObservabilitySettings:
             "url": self.url,
             "headers": {key: _secret_or_redact(value, redact_secret) for key, value in self.headers.items()},
         }
-
-    def make_exporter(self):
-        """Create an OTLPSpanExporter with custom headers.
-
-        Returns:
-            Configured OTLPSpanExporter ready for use
-        """
-        # Normalize endpoint (ensure /v1/traces suffix)
-        endpoint = self.url.rstrip("/")
-        if not endpoint.endswith("/v1/traces"):
-            endpoint = f"{endpoint}/v1/traces"
-
-        # Use custom headers directly
-        headers = dict(self.headers)
-
-        # Build fresh session for this exporter
-        # (each exporter needs its own to avoid header conflicts)
-        session = build_network_session()
-
-        return OTLPSpanExporter(
-            endpoint=endpoint,
-            headers=headers,
-            session=session,
-        )
 
 
 ObservabilityProviderSettings = (

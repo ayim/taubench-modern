@@ -25,7 +25,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
+          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-moonraker
 
       - name: Comment on PR
         uses: actions/github-script@v8
@@ -46,6 +46,6 @@ jobs:
           BRANCH_NAME: ${{ github.head_ref }}
           OPERATION: teardown
         with:
-          project-name: team-edition-dev-deployer-team-edition-1
+          project-name: moonraker-dev-deployer-moonraker
           env-vars-for-codebuild: BRANCH_NAME,OPERATION
           source-version-override: ${{ github.base_ref }}

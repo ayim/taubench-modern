@@ -7,13 +7,13 @@ variable "aws_region" {
 variable "infra_id" {
   description = "Unique identifier for the infrastructure"
   type        = string
-  default     = "team-edition-1"
+  default     = "moonraker"
 }
 
 variable "host_name" {
   description = "Unique identifier for the infrastructure"
   type        = string
-  default     = "team-edition-1.sema4ai.dev"
+  default     = "moonraker.sema4ai.dev"
 }
 
 variable "provision_github_deployment_role" {

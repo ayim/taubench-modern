@@ -132,6 +132,23 @@ export const VerifiedQueryForm: FC<Props> = ({
           parameter_errors: verifiedQuery.parameter_errors || undefined,
         };
         onValidationErrorsChange?.(validationErrors);
+
+        // Update parameters with auto-generated ones from the backend
+        // The backend detects parameters in SQL and returns them (with defaults for missing ones)
+        // Only update if parameters actually changed to avoid infinite re-validation loops
+        if (verifiedQuery.parameters && verifiedQuery.parameters.length > 0) {
+          const currentParamNames = new Set(debouncedParameters.map((p) => p.name));
+          const newParamNames = new Set(verifiedQuery.parameters.map((p) => p.name));
+
+          // Check if we have new parameters that don't exist locally
+          const hasNewParams = verifiedQuery.parameters.some((p) => !currentParamNames.has(p.name));
+          // Check if local params were removed from SQL
+          const hasRemovedParams = debouncedParameters.some((p) => !newParamNames.has(p.name));
+
+          if (hasNewParams || hasRemovedParams) {
+            setParameters(verifiedQuery.parameters);
+          }
+        }
       } catch (error) {
         // If validation fails, clear errors to avoid showing stale errors
         onValidationErrorsChange?.({});
@@ -143,15 +160,13 @@ export const VerifiedQueryForm: FC<Props> = ({
 
   // Notify parent of form data changes
   useEffect(() => {
-    onFormDataChange?.(
-      {
-        name: editedName,
-        nlq: editedNlq,
-        sql: editedSql,
-        parameters: parameters.filter((p) => new RegExp(`:${p.name}\\b`).test(editedSql)),
-      },
-      isNonEmpty,
-    );
+    const formData = {
+      name: editedName,
+      nlq: editedNlq,
+      sql: editedSql,
+      parameters: parameters.filter((p) => new RegExp(`:${p.name}\\b`).test(editedSql)),
+    };
+    onFormDataChange?.(formData, isNonEmpty);
   }, [editedName, editedNlq, editedSql, isNonEmpty, onFormDataChange, parameters]);
 
   const errors = externalErrors || {};
@@ -198,7 +213,7 @@ export const VerifiedQueryForm: FC<Props> = ({
       </Box>
       <Box display="flex" flexDirection="column" gap="$4">
         <Input
-          label="Descriptionzzz"
+          label="Description"
           rows={3}
           value={editedNlq}
           onChange={(e) => setEditedNlq(e.target.value)}
@@ -210,14 +225,12 @@ export const VerifiedQueryForm: FC<Props> = ({
         {renderErrors(errors.nlq_errors, 'warning')}
       </Box>
 
-      {initialQuery && (
-        <Parameters
-          sql={editedSql}
-          parameters={parameters}
-          onSqlChange={setEditedSql}
-          onParametersChange={setParameters}
-        />
-      )}
+      <Parameters
+        sql={editedSql}
+        parameters={parameters}
+        onSqlChange={setEditedSql}
+        onParametersChange={setParameters}
+      />
 
       <Box display="flex" flexDirection="column" gap="$4">
         <Box display="flex" alignItems="center" justifyContent="space-between">

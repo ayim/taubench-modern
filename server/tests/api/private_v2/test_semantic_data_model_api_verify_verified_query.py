@@ -5,9 +5,6 @@ from pathlib import Path
 
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
-from structlog import get_logger
-
-logger = get_logger(__name__)
 
 
 @pytest.fixture(scope="module")
@@ -97,7 +94,7 @@ def test_verify_parameterized_query_validation(
 
     import requests
 
-    semantic_data_model_id, semantic_model = api_test_semantic_model
+    _, semantic_model = api_test_semantic_model
 
     verify_url = urljoin(
         base_url_agent_server_session,
@@ -136,19 +133,18 @@ def test_verify_parameterized_query_validation(
     assert "sql_errors" not in validated or not validated["sql_errors"]
     assert "parameters" in validated
     assert len(validated["parameters"]) == 2
-    logger.info("[OK] Valid parameterized query validated successfully")
 
 
 def test_verify_query_validation_missing_parameter(
     base_url_agent_server_session,
     api_test_semantic_model,
 ):
-    """Test that missing parameter definitions are detected."""
+    """Test that missing parameter definitions are auto-generated."""
     from urllib.parse import urljoin
 
     import requests
 
-    semantic_data_model_id, semantic_model = api_test_semantic_model
+    _, semantic_model = api_test_semantic_model
 
     verify_url = urljoin(
         base_url_agent_server_session,
@@ -168,7 +164,7 @@ def test_verify_query_validation_missing_parameter(
                     "example_value": "Language",
                     "description": "Domain filter",
                 }
-                # Missing 'year' parameter definition
+                # Missing 'year' parameter definition - should be auto-generated
             ],
         },
         "accept_initial_name": "test_missing_param",
@@ -177,20 +173,32 @@ def test_verify_query_validation_missing_parameter(
     response = requests.post(verify_url, json=missing_param_query)
     assert response.status_code == requests.codes.ok
     validated = response.json()["verified_query"]
-    assert validated.get("parameter_errors")
 
-    # Verify we have an individual error message for the 'year' parameter
-    parameter_errors = validated["parameter_errors"]
-    year_error = next(
-        (err for err in parameter_errors if "year" in err["message"].lower()),
+    # Verify that both parameters are returned (user-provided + auto-generated)
+    assert "parameters" in validated
+    assert len(validated["parameters"]) == 2, "Should have 2 parameters (1 provided + 1 auto-generated)"
+
+    # Find the user-provided domain parameter
+    domain_param = next(
+        (p for p in validated["parameters"] if p["name"] == "domain"),
         None,
     )
-    assert year_error is not None, "Should have error message for 'year' parameter"
-    assert "not defined" in year_error["message"].lower()
-    assert "'year'" in year_error["message"] or '"year"' in year_error["message"]
-    # Verify it uses the parameter validation kind
-    assert year_error["kind"] == "verified_query_parameters_validation_failed"
-    logger.info("[OK] Missing parameter definition detected correctly")
+    assert domain_param is not None, "Should have 'domain' parameter"
+    assert domain_param["data_type"] == "string"
+    assert domain_param["example_value"] == "Language"
+    assert domain_param["description"] == "Domain filter"
+
+    # Find the auto-generated year parameter
+    year_param = next(
+        (p for p in validated["parameters"] if p["name"] == "year"),
+        None,
+    )
+    assert year_param is not None, "Should have auto-generated 'year' parameter"
+    assert year_param["data_type"] == "string", "Auto-generated params should default to string"
+    assert year_param["example_value"] is None, "Auto-generated params should have null example_value"
+    assert "provide description" in year_param["description"].lower(), (
+        "Auto-generated params should have placeholder description"
+    )
 
 
 def test_verify_query_validation_extra_parameter(
@@ -202,7 +210,7 @@ def test_verify_query_validation_extra_parameter(
 
     import requests
 
-    semantic_data_model_id, semantic_model = api_test_semantic_model
+    _, semantic_model = api_test_semantic_model
 
     verify_url = urljoin(
         base_url_agent_server_session,
@@ -250,7 +258,6 @@ def test_verify_query_validation_extra_parameter(
     assert "'year'" in year_error["message"] or '"year"' in year_error["message"]
     # Verify it uses the parameter validation kind (warnings also use this kind)
     assert year_error["kind"] == "verified_query_parameters_validation_failed"
-    logger.info("[OK] Extra parameter definition detected correctly")
 
 
 def test_verify_query_validation_missing_example_value(
@@ -262,7 +269,7 @@ def test_verify_query_validation_missing_example_value(
 
     import requests
 
-    semantic_data_model_id, semantic_model = api_test_semantic_model
+    _, semantic_model = api_test_semantic_model
 
     verify_url = urljoin(
         base_url_agent_server_session,
@@ -301,8 +308,6 @@ def test_verify_query_validation_missing_example_value(
     assert len(validated["parameters"]) == 1
     assert validated["parameters"][0]["name"] == "domain"
     assert validated["parameters"][0]["example_value"] is None
-
-    logger.info("[OK] Missing example_value (None) is allowed")
 
 
 def test_verify_query_validation_invalid_parameter_data_type(
@@ -465,3 +470,63 @@ def test_verify_query_validation_datetime_requires_iso_format(
     assert "'start_time'" in start_time_error["message"] or '"start_time"' in start_time_error["message"]
     # Verify it uses the parameter validation kind
     assert start_time_error["kind"] == "verified_query_parameters_validation_failed"
+
+
+def test_verify_query_auto_generates_all_parameters_when_none_provided(
+    base_url_agent_server_session,
+    api_test_semantic_model,
+):
+    """Test that all parameters are auto-generated when no definitions are provided."""
+    from urllib.parse import urljoin
+
+    import requests
+
+    _, semantic_model = api_test_semantic_model
+
+    verify_url = urljoin(
+        base_url_agent_server_session,
+        "/api/v2/semantic-data-models/verify-verified-query",
+    )
+
+    # Query with parameters but no parameter definitions
+    no_params_query = {
+        "semantic_data_model": semantic_model,
+        "verified_query": {
+            "name": "test auto generate all params",
+            "nlq": "Get AI systems filtered by domain and year",
+            "sql": "SELECT * FROM ai_systems WHERE Domain = :domain AND year = :year",
+            # No parameters provided - should be auto-generated
+        },
+        "accept_initial_name": "test_auto_generate_all_params",
+    }
+
+    response = requests.post(verify_url, json=no_params_query)
+    assert response.status_code == requests.codes.ok
+    validated = response.json()["verified_query"]
+
+    # Verify that both parameters are auto-generated
+    assert "parameters" in validated
+    assert len(validated["parameters"]) == 2, "Should have 2 auto-generated parameters"
+
+    # Check domain parameter
+    domain_param = next(
+        (p for p in validated["parameters"] if p["name"] == "domain"),
+        None,
+    )
+    assert domain_param is not None, "Should have auto-generated 'domain' parameter"
+    assert domain_param["data_type"] == "string"
+    assert domain_param["example_value"] is None
+    assert "provide description" in domain_param["description"].lower()
+
+    # Check year parameter
+    year_param = next(
+        (p for p in validated["parameters"] if p["name"] == "year"),
+        None,
+    )
+    assert year_param is not None, "Should have auto-generated 'year' parameter"
+    assert year_param["data_type"] == "string"
+    assert year_param["example_value"] is None
+    assert "provide description" in year_param["description"].lower()
+
+    # Verify no errors (auto-generation is not an error)
+    assert not validated.get("parameter_errors")

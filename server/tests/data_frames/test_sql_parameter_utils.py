@@ -3,8 +3,10 @@
 import pytest
 
 from agent_platform.core.data_frames.semantic_data_model_types import QueryParameter
-from agent_platform.server.data_frames.sql_parameter_utils import (
+from agent_platform.core.data_frames.semantic_data_model_utils import (
     extract_parameters_from_sql,
+)
+from agent_platform.server.data_frames.sql_parameter_utils import (
     substitute_sql_parameters_safe,
 )
 

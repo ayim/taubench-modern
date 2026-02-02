@@ -4,7 +4,7 @@ provider "aws" {
   default_tags {
     tags = {
       infra_id = var.infra_id
-      source   = "terraform:agent-platform/infra/aws/ecs-fargate"
+      source   = "terraform:moonraker/infra/aws/ecs-fargate"
     }
   }
 }

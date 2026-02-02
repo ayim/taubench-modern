@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo, useState } from 'react';
 import { Dialog, Form, Progress, StepProps, Steps, useSnackbar } from '@sema4ai/components';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FieldErrors, FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams } from '@tanstack/react-router';
 import { useConfirmAction } from '@sema4ai/layouts';
@@ -105,62 +105,147 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
     }
   }, [semanticModel]);
 
-  const onSubmit = formMethods.handleSubmit(async (values) => {
-    if (modelId) {
-      const shouldRegenerateModel = forceModelRegeneration || hasDataSelectionChanged(values);
+  const onSubmit = formMethods.handleSubmit(
+    async (values) => {
+      if (modelId) {
+        const shouldRegenerateModel = forceModelRegeneration || hasDataSelectionChanged(values);
 
-      if (shouldRegenerateModel) {
+        if (shouldRegenerateModel) {
+          setActiveStep(ConfigurationStep.Processing);
+        }
+
+        updateSemanticData(
+          { ...values, modelId, agentId, shouldRegenerateModel },
+          {
+            onSuccess: () => {
+              addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
+              onClose();
+            },
+            onError: (error) => {
+              setActiveStep(ConfigurationStep.ModelEdition);
+              addSnackbar({ message: error.message, variant: 'danger' });
+            },
+          },
+        );
+      } else if (dataSourceType === DataSourceType.Import) {
         setActiveStep(ConfigurationStep.Processing);
+        await importSemanticDataModel(
+          { ...values, agentId },
+          {
+            onSuccess: (result) => {
+              if (result.withErrors) {
+                setActiveStep(ConfigurationStep.ImportWithErrors);
+              } else {
+                setActiveStep(ConfigurationStep.SuccessImport);
+              }
+
+              setModelId(result.semanticModelId);
+            },
+            onError: (error) => {
+              setActiveStep(ConfigurationStep.DataConnection);
+              addSnackbar({ message: error.message, variant: 'danger' });
+            },
+          },
+        );
+      } else {
+        setActiveStep(ConfigurationStep.Processing);
+        createSemanticData(
+          { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
+          {
+            onSuccess: (result) => {
+              setActiveStep(ConfigurationStep.SuccessCreation);
+              setModelId(result.semantic_data_model_id);
+            },
+            onError: (error) => {
+              setActiveStep(ConfigurationStep.DataSelection);
+              addSnackbar({ message: error.message, variant: 'danger' });
+            },
+          },
+        );
+      }
+    },
+    (validationErrors: FieldErrors<DataConnectionFormSchema>) => {
+      const errorMessages: string[] = [];
+
+      if (validationErrors.verifiedQueries) {
+        const vqErrors = validationErrors.verifiedQueries;
+        if (Array.isArray(vqErrors)) {
+          vqErrors.forEach((vqError, index) => {
+            if (!vqError) return;
+            const queryName = formMethods.getValues(`verifiedQueries.${index}.name`) || `Query ${index + 1}`;
+            if (vqError.name?.message) {
+              errorMessages.push(`${queryName}: ${vqError.name.message}`);
+            }
+            if (vqError.sql?.message) {
+              errorMessages.push(`${queryName}: ${vqError.sql.message}`);
+            }
+            if (vqError.nlq?.message) {
+              errorMessages.push(`${queryName}: ${vqError.nlq.message}`);
+            }
+            if (vqError.sql_errors?.message) {
+              errorMessages.push(`${queryName}: ${vqError.sql_errors.message}`);
+            }
+            if (vqError.nlq_errors?.message) {
+              errorMessages.push(`${queryName}: ${vqError.nlq_errors.message}`);
+            }
+            if (vqError.name_errors?.message) {
+              errorMessages.push(`${queryName}: ${vqError.name_errors.message}`);
+            }
+            if (vqError.parameter_errors?.message) {
+              errorMessages.push(`${queryName}: ${vqError.parameter_errors.message}`);
+            }
+          });
+        }
       }
 
-      updateSemanticData(
-        { ...values, modelId, agentId, shouldRegenerateModel },
-        {
-          onSuccess: () => {
-            addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
-            onClose();
-          },
-          onError: (error) => {
-            addSnackbar({ message: error.message, variant: 'danger' });
-          },
-        },
-      );
-    } else if (dataSourceType === DataSourceType.Import) {
-      setActiveStep(ConfigurationStep.Processing);
-      await importSemanticDataModel(
-        { ...values, agentId },
-        {
-          onSuccess: (result) => {
-            if (result.withErrors) {
-              setActiveStep(ConfigurationStep.ImportWithErrors);
-            } else {
-              setActiveStep(ConfigurationStep.SuccessImport);
+      if (validationErrors.dataSelection) {
+        const dsErrors = validationErrors.dataSelection;
+        if (Array.isArray(dsErrors)) {
+          dsErrors.forEach((dsError, index) => {
+            if (!dsError) return;
+            const tableName = formMethods.getValues(`dataSelection.${index}.name`) || `Table ${index + 1}`;
+            if (dsError.name?.message) {
+              errorMessages.push(`${tableName}: ${dsError.name.message}`);
             }
+            if (dsError.columns && Array.isArray(dsError.columns)) {
+              (dsError.columns as FieldErrors<DataConnectionFormSchema['dataSelection'][number]['columns']>).forEach(
+                (colError, colIndex) => {
+                  if (!colError) return;
+                  const colName =
+                    formMethods.getValues(`dataSelection.${index}.columns.${colIndex}.name`) ||
+                    `Column ${colIndex + 1}`;
+                  if (colError.name?.message) {
+                    errorMessages.push(`${tableName}.${colName}: ${colError.name.message}`);
+                  }
+                  if (colError.data_type?.message) {
+                    errorMessages.push(`${tableName}.${colName}: ${colError.data_type.message}`);
+                  }
+                },
+              );
+            }
+          });
+        }
+      }
 
-            setModelId(result.semanticModelId);
-          },
-          onError: (error) => {
-            setActiveStep(ConfigurationStep.DataConnection);
-            addSnackbar({ message: error.message, variant: 'danger' });
-          },
-        },
-      );
-    } else {
-      setActiveStep(ConfigurationStep.Processing);
-      createSemanticData(
-        { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
-        {
-          onSuccess: (result) => {
-            setActiveStep(ConfigurationStep.SuccessCreation);
-            setModelId(result.semantic_data_model_id);
-          },
-          onError: (error) => {
-            addSnackbar({ message: error.message, variant: 'danger' });
-          },
-        },
-      );
-    }
-  });
+      if (validationErrors.tables?.message) {
+        errorMessages.push(`Tables: ${validationErrors.tables.message}`);
+      }
+
+      if (validationErrors.name?.message) {
+        errorMessages.push(`Name: ${validationErrors.name.message}`);
+      }
+
+      if (validationErrors.description?.message) {
+        errorMessages.push(`Description: ${validationErrors.description.message}`);
+      }
+
+      const message =
+        errorMessages.length > 0
+          ? errorMessages.join('; ')
+          : 'Please review the form and fix any errors before continuing.';
+      addSnackbar({ message, variant: 'danger' });
+    },
+  );
 
   const formContextValue = useMemo(
     () => ({
