@@ -11,7 +11,7 @@ setupPdfWorker(pdfjsWorker);
 
 if (import.meta.env.PROD) {
   initFullStory({
-    orgId: import.meta.env.SEMA4AI_3RDPARTY_FULLSTORY_ORG_ID,
+    orgId: import.meta.env.VITE_3RDPARTY_FULLSTORY_ORG_ID,
   });
 }
 
