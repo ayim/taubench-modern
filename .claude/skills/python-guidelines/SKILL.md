@@ -184,6 +184,7 @@ class User:
 **Principle:** Use Python's type system to **enforce logic**, not just for hints.
 
 **The "No TypedDict" Rule:** **Never** use `TypedDict` or raw dictionaries for internal domain logic. Use **Pydantic** `BaseModel` or `@dataclass`.
+This includes nested request/response payloads, configuration objects, and intermediate pipeline structures.
 
 ```python
 # ❌ BAD: TypedDict for domain model

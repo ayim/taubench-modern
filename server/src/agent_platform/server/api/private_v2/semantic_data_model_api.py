@@ -1236,6 +1236,41 @@ async def verify_verified_query(
         verified_query_dict.setdefault("verified_at", datetime.datetime.now(datetime.UTC).isoformat())
         verified_query_dict.setdefault("verified_by", user.user_id)
 
+        # Extract missing parameters before validation (if dialect and sql are available)
+        # We wrap this in try/except because existing parameters may have validation errors
+        # (e.g., invalid data_type). Those errors will be caught by the main validation below.
+        if validation_context.dialect and verified_query_dict.get("sql"):
+            from agent_platform.core.data_frames.semantic_data_model_types import (
+                QueryParameter,
+            )
+            from agent_platform.core.data_frames.semantic_data_model_utils import (
+                extract_missing_parameters,
+            )
+
+            try:
+                # Convert existing parameter dicts to QueryParameter objects for the function
+                existing_params_dicts = verified_query_dict.get("parameters") or []
+                existing_params = [
+                    QueryParameter.model_validate(p) if isinstance(p, dict) else p for p in existing_params_dicts
+                ]
+
+                missing_params = extract_missing_parameters(
+                    sql=verified_query_dict["sql"],
+                    dialect=validation_context.dialect,
+                    existing_parameters=existing_params,
+                )
+                if missing_params:
+                    # Merge missing parameters with existing ones
+                    verified_query_dict["parameters"] = existing_params_dicts + [p.model_dump() for p in missing_params]
+            except (ValidationError, ValueError):
+                logger.warning(
+                    "Failed to extract missing parameters during verified query validation; "
+                    "proceeding without parameter extraction.",
+                    exc_info=True,
+                )
+                # Parameter conversion failed - let the main validation handle the error
+                pass
+
         try:
             validated_query = VerifiedQuery.model_validate(
                 verified_query_dict,

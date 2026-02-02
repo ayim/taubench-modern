@@ -3,7 +3,7 @@ data "aws_region" "current" {}
 
 # CodeBuild Project for deploying from main
 resource "aws_codebuild_project" "deployer" {
-  name          = "team-edition-deployer-${var.infra_id}"
+  name          = "moonraker-deployer-${var.infra_id}"
   description   = "Deploys Sema4.ai Team Edition to dev environment from main"
   build_timeout = 10 # minutes
 
@@ -112,7 +112,7 @@ resource "aws_codebuild_project" "deployer" {
 
   source {
     type            = "GITHUB"
-    location        = "https://github.com/Sema4AI/agent-platform.git"
+    location        = "https://github.com/Sema4AI/moonraker.git"
     git_clone_depth = 1
     buildspec       = "infra/aws/ecs-fargate/codebuild/deploy-main/buildspec.yml"
   }
@@ -125,7 +125,7 @@ resource "aws_codebuild_project" "deployer" {
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/aws/codebuild/team-edition-deployer"
+      group_name  = "/aws/codebuild/moonraker-deployer"
       stream_name = "deployer"
     }
   }
@@ -133,7 +133,7 @@ resource "aws_codebuild_project" "deployer" {
 
 # CodeBuild Project for deploying from dev branch
 resource "aws_codebuild_project" "dev-deployer" {
-  name          = "team-edition-dev-deployer-${var.infra_id}"
+  name          = "moonraker-dev-deployer-${var.infra_id}"
   description   = "Deploys Sema4.ai Team Edition to dev environment from PR branch"
   build_timeout = 10 # minutes
 
@@ -260,7 +260,7 @@ resource "aws_codebuild_project" "dev-deployer" {
 
   source {
     type            = "GITHUB"
-    location        = "https://github.com/Sema4AI/agent-platform.git"
+    location        = "https://github.com/Sema4AI/moonraker.git"
     git_clone_depth = 1
     buildspec       = "infra/aws/ecs-fargate/codebuild/deploy-dev/buildspec.yml"
   }
@@ -273,14 +273,14 @@ resource "aws_codebuild_project" "dev-deployer" {
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/aws/codebuild/team-edition-deployer"
+      group_name  = "/aws/codebuild/moonraker-deployer"
       stream_name = "dev-deployer"
     }
   }
 }
 
 resource "aws_iam_role" "codebuild_service_role" {
-  name               = "team-edition-deployer-codebuild-service-role"
+  name               = "moonraker-deployer-codebuild-service-role"
   assume_role_policy = data.aws_iam_policy_document.codebuild_assume_role_policy.json
 }
 
@@ -298,7 +298,7 @@ data "aws_iam_policy_document" "codebuild_assume_role_policy" {
 }
 
 resource "aws_iam_role_policy" "codebuild_ecs_access" {
-  name   = "team-edition-deployer-codebuild-ecs-access"
+  name   = "moonraker-deployer-codebuild-ecs-access"
   role   = aws_iam_role.codebuild_service_role.id
   policy = data.aws_iam_policy_document.deployer_access_policy.json
 }
@@ -395,7 +395,7 @@ data "aws_iam_policy_document" "run_codebuild_policy" {
       "logs:GetLogEvents",
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:/aws/codebuild/team-edition-deployer:*",
+      "arn:aws:logs:${data.aws_region.current.id}:${data.aws_caller_identity.current.account_id}:log-group:/aws/codebuild/moonraker-deployer:*",
     ]
   }
 }

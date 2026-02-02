@@ -194,7 +194,7 @@ async def create_observability_integration(
     # Reload orchestrator from storage
     orchestrator = OtelOrchestrator.get_instance()
     await orchestrator.reload_from_storage(storage)
-    logger.info(f"Reloaded orchestrator after creating integration {created.id}")
+    logger.info("Reloaded orchestrator after creating integration", integration_id=created.id)
 
     return _integration_to_observability(created)
 
@@ -253,7 +253,7 @@ async def update_observability_integration(
     # Reload orchestrator from storage
     orchestrator = OtelOrchestrator.get_instance()
     await orchestrator.reload_from_storage(storage)
-    logger.info(f"Reloaded orchestrator after updating integration {refreshed.id}")
+    logger.info("Reloaded orchestrator after updating integration", integration_id=refreshed.id)
 
     return _integration_to_observability(refreshed)
 
@@ -275,7 +275,7 @@ async def delete_observability_integration(
     # Reload orchestrator from storage
     orchestrator = OtelOrchestrator.get_instance()
     await orchestrator.reload_from_storage(storage)
-    logger.info(f"Reloaded orchestrator after deleting integration {integration_id}")
+    logger.info("Reloaded orchestrator after deleting integration", integration_id=integration_id)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -318,8 +318,17 @@ async def validate_observability_integration(
         provider_settings = provider_cls.model_validate(provider_data)
 
     try:
-        # Create an exporter using the provider settings
-        exporter: SpanExporter = provider_settings.make_exporter()
+        # Create an exporter using the provider factory
+        from agent_platform.core.integrations.observability.models import ObservabilitySettings
+        from agent_platform.core.telemetry.providers.factory import OtelProviderFactory
+
+        # Wrap provider settings in ObservabilitySettings for the factory
+        validation_settings = ObservabilitySettings(
+            kind=internal_settings.kind,
+            provider_settings=provider_settings,
+        )
+        provider = OtelProviderFactory.create(validation_settings)
+        exporter: SpanExporter = provider._create_trace_exporter()
 
         # Create a test span with BatchSpanProcessor to capture it
         from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -384,7 +393,7 @@ async def validate_observability_integration(
                 },
             )
     except Exception as e:
-        logger.exception(f"Error validating observability integration {integration_id}")
+        logger.exception("Error validating observability integration", integration_id=integration_id)
         response = ObservabilityValidateResponse(
             success=False,
             message=f"Validation failed: {e!s}",

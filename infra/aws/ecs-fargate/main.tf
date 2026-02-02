@@ -38,11 +38,10 @@ resource "aws_kms_key" "key" {
 
 /**
  * Note: There can only be one of these per AWS account.
+ * The OIDC provider already exists in agent-platform: https://github.com/search?q=repo%3ASema4AI%2Fagent-platform%20aws_iam_openid_connect_provider&type=code
  */
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 module "vpc" {
@@ -123,13 +122,13 @@ module "codebuild" {
   cluster_name = module.ecs-cluster.ecs_cluster_name
   infra_id     = var.infra_id
 
-  allowed_github_subjects_write = ["repo:Sema4AI/agent-platform:*"]
-  github_oidc_provider_arn      = aws_iam_openid_connect_provider.github.arn
+  allowed_github_subjects_write = ["repo:Sema4AI/moonraker:*"]
+  github_oidc_provider_arn      = data.aws_iam_openid_connect_provider.github.arn
 
-  agent_files_region               = var.aws_region
-  agent_files_role_arn             = module.agent-files-storage.storage_role_arn
-  agent_files_bucket_name          = module.agent-files-storage.bucket_name
-  cluster_master_key_arn           = module.cluster-encryption.cluster_master_key_arn
+  agent_files_region            = var.aws_region
+  agent_files_role_arn          = module.agent-files-storage.storage_role_arn
+  agent_files_bucket_name       = module.agent-files-storage.bucket_name
+  cluster_master_key_arn        = module.cluster-encryption.cluster_master_key_arn
   ecs_task_execution_role_arn   = module.ecs-cluster.ecs_task_execution_role_arn
   ecs_task_runtime_role_arn     = module.ecs-cluster.ecs_task_role_arn
   auth_configuration_secret_arn = module.app-auth.auth_configuration_secret_arn
