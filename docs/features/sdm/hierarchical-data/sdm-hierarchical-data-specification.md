@@ -22,11 +22,11 @@ Extend SDM to support hierarchical JSON data structures (from Document Intellige
 
 **Expected Impact:**
 
-| Metric | Target |
-| ------ | ------ |
-| JSON data queryable via NL | 100% of defined schemas |
+| Metric                          | Target                           |
+| ------------------------------- | -------------------------------- |
+| JSON data queryable via NL      | 100% of defined schemas          |
 | DI extraction → SDM integration | Seamless (no manual translation) |
-| JQ execution latency | < 500ms |
+| JQ execution latency            | < 500ms                          |
 
 ---
 
@@ -116,13 +116,13 @@ schemas:
 
 ### What's New
 
-| Concept | Description |
-| ------- | ----------- |
-| **`schemas` element** | Top-level array in SDM YAML, parallel to `tables` |
+| Concept                    | Description                                                     |
+| -------------------------- | --------------------------------------------------------------- |
+| **`schemas` element**      | Top-level array in SDM YAML, parallel to `tables`               |
 | **`jsonschema` attribute** | JSON Schema with semantic annotations (synonyms, semantic_type) |
-| **`transformations`** | JQ rules to convert between schema formats |
-| **`validations`** | JQ-based business rules |
-| **JQ query generation** | LLM generates JQ (in addition to SQL) |
+| **`transformations`**      | JQ rules to convert between schema formats                      |
+| **`validations`**          | JQ-based business rules                                         |
+| **JQ query generation**    | LLM generates JQ (in addition to SQL)                           |
 
 ### What's NOT Included (by design)
 
@@ -133,6 +133,7 @@ schemas:
 ### Data Flow
 
 **Design Time (SDM Definition):**
+
 ```mermaid
 flowchart LR
     A[Define SDM YAML] --> B[Validate]
@@ -140,6 +141,7 @@ flowchart LR
 ```
 
 **Runtime (Data Acquisition - Epic B):**
+
 ```mermaid
 flowchart TD
     A[Document/API] --> B{Source Type}
@@ -154,6 +156,7 @@ flowchart TD
 ```
 
 **Runtime (Query - Epic D):**
+
 ```mermaid
 flowchart TD
     A[User Question] --> B[LLM]
@@ -171,26 +174,26 @@ flowchart TD
 
 ### Functional
 
-| ID | Requirement | Priority |
-| -- | ----------- | -------- |
-| FR-1 | Define schemas in SDM YAML with semantic annotations | P0 |
-| FR-2 | Execute Reducto Extraction with SDM Schema | P1 |
-| FR-3 | Query schemas via natural language (LLM generates JQ) | P1 |
-| FR-4 | Execute JQ transformations between schemas | P2 |
-| FR-5 | Execute JQ validations on schema data | P2 |
+| ID   | Requirement                                           | Priority |
+| ---- | ----------------------------------------------------- | -------- |
+| FR-1 | Define schemas in SDM YAML with semantic annotations  | P0       |
+| FR-2 | Execute Reducto Extraction with SDM Schema            | P1       |
+| FR-3 | Query schemas via natural language (LLM generates JQ) | P1       |
+| FR-4 | Execute JQ transformations between schemas            | P2       |
+| FR-5 | Execute JQ validations on schema data                 | P2       |
 
 ### Non-Functional
 
-| ID | Requirement | Target |
-| -- | ----------- | ------ |
-| NFR-1 | JQ execution latency | < 500ms |
-| NFR-2 | Schema parsing latency | < 10ms |
+| ID    | Requirement            | Target  |
+| ----- | ---------------------- | ------- |
+| NFR-1 | JQ execution latency   | < 500ms |
+| NFR-2 | Schema parsing latency | < 10ms  |
 
 ### Expectations
 
-| Name | Expectation |
-| ---- | ----------- |
-| Max size of input JSON (xform) | 50MB |
+| Name                           | Expectation |
+| ------------------------------ | ----------- |
+| Max size of input JSON (xform) | 50MB        |
 
 ---
 
@@ -198,12 +201,12 @@ flowchart TD
 
 ### Epic Overview
 
-| Epic | Focus | Stories | Order |
-| ---- | ----- | ------- | ----- |
-| **A: Schema Definition** | Design time — defining schemas in SDM YAML | A-1, A-2 | 1st |
-| **C: Transformations & Validations** | Processing logic — JQ transform and validate engines | C-1, C-2 | 2nd |
-| **B: Data Acquisition** | Getting data in — extraction pipeline | B-1, B-2, B-3 | 3rd |
-| **D: Natural Language Queries** | Getting data out — LLM prompts and JQ execution | D-1, D-2 | 4th |
+| Epic                                 | Focus                                                | Stories       | Order |
+| ------------------------------------ | ---------------------------------------------------- | ------------- | ----- |
+| **A: Schema Definition**             | Design time — defining schemas in SDM YAML           | A-1, A-2      | 1st   |
+| **C: Transformations & Validations** | Processing logic — JQ transform and validate engines | C-1, C-2      | 2nd   |
+| **B: Data Acquisition**              | Getting data in — extraction pipeline                | B-1, B-2, B-3 | 3rd   |
+| **D: Natural Language Queries**      | Getting data out — LLM prompts and JQ execution      | D-1, D-2      | 4th   |
 
 ### Epic Order: A → C → B → D
 
@@ -241,13 +244,15 @@ The design follows the existing SDM pattern: schemas are first-class elements de
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - `Schema` TypedDict in `semantic_data_model_types.py` with fields: `name`, `description`, `jsonschema`, `transformations`, `validations`
 - `schemas: list[Schema]` field added to `SemanticDataModel` Pydantic model
 - YAML parsing that handles the new `schemas:` array
 - Pydantic validation for schema definitions
 
-*What this enables:*
+_What this enables:_
+
 - Data engineers can define JSON schemas in SDM YAML
 - Schemas are stored in database alongside tables
 - Schema represents the structure of the object (no validation)
@@ -289,12 +294,14 @@ This approach keeps schema definitions self-contained—all metadata lives in th
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - JSON Schema parser that preserves custom annotation fields
 - Validation that annotations have correct types (arrays, strings)
 - Example schema with full annotations in documentation
 
-*What this enables:*
+_What this enables:_
+
 - LLM understands field semantics for accurate query generation
 - Users can search by synonyms ("show me Invoice IDs" matches `inv_no`)
 - Sample values help LLM generate valid filter expressions
@@ -337,13 +344,15 @@ Schema selection is implicit — the LLM already has all SDM schemas in context 
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - `get_schema_jsonschema(schema_name, sdm_name)` — retrieve schema from SDM
 - `parse_document(file_id)` — call Reducto parse
 - `extract_with_schema(parsed_doc, jsonschema)` — call Reducto extract
 - `di_extract(file_id, schema_name, sdm_name)` — convenience function
 
-*What this story does NOT produce:*
+_What this story does NOT produce:_
+
 - Schema selection (implicit — LLM has SDM context)
 - Transformation (Story B-3)
 - Validation (Story B-3)
@@ -380,12 +389,14 @@ MCP servers fetch JSON from external APIs (CRM, ERP, REST services). This story 
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - Schema existence validation
 - `receive_api_response(json_data, schema_name, sdm_name, source_metadata)` function
 - `RawSchemaData` structure for pipeline input
 
-*What this story does NOT produce:*
+_What this story does NOT produce:_
+
 - Schema selection (implicit — LLM has SDM context)
 - Transformation (Story B-3)
 - Validation (Story B-3)
@@ -419,6 +430,7 @@ MCP servers fetch JSON from external APIs (CRM, ERP, REST services). This story 
 **Context:**
 
 After B-1 (Reducto) or B-2 (API) returns raw JSON data, the pipeline must:
+
 1. **Transform** the data from source schema to generic schema (if transformation defined)
 2. **Validate** the data against validation rules
 3. **Store** the data as a `SchemaEnrichment` in thread runtime metadata
@@ -427,14 +439,16 @@ This story orchestrates the full extraction-to-storage flow, using the transform
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - `process_pipeline(thread_id, raw_data)` — main orchestration function
 - Transformation integration (calls C-1)
 - Validation integration (calls C-2)
 - `SchemaEnrichment` dataclass
 - Enrichment storage/retrieval APIs
 
-*What this story does NOT produce:*
+_What this story does NOT produce:_
+
 - DI extraction (Story B-1)
 - API response handling (Story B-2)
 - Transform engine (Story C-1)
@@ -460,12 +474,12 @@ Ready for NL Queries (D-2)
 
 **Key Principle: Design Time vs Runtime**
 
-| Aspect | SDM (Design Time) | Enrichments (Runtime) |
-|--------|------------------|----------------------|
-| **What** | Schema definitions | Extracted data per file |
-| **Volume** | 10s of schemas | 1000s of files |
-| **Lifecycle** | Long-lived | Tied to thread |
-| **Storage** | SDM YAML → JSONB | Thread metadata |
+| Aspect        | SDM (Design Time)  | Enrichments (Runtime)   |
+| ------------- | ------------------ | ----------------------- |
+| **What**      | Schema definitions | Extracted data per file |
+| **Volume**    | 10s of schemas     | 1000s of files          |
+| **Lifecycle** | Long-lived         | Tied to thread          |
+| **Storage**   | SDM YAML → JSONB   | Thread metadata         |
 
 Enrichments reference SDM schemas by name. They are NOT stored in the SDM.
 
@@ -515,12 +529,14 @@ We reuse the existing `apply_jq_transform()` function from the orchestrator, whi
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - `SchemaTransformation` TypedDict with `target`, `description`, `jq` fields
 - `execute_transformation()` function using existing `apply_jq_transform()`
 - Transformation chaining (A → B → C)
 
-*What this enables:*
+_What this enables:_
+
 - Declarative format conversions in SDM
 - Automatic transformation during queries
 - Visible, testable conversion logic
@@ -557,12 +573,14 @@ Validations run at **extraction time** (in the B-3 pipeline) after transformatio
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - `SchemaValidation` TypedDict with `name`, `description`, `jq` fields
 - `validate_schema_data()` function returning list of failures
 - Validation mode: `warn` (log and continue) or `reject` (error)
 
-*What this enables:*
+_What this enables:_
+
 - Declarative business rules in SDM
 - Data quality visibility in query responses
 - Consistent validation across all data sources
@@ -605,12 +623,14 @@ We extend the prompt builder to include a "JSON Schemas" section listing each sc
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - Extension to `summarize_data_model()` in `kernel/semantic_data_model.py`
 - Schema summary format: name, description, field list with types
 - Semantic annotations included in field descriptions
 
-*What this enables:*
+_What this enables:_
+
 - LLM understands available schemas
 - LLM can generate JQ queries for schema data
 - Unified prompt with tables and schemas
@@ -651,13 +671,15 @@ Users can see generated schemas, edit them, and save the schema in an SDM for fu
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - JQ query execution path in orchestrator
 - LLM prompt instruction for JQ generation
 - Entity matching to determine SQL vs JQ
 - Implicit schema generation from JSON objects
 
-*What this enables:*
+_What this enables:_
+
 - Natural language queries over JSON data
 - Unified query experience for tables and schemas
 - Complete hierarchical data support in SDM
@@ -722,11 +744,11 @@ Users can see generated schemas, edit them, and save the schema in an SDM for fu
 
 ## Success Metrics
 
-| Metric | Baseline | Target |
-| ------ | -------- | ------ |
-| JSON data queryable via NL | 0% | 100% of defined schemas |
-| JQ execution latency | N/A | < 500ms p95 |
-| DI → SDM integration time | Manual (hours) | Declarative (minutes) |
+| Metric                     | Baseline       | Target                  |
+| -------------------------- | -------------- | ----------------------- |
+| JSON data queryable via NL | 0%             | 100% of defined schemas |
+| JQ execution latency       | N/A            | < 500ms p95             |
+| DI → SDM integration time  | Manual (hours) | Declarative (minutes)   |
 
 ---
 
