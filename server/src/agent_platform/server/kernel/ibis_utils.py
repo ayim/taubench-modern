@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
         SnowflakeLinkedConfiguration,
         SQLiteDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
+    from agent_platform.server.kernel.ibis.base import AsyncIbisConnection
 logger = get_logger(__name__)
 
 
@@ -263,7 +263,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisCo
         SnowflakeLinkedConfiguration,
         SQLiteDataConnectionConfiguration,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
+    from agent_platform.server.kernel.ibis import create_async_connection
 
     engine = data_connection.engine
     config = data_connection.configuration
@@ -298,14 +298,7 @@ async def create_ibis_connection(data_connection: DataConnection) -> AsyncIbisCo
             continue
         _replace_method_with_thread_verification(conn, attr)
 
-    # Wrap the connection in async proxy for clean async API
-    # Use SQLite-specific wrapper for SQLite connections
-    if engine == "sqlite":
-        from agent_platform.server.kernel.ibis_async_proxy_sqlite import SqliteAsyncIbisConnection
-
-        return SqliteAsyncIbisConnection(conn, engine=engine)
-    else:
-        return AsyncIbisConnection(conn, engine=engine)
+    return create_async_connection(conn, engine=engine)
 
 
 def _replace_method_with_thread_verification(conn: Any, attr: str) -> None:

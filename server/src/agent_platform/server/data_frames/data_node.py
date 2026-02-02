@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisTable
+    from agent_platform.server.kernel.ibis import AsyncIbisTable
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

@@ -11,7 +11,7 @@ from agent_platform.server.dialect.pyarrow_converter_base import PyArrowConverte
 if TYPE_CHECKING:
     from ibis.expr.schema import Schema as IbisSchema
 
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisTable
+    from agent_platform.server.kernel.ibis import AsyncIbisTable
 
 logger = get_logger(__name__)
 

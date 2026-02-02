@@ -13,7 +13,7 @@ from structlog import get_logger
 if TYPE_CHECKING:
     from ibis.expr.schema import Schema as IbisSchema
 
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisTable
+    from agent_platform.server.kernel.ibis import AsyncIbisTable
 
 logger = get_logger(__name__)
 

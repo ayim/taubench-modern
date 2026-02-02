@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import pyarrow
 
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisTable
+    from agent_platform.server.kernel.ibis import AsyncIbisTable
 
 
 class IbisTableAdapter:

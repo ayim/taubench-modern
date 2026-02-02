@@ -15,7 +15,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
+    from agent_platform.server.kernel.ibis import AsyncIbisConnection
     from agent_platform.server.storage.base import BaseStorage
 
     from .data_frames_assembly_info import AssemblyInfo
@@ -174,13 +174,11 @@ class Dependencies:
 
                 import ibis
 
-                from agent_platform.server.kernel.ibis_async_proxy import (
-                    AsyncIbisConnection,
-                )
+                from agent_platform.server.kernel.ibis import create_async_connection
 
                 initial_time = time.monotonic()
                 raw_con = ibis.duckdb.connect()
-                con = AsyncIbisConnection(raw_con, engine="duckdb")
+                con = create_async_connection(raw_con, engine="duckdb")
                 logger.info(f"Created ibis.duckdb connection in {time.monotonic() - initial_time:.2f} seconds")
                 return await self._resolve_sql_with_connection(kernel, data_frame, con)
 

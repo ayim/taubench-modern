@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agent_platform.server.kernel.ibis_async_proxy import (
+from agent_platform.server.kernel.ibis import (
     AsyncIbisColumn,
-    AsyncIbisConnection,
     AsyncIbisTable,
+    AsyncPostgresConnection,
+    AsyncSnowflakeConnection,
 )
 
 
@@ -38,7 +39,7 @@ def mock_ibis_table():
 
 
 class TestAsyncIbisConnection:
-    """Tests for AsyncIbisConnection class."""
+    """Tests for AsyncIbisConnection class (using concrete implementations)."""
 
     @pytest.mark.asyncio
     async def test_table_returns_async_table(self, mock_ibis_connection):
@@ -46,7 +47,7 @@ class TestAsyncIbisConnection:
         mock_table = MagicMock()
         mock_ibis_connection.table.return_value = mock_table
 
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_ibis_connection, engine="postgres")
 
         result = await async_conn.table("test_table")
 
@@ -57,7 +58,7 @@ class TestAsyncIbisConnection:
     @pytest.mark.asyncio
     async def test_list_tables_uses_thread(self, mock_ibis_connection):
         """Test that list_tables() uses asyncio.to_thread."""
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_ibis_connection, engine="postgres")
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = ["table1", "table2"]
@@ -72,7 +73,7 @@ class TestAsyncIbisConnection:
         mock_expr = MagicMock()
         mock_ibis_connection.sql.return_value = mock_expr
 
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_ibis_connection, engine="postgres")
 
         result = await async_conn.sql("SELECT * FROM test")
 
@@ -82,7 +83,7 @@ class TestAsyncIbisConnection:
     @pytest.mark.asyncio
     async def test_create_table_uses_thread(self, mock_ibis_connection):
         """Test that create_table() uses asyncio.to_thread."""
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_ibis_connection, engine="postgres")
         mock_obj = MagicMock()
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
@@ -99,7 +100,7 @@ class TestAsyncIbisConnection:
         mock_conn = MagicMock(spec=HasCurrentDatabase)
         mock_conn.current_database = "public"
 
-        async_conn = AsyncIbisConnection(mock_conn, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_conn, engine="postgres")
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = "public"
@@ -117,7 +118,7 @@ class TestAsyncIbisConnection:
         mock_conn = MagicMock(spec=HasCurrentCatalog)
         mock_conn.current_catalog = "testdb"
 
-        async_conn = AsyncIbisConnection(mock_conn, engine="postgres")
+        async_conn = AsyncPostgresConnection(mock_conn, engine="postgres")
 
         with patch("asyncio.to_thread", new_callable=AsyncMock) as mock_to_thread:
             mock_to_thread.return_value = "testdb"
@@ -128,7 +129,7 @@ class TestAsyncIbisConnection:
 
     def test_engine_stored(self, mock_ibis_connection):
         """Test that engine name is stored."""
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="snowflake")
+        async_conn = AsyncSnowflakeConnection(mock_ibis_connection, engine="snowflake")
         assert async_conn._engine == "snowflake"
 
 
@@ -280,7 +281,7 @@ class TestEngineFlowThrough:
         mock_table = MagicMock()
         mock_ibis_connection.table.return_value = mock_table
 
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="snowflake")
+        async_conn = AsyncSnowflakeConnection(mock_ibis_connection, engine="snowflake")
         async_table = await async_conn.table("test")
 
         assert async_table._engine == "snowflake"
@@ -291,7 +292,7 @@ class TestEngineFlowThrough:
         mock_expr = MagicMock()
         mock_ibis_connection.sql.return_value = mock_expr
 
-        async_conn = AsyncIbisConnection(mock_ibis_connection, engine="snowflake")
+        async_conn = AsyncSnowflakeConnection(mock_ibis_connection, engine="snowflake")
         async_table = await async_conn.sql("SELECT 1")
 
         assert async_table._engine == "snowflake"

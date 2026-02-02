@@ -16,7 +16,7 @@ if TYPE_CHECKING:
         ForeignKeyInfo,
         TableToInspect,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
+    from agent_platform.server.kernel.ibis import AsyncIbisConnection
 
 logger = get_logger(__name__)
 

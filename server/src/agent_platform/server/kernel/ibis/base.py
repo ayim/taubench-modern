@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import typing
+from abc import ABC, abstractmethod
 from typing import Any, cast, overload
 
 if typing.TYPE_CHECKING:
@@ -14,12 +15,14 @@ if typing.TYPE_CHECKING:
     from ibis.expr.types import Table as IbisTable
 
 
-class AsyncIbisConnection:
+class AsyncIbisConnection(ABC):
     """Async wrapper for ibis connection objects.
 
     Wraps blocking connection methods with asyncio.to_thread() to prevent
     blocking the event loop. The engine name is stored and passed to child
     objects for backend-specific handling.
+
+    Subclasses implement raw_sql() with typed cursor returns.
 
     Args:
         connection: Raw ibis connection object
@@ -125,7 +128,6 @@ class AsyncIbisConnection:
         Note: this method will raise an exception for athena, bigquery, clickhouse, databricks, exasol,
         and polars. They do not have the concept for a "schema".
         """
-        # What we would call a "schema" (the 2nd-level organization), Ibis calls a "Database"
         from ibis.backends import HasCurrentDatabase
 
         if not isinstance(self._connection, HasCurrentDatabase):
@@ -146,7 +148,6 @@ class AsyncIbisConnection:
         Note: this method will raise an exception for athena, bigquery, clickhouse, databricks, exasol,
         polars, impala, mysql, and sqlite. They have no concept of a "database".
         """
-        # What we would call a "database" (the 1st-level organization), Ibis calls a "Catalog"
         from ibis.backends import HasCurrentCatalog
 
         if not isinstance(self._connection, HasCurrentCatalog):
@@ -164,6 +165,28 @@ class AsyncIbisConnection:
         (e.g., PostgreSQL, Snowflake).
         """
         await asyncio.to_thread(self._connection.disconnect)
+
+    @abstractmethod
+    async def raw_sql(self, query: str, *, auto_commit: bool = True) -> Any:
+        """Execute raw SQL and return a cursor.
+
+        This is an async wrapper around the backend's raw_sql() method, which is
+        available on all SQL backends (SQLite, PostgreSQL, MySQL, Snowflake, etc.).
+        The caller is responsible for closing the cursor.
+
+        Subclasses override this method to return properly typed cursors.
+
+        This is a blocking I/O operation wrapped with asyncio.to_thread.
+
+        Args:
+            query: SQL query string
+            auto_commit: If True (default), commit after execution. Set to False
+                for explicit transaction control.
+
+        Returns:
+            A database cursor with the query results (type varies by backend)
+        """
+        ...
 
 
 class AsyncIbisTable:
@@ -213,9 +236,9 @@ class AsyncIbisTable:
     async def to_pyarrow_unsafe(self) -> pyarrow.Table:
         """Convert table to PyArrow table WITHOUT dialect-specific transformations.
 
-        ⚠️  WARNING: This method bypasses dialect-specific safety transformations!
-        ⚠️  DO NOT USE DIRECTLY for user-facing data conversions.
-        ⚠️  Use IbisTableAdapter.to_pyarrow() instead.
+        WARNING: This method bypasses dialect-specific safety transformations!
+        DO NOT USE DIRECTLY for user-facing data conversions.
+        Use IbisTableAdapter.to_pyarrow() instead.
 
         This method performs a direct conversion to PyArrow without applying
         dialect-specific transformations that handle edge cases like:

@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
         TableInfo,
         TableToInspect,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import (
+    from agent_platform.server.kernel.ibis import (
         AsyncIbisConnection,
         AsyncIbisTable,
     )

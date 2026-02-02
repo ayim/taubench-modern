@@ -8,15 +8,44 @@ from structlog import get_logger
 
 from agent_platform.server.dialect.foreign_key_inspector_base import ForeignKeyInspector
 from agent_platform.server.dialect.types import ConstraintData
+from agent_platform.server.kernel.ibis import AsyncIbisConnection, AsyncSqliteConnection
 
 if TYPE_CHECKING:
+    import pandas
+
     from agent_platform.core.payloads.data_connection import (
         ForeignKeyInfo,
         TableToInspect,
     )
-    from agent_platform.server.kernel.ibis_async_proxy import AsyncIbisConnection
 
 logger = get_logger(__name__)
+
+
+async def _cursor_to_dataframe(connection: AsyncSqliteConnection, query: str) -> pandas.DataFrame:
+    """Execute a query via raw_sql and convert the cursor result to a DataFrame.
+
+    This is needed for SQLite PRAGMA queries which can't go through ibis.sql()
+    because ibis wraps queries in CREATE TEMPORARY VIEW which fails for PRAGMA.
+
+    Args:
+        connection: The async ibis connection
+        query: SQL query to execute
+
+    Returns:
+        pandas DataFrame with query results
+    """
+    import pandas
+
+    cursor = await connection.raw_sql(query)
+    try:
+        if cursor.description is None:
+            # No results (e.g., empty table)
+            return pandas.DataFrame()
+        columns: list[str] = [desc[0] for desc in cursor.description]
+        rows = cursor.fetchall()
+        return pandas.DataFrame(rows, columns=columns)  # type: ignore[arg-type]
+    finally:
+        cursor.close()
 
 
 class SQLiteForeignKeyInspector(ForeignKeyInspector):
@@ -33,10 +62,11 @@ class SQLiteForeignKeyInspector(ForeignKeyInspector):
         the PRAGMA foreign_key_list command to retrieve it.
         """
         from agent_platform.core.payloads.data_connection import ForeignKeyInfo
-        from agent_platform.server.kernel.ibis_async_proxy_sqlite import SqliteAsyncIbisConnection
 
-        # Type narrowing: SQLite inspector requires SQLite-specific connection
-        assert isinstance(connection, SqliteAsyncIbisConnection)
+        if not isinstance(connection, AsyncSqliteConnection):
+            raise TypeError("connection must be an AsyncSqliteConnection")
+
+        sqlite_connection: AsyncSqliteConnection = connection
 
         if not tables:
             return {}
@@ -48,7 +78,7 @@ class SQLiteForeignKeyInspector(ForeignKeyInspector):
                 # Use PRAGMA foreign_key_list to get FK information
                 # Returns: id, seq, table, from, to, on_update, on_delete, match
                 pragma_query = f"PRAGMA foreign_key_list({table.name})"
-                df = await connection.raw_sql(pragma_query)
+                df = await _cursor_to_dataframe(sqlite_connection, pragma_query)
 
                 if df.empty:
                     continue
@@ -124,7 +154,7 @@ class SQLiteForeignKeyInspector(ForeignKeyInspector):
 
     async def get_primary_keys(
         self,
-        connection: AsyncIbisConnection,
+        connection: AsyncSqliteConnection,
         tables: list[TableToInspect],
     ) -> dict[str, list[str]]:
         """Get primary key columns from SQLite using PRAGMA table_info.
@@ -132,10 +162,9 @@ class SQLiteForeignKeyInspector(ForeignKeyInspector):
         SQLite's PRAGMA table_info returns column information including which
         columns are part of the primary key (pk column > 0).
         """
-        from agent_platform.server.kernel.ibis_async_proxy_sqlite import SqliteAsyncIbisConnection
-
-        # Type narrowing: SQLite inspector requires SQLite-specific connection
-        assert isinstance(connection, SqliteAsyncIbisConnection)
+        if not isinstance(connection, AsyncSqliteConnection):
+            raise TypeError("connection must be an AsyncSqliteConnection")
+        sqlite_connection: AsyncSqliteConnection = connection
 
         if not tables:
             return {}
@@ -148,7 +177,7 @@ class SQLiteForeignKeyInspector(ForeignKeyInspector):
                 # Returns: cid, name, type, notnull, dflt_value, pk
                 # The 'pk' column indicates: 0 = not PK, >0 = position in PK
                 pragma_query = f"PRAGMA table_info({table.name})"
-                df = await connection.raw_sql(pragma_query)
+                df = await _cursor_to_dataframe(sqlite_connection, pragma_query)
 
                 if df.empty:
                     continue
