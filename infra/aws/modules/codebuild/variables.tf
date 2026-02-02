@@ -70,14 +70,6 @@ variable "agent_files_bucket_name" {
   type = string
 }
 
-variable "mcp_runtime_efs_filesystem_id" {
-  type = string
-}
-
-variable "mcp_runtime_efs_access_point_id" {
-  type = string
-}
-
 variable "default_security_group_id" {
   type = string
 }

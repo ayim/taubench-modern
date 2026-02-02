@@ -1,10 +1,10 @@
+import { MouseEvent } from 'react';
 import { Box, ButtonBase, Menu, Typography } from '@sema4ai/components';
 import { IconChevronDown } from '@sema4ai/icons';
 import { IconSema4 } from '@sema4ai/icons/logos';
 import { styled } from '@sema4ai/theme';
 import { useParams } from '@tanstack/react-router';
 
-import { RouterMenuLink } from '~/components/RouterLink';
 import { useTenantContext } from '~/lib/tenantContext';
 import { getTenantWorkoomRedirect } from '~/lib/utils';
 import { useListUserTenantsQuery, UserTenant } from '~/queries/tenants';
@@ -24,15 +24,15 @@ export const TenantMenu = () => {
 
   const isSingleTenant = tenants?.length === 1 && currentTenant;
 
-  const onTenantSwitch = (tenant: UserTenant) => () => {
+  const onTenantSwitch = (tenant: UserTenant) => (e: MouseEvent) => {
     const workroomRedirect = getTenantWorkoomRedirect({
       tenant,
       location: window.location,
     });
 
     if (workroomRedirect) {
+      e.preventDefault();
       window.location.href = workroomRedirect.href;
-      return;
     }
   };
 
@@ -81,14 +81,9 @@ export const TenantMenu = () => {
         }
       >
         {tenants?.map((tenant) => (
-          <RouterMenuLink
-            to="/tenants/$tenantId/home"
-            onClick={onTenantSwitch(tenant)}
-            params={{ tenantId: tenant.id }}
-            key={tenant.id}
-          >
+          <Menu.Link href={`/tenants/${tenant.id}/home"`} onClick={onTenantSwitch(tenant)} key={tenant.id}>
             {tenant.name}
-          </RouterMenuLink>
+          </Menu.Link>
         ))}
       </Menu>
     </Box>

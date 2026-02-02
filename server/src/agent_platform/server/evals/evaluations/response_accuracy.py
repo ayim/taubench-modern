@@ -80,6 +80,16 @@ async def evaluate_response_accuracy(
         criteria=criteria,
     )
 
+    from agent_platform.server.evals.utils import resolve_global_eval_model
+
+    eval_model, eval_platform_params = await resolve_global_eval_model(storage)
+    logger.info(
+        "Response Accuracy judge platform params selection: eval_model=%s eval_platform_params=%s agent_id=%s",
+        eval_model,
+        bool(eval_platform_params),
+        scenario.agent_id,
+    )
+
     async def _generate_once() -> ResponseAccuracyResult:
         prompt = Prompt(
             system_instruction=system_message,
@@ -91,6 +101,8 @@ async def evaluate_response_accuracy(
             user=user,
             storage=storage,
             request=Request(scope={"type": "http", "method": "POST"}),
+            platform_config_raw=eval_platform_params,
+            model=eval_model,
             agent_id=scenario.agent_id,
         )
 

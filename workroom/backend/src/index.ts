@@ -1,4 +1,3 @@
-import { createAgentServerDatabaseClient } from './agentServerDatabaseMigration/AgentServerDatabaseClient.js';
 import { createApplication } from './application.js';
 import { getConfiguration } from './configuration.js';
 import { createDatabaseClient } from './database/index.js';
@@ -21,12 +20,7 @@ const main = async () => {
   const monitoring = createMonitoringContext({ logLevel: configuration.logLevel });
   const database = await createDatabaseClient({ configuration, monitoring });
 
-  const agentServerDatabase = await createAgentServerDatabaseClient({
-    configuration,
-    monitoring,
-  });
-
-  const app = await createApplication({ agentServerDatabase, configuration, database, monitoring });
+  const app = await createApplication({ configuration, database, monitoring });
   await app.start();
 
   process.on('warning', (warning) => {

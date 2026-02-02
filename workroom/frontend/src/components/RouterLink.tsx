@@ -30,7 +30,7 @@ export const RouterButton = createLink(
       props: HTMLAttributes<HTMLAnchorElement> & Omit<ButtonProps, keyof HTMLAttributes<HTMLButtonElement>>,
       ref: ForwardedRef<HTMLAnchorElement>,
     ) => {
-      return <ButtonBase forwardedAs="a" {...props} ref={ref} />;
+      return <ButtonBase forwardedAs="a" {...(props as object)} ref={ref} />;
     },
   ),
 );

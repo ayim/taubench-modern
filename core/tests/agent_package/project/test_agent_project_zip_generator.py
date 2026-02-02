@@ -3,7 +3,7 @@
 import zipfile
 from collections.abc import AsyncGenerator
 from io import BytesIO
-from typing import Any, cast
+from typing import Any
 
 import pytest
 import yaml
@@ -63,45 +63,42 @@ def create_minimal_agent(**overrides: Any) -> Agent:
 @pytest.fixture
 def sample_semantic_data_models() -> list[SemanticDataModel]:
     """Create sample semantic data models for testing."""
-    return cast(
-        list[SemanticDataModel],
-        [
-            {
-                "name": "test_model_1",
-                "description": "First test model",
-                "tables": [
-                    {
-                        "name": "users",
-                        "base_table": {
-                            "database": "test_db",
-                            "schema": "public",
-                            "table": "users",
-                        },
-                        "dimensions": [
-                            {"name": "user_id", "expr": "id", "data_type": "INTEGER"},
-                        ],
-                    }
-                ],
-            },
-            {
-                "name": "test_model_2",
-                "description": "Second test model",
-                "tables": [
-                    {
-                        "name": "orders",
-                        "base_table": {
-                            "database": "test_db",
-                            "schema": "public",
-                            "table": "orders",
-                        },
-                        "dimensions": [
-                            {"name": "order_id", "expr": "id", "data_type": "INTEGER"},
-                        ],
-                    }
-                ],
-            },
-        ],
-    )
+    return [
+        SemanticDataModel(
+            name="test_model_1",
+            description="First test model",
+            tables=[
+                {
+                    "name": "users",
+                    "base_table": {
+                        "database": "test_db",
+                        "schema": "public",
+                        "table": "users",
+                    },
+                    "dimensions": [
+                        {"name": "user_id", "expr": "id", "data_type": "INTEGER"},
+                    ],
+                }
+            ],
+        ),
+        SemanticDataModel(
+            name="test_model_2",
+            description="Second test model",
+            tables=[
+                {
+                    "name": "orders",
+                    "base_table": {
+                        "database": "test_db",
+                        "schema": "public",
+                        "table": "orders",
+                    },
+                    "dimensions": [
+                        {"name": "order_id", "expr": "id", "data_type": "INTEGER"},
+                    ],
+                }
+            ],
+        ),
+    ]
 
 
 class TestGenerateAgentProjectZip:

@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantsTenantIdRouteImport } from './routes/tenants/$tenantId'
 import { Route as TenantsTenantIdIndexRouteImport } from './routes/tenants/$tenantId/index'
-import { Route as TenantsTenantIdVioletRouteImport } from './routes/tenants/$tenantId/violet'
 import { Route as TenantsTenantIdUsersRouteImport } from './routes/tenants/$tenantId/users'
 import { Route as TenantsTenantIdSignoutCallbackRouteImport } from './routes/tenants/$tenantId/signout-callback'
 import { Route as TenantsTenantIdSigninCallbackRouteImport } from './routes/tenants/$tenantId/signin-callback'
@@ -21,6 +20,7 @@ import { Route as TenantsTenantIdOauthRouteImport } from './routes/tenants/$tena
 import { Route as TenantsTenantIdMcpServersRouteImport } from './routes/tenants/$tenantId/mcp-servers'
 import { Route as TenantsTenantIdConfigurationRouteImport } from './routes/tenants/$tenantId/configuration'
 import { Route as TenantsTenantIdWorkItemsIndexRouteImport } from './routes/tenants/$tenantId/workItems/index'
+import { Route as TenantsTenantIdVioletIndexRouteImport } from './routes/tenants/$tenantId/violet/index'
 import { Route as TenantsTenantIdHomeIndexRouteImport } from './routes/tenants/$tenantId/home/index'
 import { Route as TenantsTenantIdHelpIndexRouteImport } from './routes/tenants/$tenantId/help/index'
 import { Route as TenantsTenantIdConfigurationIndexRouteImport } from './routes/tenants/$tenantId/configuration/index'
@@ -80,11 +80,6 @@ const TenantsTenantIdIndexRoute = TenantsTenantIdIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TenantsTenantIdRoute,
 } as any)
-const TenantsTenantIdVioletRoute = TenantsTenantIdVioletRouteImport.update({
-  id: '/violet',
-  path: '/violet',
-  getParentRoute: () => TenantsTenantIdRoute,
-} as any)
 const TenantsTenantIdUsersRoute = TenantsTenantIdUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -128,6 +123,12 @@ const TenantsTenantIdWorkItemsIndexRoute =
   TenantsTenantIdWorkItemsIndexRouteImport.update({
     id: '/workItems/',
     path: '/workItems/',
+    getParentRoute: () => TenantsTenantIdRoute,
+  } as any)
+const TenantsTenantIdVioletIndexRoute =
+  TenantsTenantIdVioletIndexRouteImport.update({
+    id: '/violet/',
+    path: '/violet/',
     getParentRoute: () => TenantsTenantIdRoute,
   } as any)
 const TenantsTenantIdHomeIndexRoute =
@@ -413,7 +414,6 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
-  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/new': typeof TenantsTenantIdAgentsNewRoute
   '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
@@ -424,12 +424,13 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/workItems/list': typeof TenantsTenantIdWorkItemsListRoute
   '/tenants/$tenantId/workItems/overview': typeof TenantsTenantIdWorkItemsOverviewRoute
   '/tenants/$tenantId/worker/$agentId': typeof TenantsTenantIdWorkerAgentIdRouteWithChildren
-  '/tenants/$tenantId/$agentId': typeof TenantsTenantIdAgentIdIndexRoute
-  '/tenants/$tenantId/auditLogs': typeof TenantsTenantIdAuditLogsIndexRoute
+  '/tenants/$tenantId/$agentId/': typeof TenantsTenantIdAgentIdIndexRoute
+  '/tenants/$tenantId/auditLogs/': typeof TenantsTenantIdAuditLogsIndexRoute
   '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
-  '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
-  '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
-  '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
+  '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
+  '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/violet/': typeof TenantsTenantIdVioletIndexRoute
+  '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
   '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
   '/tenants/$tenantId/configuration/llm/$platformId': typeof TenantsTenantIdConfigurationLlmPlatformIdRoute
@@ -440,25 +441,25 @@ export interface FileRoutesByFullPath {
   '/tenants/$tenantId/users/$userId/update': typeof TenantsTenantIdUsersUserIdUpdateRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/create': typeof TenantsTenantIdWorkerAgentIdCreateRoute
-  '/tenants/$tenantId/configuration/documentIntelligence': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
-  '/tenants/$tenantId/configuration/llm': typeof TenantsTenantIdConfigurationLlmIndexRoute
-  '/tenants/$tenantId/configuration/observability': typeof TenantsTenantIdConfigurationObservabilityIndexRoute
-  '/tenants/$tenantId/configuration/settings': typeof TenantsTenantIdConfigurationSettingsIndexRoute
+  '/tenants/$tenantId/configuration/documentIntelligence/': typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRoute
+  '/tenants/$tenantId/configuration/llm/': typeof TenantsTenantIdConfigurationLlmIndexRoute
+  '/tenants/$tenantId/configuration/observability/': typeof TenantsTenantIdConfigurationObservabilityIndexRoute
+  '/tenants/$tenantId/configuration/settings/': typeof TenantsTenantIdConfigurationSettingsIndexRoute
   '/tenants/$tenantId/conversational/$agentId/': typeof TenantsTenantIdConversationalAgentIdIndexRoute
-  '/tenants/$tenantId/data-access/semantic-data': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
-  '/tenants/$tenantId/mcp-servers/$mcpServerId': typeof TenantsTenantIdMcpServersMcpServerIdIndexRoute
+  '/tenants/$tenantId/data-access/semantic-data/': typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
+  '/tenants/$tenantId/mcp-servers/$mcpServerId/': typeof TenantsTenantIdMcpServersMcpServerIdIndexRoute
   '/tenants/$tenantId/worker/$agentId/': typeof TenantsTenantIdWorkerAgentIdIndexRoute
   '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRouteWithChildren
   '/tenants/$tenantId/worker/$agentId/$workItemId/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdIndexRoute
-  '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details': typeof TenantsTenantIdConversationalAgentIdThreadIdChatDetailsIndexRoute
-  '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides': typeof TenantsTenantIdConversationalAgentIdThreadIdConversationGuidesIndexRoute
-  '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
-  '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
-  '/tenants/$tenantId/conversational/$agentId/$threadId/files': typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute
-  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdChatDetailsIndexRoute
-  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdDataFramesIndexRoute
-  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdFilesIndexRoute
-  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdWorkitemDetailsIndexRoute
+  '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details/': typeof TenantsTenantIdConversationalAgentIdThreadIdChatDetailsIndexRoute
+  '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/': typeof TenantsTenantIdConversationalAgentIdThreadIdConversationGuidesIndexRoute
+  '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/': typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRoute
+  '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/': typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRoute
+  '/tenants/$tenantId/conversational/$agentId/$threadId/files/': typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdChatDetailsIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdDataFramesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdFilesIndexRoute
+  '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details/': typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdWorkitemDetailsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -468,7 +469,6 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
-  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/new': typeof TenantsTenantIdAgentsNewRoute
   '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
@@ -482,6 +482,7 @@ export interface FileRoutesByTo {
   '/tenants/$tenantId/configuration': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletIndexRoute
   '/tenants/$tenantId/workItems': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
   '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
@@ -523,7 +524,6 @@ export interface FileRoutesById {
   '/tenants/$tenantId/signin-callback': typeof TenantsTenantIdSigninCallbackRoute
   '/tenants/$tenantId/signout-callback': typeof TenantsTenantIdSignoutCallbackRoute
   '/tenants/$tenantId/users': typeof TenantsTenantIdUsersRouteWithChildren
-  '/tenants/$tenantId/violet': typeof TenantsTenantIdVioletRoute
   '/tenants/$tenantId/': typeof TenantsTenantIdIndexRoute
   '/tenants/$tenantId/agents/new': typeof TenantsTenantIdAgentsNewRoute
   '/tenants/$tenantId/configuration/api-keys': typeof TenantsTenantIdConfigurationApiKeysRouteWithChildren
@@ -539,6 +539,7 @@ export interface FileRoutesById {
   '/tenants/$tenantId/configuration/': typeof TenantsTenantIdConfigurationIndexRoute
   '/tenants/$tenantId/help/': typeof TenantsTenantIdHelpIndexRoute
   '/tenants/$tenantId/home/': typeof TenantsTenantIdHomeIndexRoute
+  '/tenants/$tenantId/violet/': typeof TenantsTenantIdVioletIndexRoute
   '/tenants/$tenantId/workItems/': typeof TenantsTenantIdWorkItemsIndexRoute
   '/tenants/$tenantId/configuration/api-keys/$apiKeyId': typeof TenantsTenantIdConfigurationApiKeysApiKeyIdRoute
   '/tenants/$tenantId/configuration/api-keys/new': typeof TenantsTenantIdConfigurationApiKeysNewRoute
@@ -582,7 +583,6 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
-    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/new'
     | '/tenants/$tenantId/configuration/api-keys'
@@ -593,12 +593,13 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/workItems/list'
     | '/tenants/$tenantId/workItems/overview'
     | '/tenants/$tenantId/worker/$agentId'
-    | '/tenants/$tenantId/$agentId'
-    | '/tenants/$tenantId/auditLogs'
+    | '/tenants/$tenantId/$agentId/'
+    | '/tenants/$tenantId/auditLogs/'
     | '/tenants/$tenantId/configuration/'
-    | '/tenants/$tenantId/help'
-    | '/tenants/$tenantId/home'
-    | '/tenants/$tenantId/workItems'
+    | '/tenants/$tenantId/help/'
+    | '/tenants/$tenantId/home/'
+    | '/tenants/$tenantId/violet/'
+    | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
     | '/tenants/$tenantId/configuration/api-keys/new'
     | '/tenants/$tenantId/configuration/llm/$platformId'
@@ -609,25 +610,25 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/users/$userId/update'
     | '/tenants/$tenantId/worker/$agentId/$workItemId'
     | '/tenants/$tenantId/worker/$agentId/create'
-    | '/tenants/$tenantId/configuration/documentIntelligence'
-    | '/tenants/$tenantId/configuration/llm'
-    | '/tenants/$tenantId/configuration/observability'
-    | '/tenants/$tenantId/configuration/settings'
+    | '/tenants/$tenantId/configuration/documentIntelligence/'
+    | '/tenants/$tenantId/configuration/llm/'
+    | '/tenants/$tenantId/configuration/observability/'
+    | '/tenants/$tenantId/configuration/settings/'
     | '/tenants/$tenantId/conversational/$agentId/'
-    | '/tenants/$tenantId/data-access/semantic-data'
-    | '/tenants/$tenantId/mcp-servers/$mcpServerId'
+    | '/tenants/$tenantId/data-access/semantic-data/'
+    | '/tenants/$tenantId/mcp-servers/$mcpServerId/'
     | '/tenants/$tenantId/worker/$agentId/'
     | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId'
     | '/tenants/$tenantId/worker/$agentId/$workItemId/'
-    | '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details'
-    | '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides'
-    | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
-    | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
-    | '/tenants/$tenantId/conversational/$agentId/$threadId/files'
-    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details'
-    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames'
-    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files'
-    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details'
+    | '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details/'
+    | '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/'
+    | '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
+    | '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/'
+    | '/tenants/$tenantId/conversational/$agentId/$threadId/files/'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details/'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames/'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/'
+    | '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -637,7 +638,6 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
-    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId'
     | '/tenants/$tenantId/agents/new'
     | '/tenants/$tenantId/configuration/api-keys'
@@ -651,6 +651,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration'
     | '/tenants/$tenantId/help'
     | '/tenants/$tenantId/home'
+    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/workItems'
     | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
     | '/tenants/$tenantId/configuration/api-keys/new'
@@ -691,7 +692,6 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/signin-callback'
     | '/tenants/$tenantId/signout-callback'
     | '/tenants/$tenantId/users'
-    | '/tenants/$tenantId/violet'
     | '/tenants/$tenantId/'
     | '/tenants/$tenantId/agents/new'
     | '/tenants/$tenantId/configuration/api-keys'
@@ -707,6 +707,7 @@ export interface FileRouteTypes {
     | '/tenants/$tenantId/configuration/'
     | '/tenants/$tenantId/help/'
     | '/tenants/$tenantId/home/'
+    | '/tenants/$tenantId/violet/'
     | '/tenants/$tenantId/workItems/'
     | '/tenants/$tenantId/configuration/api-keys/$apiKeyId'
     | '/tenants/$tenantId/configuration/api-keys/new'
@@ -767,13 +768,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TenantsTenantIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
-    '/tenants/$tenantId/violet': {
-      id: '/tenants/$tenantId/violet'
-      path: '/violet'
-      fullPath: '/tenants/$tenantId/violet'
-      preLoaderRoute: typeof TenantsTenantIdVioletRouteImport
-      parentRoute: typeof TenantsTenantIdRoute
-    }
     '/tenants/$tenantId/users': {
       id: '/tenants/$tenantId/users'
       path: '/users'
@@ -826,21 +820,28 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/workItems/': {
       id: '/tenants/$tenantId/workItems/'
       path: '/workItems'
-      fullPath: '/tenants/$tenantId/workItems'
+      fullPath: '/tenants/$tenantId/workItems/'
       preLoaderRoute: typeof TenantsTenantIdWorkItemsIndexRouteImport
+      parentRoute: typeof TenantsTenantIdRoute
+    }
+    '/tenants/$tenantId/violet/': {
+      id: '/tenants/$tenantId/violet/'
+      path: '/violet'
+      fullPath: '/tenants/$tenantId/violet/'
+      preLoaderRoute: typeof TenantsTenantIdVioletIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/home/': {
       id: '/tenants/$tenantId/home/'
       path: '/home'
-      fullPath: '/tenants/$tenantId/home'
+      fullPath: '/tenants/$tenantId/home/'
       preLoaderRoute: typeof TenantsTenantIdHomeIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/help/': {
       id: '/tenants/$tenantId/help/'
       path: '/help'
-      fullPath: '/tenants/$tenantId/help'
+      fullPath: '/tenants/$tenantId/help/'
       preLoaderRoute: typeof TenantsTenantIdHelpIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
@@ -854,14 +855,14 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/auditLogs/': {
       id: '/tenants/$tenantId/auditLogs/'
       path: '/auditLogs'
-      fullPath: '/tenants/$tenantId/auditLogs'
+      fullPath: '/tenants/$tenantId/auditLogs/'
       preLoaderRoute: typeof TenantsTenantIdAuditLogsIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
     '/tenants/$tenantId/$agentId/': {
       id: '/tenants/$tenantId/$agentId/'
       path: '/$agentId'
-      fullPath: '/tenants/$tenantId/$agentId'
+      fullPath: '/tenants/$tenantId/$agentId/'
       preLoaderRoute: typeof TenantsTenantIdAgentIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
@@ -938,14 +939,14 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/mcp-servers/$mcpServerId/': {
       id: '/tenants/$tenantId/mcp-servers/$mcpServerId/'
       path: '/$mcpServerId'
-      fullPath: '/tenants/$tenantId/mcp-servers/$mcpServerId'
+      fullPath: '/tenants/$tenantId/mcp-servers/$mcpServerId/'
       preLoaderRoute: typeof TenantsTenantIdMcpServersMcpServerIdIndexRouteImport
       parentRoute: typeof TenantsTenantIdMcpServersRoute
     }
     '/tenants/$tenantId/data-access/semantic-data/': {
       id: '/tenants/$tenantId/data-access/semantic-data/'
       path: '/data-access/semantic-data'
-      fullPath: '/tenants/$tenantId/data-access/semantic-data'
+      fullPath: '/tenants/$tenantId/data-access/semantic-data/'
       preLoaderRoute: typeof TenantsTenantIdDataAccessSemanticDataIndexRouteImport
       parentRoute: typeof TenantsTenantIdRoute
     }
@@ -959,28 +960,28 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/configuration/settings/': {
       id: '/tenants/$tenantId/configuration/settings/'
       path: '/settings'
-      fullPath: '/tenants/$tenantId/configuration/settings'
+      fullPath: '/tenants/$tenantId/configuration/settings/'
       preLoaderRoute: typeof TenantsTenantIdConfigurationSettingsIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/configuration/observability/': {
       id: '/tenants/$tenantId/configuration/observability/'
       path: '/observability'
-      fullPath: '/tenants/$tenantId/configuration/observability'
+      fullPath: '/tenants/$tenantId/configuration/observability/'
       preLoaderRoute: typeof TenantsTenantIdConfigurationObservabilityIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/configuration/llm/': {
       id: '/tenants/$tenantId/configuration/llm/'
       path: '/llm'
-      fullPath: '/tenants/$tenantId/configuration/llm'
+      fullPath: '/tenants/$tenantId/configuration/llm/'
       preLoaderRoute: typeof TenantsTenantIdConfigurationLlmIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
     '/tenants/$tenantId/configuration/documentIntelligence/': {
       id: '/tenants/$tenantId/configuration/documentIntelligence/'
       path: '/documentIntelligence'
-      fullPath: '/tenants/$tenantId/configuration/documentIntelligence'
+      fullPath: '/tenants/$tenantId/configuration/documentIntelligence/'
       preLoaderRoute: typeof TenantsTenantIdConfigurationDocumentIntelligenceIndexRouteImport
       parentRoute: typeof TenantsTenantIdConfigurationRoute
     }
@@ -1071,63 +1072,63 @@ declare module '@tanstack/react-router' {
     '/tenants/$tenantId/conversational/$agentId/$threadId/files/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/files/'
       path: '/files'
-      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/files'
+      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/files/'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdFilesIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/'
       path: '/evaluations'
-      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations'
+      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdEvaluationsIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
       path: '/data-frames'
-      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames'
+      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/data-frames/'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdDataFramesIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/'
       path: '/conversation-guides'
-      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides'
+      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdConversationGuidesIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRoute
     }
     '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details/': {
       id: '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details/'
       path: '/chat-details'
-      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details'
+      fullPath: '/tenants/$tenantId/conversational/$agentId/$threadId/chat-details/'
       preLoaderRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdChatDetailsIndexRouteImport
       parentRoute: typeof TenantsTenantIdConversationalAgentIdThreadIdRoute
     }
     '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details/': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details/'
       path: '/workitem-details'
-      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details'
+      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/workitem-details/'
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdWorkitemDetailsIndexRouteImport
       parentRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRoute
     }
     '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/'
       path: '/files'
-      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files'
+      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/files/'
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdFilesIndexRouteImport
       parentRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRoute
     }
     '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames/': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames/'
       path: '/data-frames'
-      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames'
+      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/data-frames/'
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdDataFramesIndexRouteImport
       parentRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRoute
     }
     '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details/': {
       id: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details/'
       path: '/chat-details'
-      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details'
+      fullPath: '/tenants/$tenantId/worker/$agentId/$workItemId/$threadId/chat-details/'
       preLoaderRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdChatDetailsIndexRouteImport
       parentRoute: typeof TenantsTenantIdWorkerAgentIdWorkItemIdThreadIdRoute
     }
@@ -1350,7 +1351,6 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdSigninCallbackRoute: typeof TenantsTenantIdSigninCallbackRoute
   TenantsTenantIdSignoutCallbackRoute: typeof TenantsTenantIdSignoutCallbackRoute
   TenantsTenantIdUsersRoute: typeof TenantsTenantIdUsersRouteWithChildren
-  TenantsTenantIdVioletRoute: typeof TenantsTenantIdVioletRoute
   TenantsTenantIdIndexRoute: typeof TenantsTenantIdIndexRoute
   TenantsTenantIdAgentsNewRoute: typeof TenantsTenantIdAgentsNewRoute
   TenantsTenantIdConversationalAgentIdRoute: typeof TenantsTenantIdConversationalAgentIdRouteWithChildren
@@ -1363,6 +1363,7 @@ interface TenantsTenantIdRouteChildren {
   TenantsTenantIdAuditLogsIndexRoute: typeof TenantsTenantIdAuditLogsIndexRoute
   TenantsTenantIdHelpIndexRoute: typeof TenantsTenantIdHelpIndexRoute
   TenantsTenantIdHomeIndexRoute: typeof TenantsTenantIdHomeIndexRoute
+  TenantsTenantIdVioletIndexRoute: typeof TenantsTenantIdVioletIndexRoute
   TenantsTenantIdWorkItemsIndexRoute: typeof TenantsTenantIdWorkItemsIndexRoute
   TenantsTenantIdDataAccessSemanticDataIndexRoute: typeof TenantsTenantIdDataAccessSemanticDataIndexRoute
 }
@@ -1376,7 +1377,6 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdSigninCallbackRoute: TenantsTenantIdSigninCallbackRoute,
   TenantsTenantIdSignoutCallbackRoute: TenantsTenantIdSignoutCallbackRoute,
   TenantsTenantIdUsersRoute: TenantsTenantIdUsersRouteWithChildren,
-  TenantsTenantIdVioletRoute: TenantsTenantIdVioletRoute,
   TenantsTenantIdIndexRoute: TenantsTenantIdIndexRoute,
   TenantsTenantIdAgentsNewRoute: TenantsTenantIdAgentsNewRoute,
   TenantsTenantIdConversationalAgentIdRoute:
@@ -1393,6 +1393,7 @@ const TenantsTenantIdRouteChildren: TenantsTenantIdRouteChildren = {
   TenantsTenantIdAuditLogsIndexRoute: TenantsTenantIdAuditLogsIndexRoute,
   TenantsTenantIdHelpIndexRoute: TenantsTenantIdHelpIndexRoute,
   TenantsTenantIdHomeIndexRoute: TenantsTenantIdHomeIndexRoute,
+  TenantsTenantIdVioletIndexRoute: TenantsTenantIdVioletIndexRoute,
   TenantsTenantIdWorkItemsIndexRoute: TenantsTenantIdWorkItemsIndexRoute,
   TenantsTenantIdDataAccessSemanticDataIndexRoute:
     TenantsTenantIdDataAccessSemanticDataIndexRoute,

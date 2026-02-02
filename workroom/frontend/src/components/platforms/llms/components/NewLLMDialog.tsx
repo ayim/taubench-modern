@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
-import { useParams } from '@tanstack/react-router';
 import { FC, useMemo, useState } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
@@ -23,7 +22,6 @@ import {
 type Props = { open: boolean; onClose: (platformId?: string) => void };
 
 export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
-  const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { addSnackbar } = useSnackbar();
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>('openai');
   const form = useForm<CreateOrUpdateLLMFormSchema>({
@@ -116,7 +114,7 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
     };
 
     mutation.mutate(
-      { tenantId, validateLLM: values.validateLLM, body: payload },
+      { validateLLM: values.validateLLM, body: payload },
       {
         onSuccess: (data) => {
           onClose(data?.platform_id);

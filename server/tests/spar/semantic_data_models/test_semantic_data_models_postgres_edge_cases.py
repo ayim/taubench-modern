@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     from agent_platform.core.payloads.data_connection import DataConnection
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        GenerateSemanticDataModelResponse,
+    )
 
 pytestmark = [
     pytest.mark.spar,
@@ -102,12 +105,12 @@ def test_edge_case_tables_load(
 def edge_case_semantic_model(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     agent_for_edge_cases: str,
-) -> dict[str, Any]:
+) -> GenerateSemanticDataModelResponse:
     """
     Generate a semantic model with all edge case tables.
 
     Returns:
-        dict: Generated semantic data model response
+        GenerateSemanticDataModelResponse: Generated semantic data model response
     """
 
     from agent_platform.core.payloads.semantic_data_model_payloads import (
@@ -143,46 +146,48 @@ def edge_case_semantic_model(
 
 
 def test_edge_case_semantic_model_generation(
-    edge_case_semantic_model: dict[str, Any],
+    edge_case_semantic_model: GenerateSemanticDataModelResponse,
 ):
     """Test that semantic model is generated with all edge case tables."""
     assert edge_case_semantic_model is not None
-    assert "semantic_model" in edge_case_semantic_model
+    assert edge_case_semantic_model.semantic_model is not None
 
-    semantic_model = edge_case_semantic_model["semantic_model"]
-    assert semantic_model["name"] is not None
+    semantic_model = edge_case_semantic_model.semantic_model
+    assert semantic_model.name is not None
 
     # Verify all edge case tables are in the model
-    tables = semantic_model["tables"]
-    table_names = [table["base_table"]["table"] for table in tables]
+    tables = semantic_model.tables
+    table_names = [table["base_table"].get("table") for table in tables]
     for expected_table in EDGE_CASE_TABLES:
         assert expected_table in table_names, f"Table {expected_table} not in semantic model"
 
     for table in tables:
-        assert table["description"] is not None, f"Expected description for table {table['name']}"
-        assert table["synonyms"] is not None, f"Expected synonyms for table {table['name']}"
+        assert table.get("description") is not None, f"Expected description for table {table.get('name')}"
+        assert table.get("synonyms") is not None, f"Expected synonyms for table {table.get('name')}"
         columns = (
-            table.get("dimensions", [])
-            + table.get("facts", [])
-            + table.get("metrics", [])
-            + table.get("time_dimensions", [])
+            list(table.get("dimensions") or [])
+            + list(table.get("facts") or [])
+            + list(table.get("metrics") or [])
+            + list(table.get("time_dimensions") or [])
         )
-        assert len(columns) > 0, f"Expected columns for table {table['name']}"
+        assert len(columns) > 0, f"Expected columns for table {table.get('name')}"
         for column in columns:
-            assert column["name"] is not None, f"Expected name for column {column['name']}"
-            assert column["expr"] is not None, f"Expected expr for column {column['name']}"
-            assert column["description"] is not None, f"Expected description for column {column['name']}"
-            assert column["synonyms"] is not None, f"Expected synonyms for column {column['name']}"
+            assert column.get("name") is not None, f"Expected name for column {column.get('name')}"
+            assert column.get("expr") is not None, f"Expected expr for column {column.get('name')}"
+            assert column.get("description") is not None, f"Expected description for column {column.get('name')}"
+            assert column.get("synonyms") is not None, f"Expected synonyms for column {column.get('name')}"
 
 
 @pytest.fixture(scope="module")
 def created_edge_case_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
-    edge_case_semantic_model: dict[str, Any],
+    edge_case_semantic_model: GenerateSemanticDataModelResponse,
 ) -> str:
     """Create the edge case semantic data model and return its ID."""
     client, _ = agent_server_client_with_data_connection
-    created_model = client.create_semantic_data_model(edge_case_semantic_model)
+    created_model = client.create_semantic_data_model(
+        {"semantic_model": edge_case_semantic_model.semantic_model.model_dump()}
+    )
     return created_model["semantic_data_model_id"]
 
 
@@ -267,7 +272,7 @@ def test_agent_queries_edge_cases(
     # Build a mapping from actual table names to semantic model table names
     # This handles cases where the LLM renames tables
     base_table_to_semantic_name = {}
-    for table in semantic_model.get("tables", []):
+    for table in semantic_model.tables or []:
         base_table_name = table.get("base_table", {}).get("table")
         semantic_table_name = table.get("name")
         if base_table_name and semantic_table_name:

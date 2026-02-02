@@ -85,8 +85,10 @@ RUN npm run build && \
     rm -rf ./**/node_modules && \
     npm cache clean --force
 
+# Install backend dependencies, and in case all packages have been hoisted, create an empty node_modules directory
 RUN --mount=type=secret,id=npmrc,dst=/app/.npmrc \
-    npm ci --workspace=backend --omit=dev
+    npm ci --workspace=backend --omit=dev && \
+    mkdir -p /app/backend/node_modules
 
 # [ Final SPAR image ] #############################################################################
 FROM node-base

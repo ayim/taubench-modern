@@ -82,7 +82,7 @@ def enrich_parameter_descriptions_from_sdm(
     # Key is (table_name, column_name), value is description
     table_column_to_description: dict[tuple[str, str], str] = {}
 
-    tables = semantic_data_model.get("tables", [])
+    tables = semantic_data_model.tables or []
 
     for table in tables:
         table_name = table.get("name", "")
@@ -150,64 +150,6 @@ class ParameterValidationResult:
     """Parameters in definitions but not used in SQL"""
 
 
-def extract_parameters_from_sql(
-    sql_query: str,
-    dialect: str,
-) -> list[str]:
-    """Extract :param_name placeholders from SQL query using sqlglot AST.
-
-    Detects parameters in the format :param_name (named parameters) by parsing
-    the SQL query into an AST and walking it to find parameter placeholders.
-
-    Args:
-        sql_query: The SQL query to analyze
-        dialect: SQL dialect to use for parsing (e.g., 'postgres', 'mysql',
-            'snowflake', 'redshift', 'databricks').
-
-    Returns:
-        Sorted list of unique parameter names found in the query
-
-    Raises:
-        ValueError: If SQL parsing fails
-
-    Examples:
-        >>> extract_parameters_from_sql(
-        ...     "SELECT * FROM users WHERE id = :user_id",
-        ...     dialect="postgres"
-        ... )
-        ['user_id']
-
-        >>> extract_parameters_from_sql(
-        ...     "SELECT * FROM orders WHERE date >= :start_date "
-        ...     "AND date <= :end_date",
-        ...     dialect="postgres"
-        ... )
-        ['end_date', 'start_date']
-    """
-    import sqlglot
-    from sqlglot import exp
-    from sqlglot.errors import ParseError
-
-    # Parse SQL into AST
-    try:
-        expressions = sqlglot.parse(sql_query, dialect=dialect)
-    except ParseError as e:
-        raise ValueError(f"Failed to parse SQL query: {sql_query!r}") from e
-
-    if not expressions or not expressions[0]:
-        raise ValueError(f"Failed to parse SQL query: {sql_query!r}")
-
-    sql_ast = expressions[0]
-
-    # sqlglot parses :param_name as Placeholder nodes
-    # For named placeholders, the 'this' attribute contains the parameter
-    # name as a string. Only named placeholders are supported (e.g.,
-    # :param_name)
-    param_names = {placeholder.this for placeholder in sql_ast.find_all(exp.Placeholder)}
-
-    return sorted(param_names)
-
-
 def validate_parameter_definitions(
     sql_query: str,
     parameters: list[QueryParameter],
@@ -229,6 +171,8 @@ def validate_parameter_definitions(
     Returns:
         ParameterValidationResult with SQL matching validation details
     """
+    from agent_platform.core.data_frames.semantic_data_model_utils import extract_parameters_from_sql
+
     # Extract parameters from SQL
     sql_param_names = set(extract_parameters_from_sql(sql_query, dialect=dialect))
 

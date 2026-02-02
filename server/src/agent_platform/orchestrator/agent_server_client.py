@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
@@ -20,6 +21,7 @@ from agent_platform.core.payloads.document_intelligence import (
 )
 from agent_platform.core.payloads.document_intelligence_config import DocumentIntelligenceConfigPayload
 from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
+from agent_platform.core.payloads.semantic_data_model_payloads import GenerateSemanticDataModelResponse
 
 HEADER_INDEX = 0
 
@@ -1378,9 +1380,10 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error setting semantic data model: {response.status_code} {response.text}",
             ) from e
+        # Not a SemanticDataModel!!
         return response.json()
 
-    def get_semantic_data_model(self, semantic_data_model_id: str) -> dict:
+    def get_semantic_data_model(self, semantic_data_model_id: str) -> SemanticDataModel:
         """Get a semantic data model by ID."""
         url = urljoin(self.base_url + "/", f"semantic-data-models/{semantic_data_model_id}")
         response = requests.get(url)
@@ -1390,7 +1393,7 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error getting semantic data model: {response.status_code} {response.text}",
             ) from e
-        return response.json()
+        return SemanticDataModel.model_validate(response.json())
 
     def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
         """Delete a semantic data model by ID."""
@@ -1403,7 +1406,7 @@ class AgentServerClient:
                 f"Error deleting semantic data model: {response.status_code} {response.text}",
             ) from e
 
-    def generate_semantic_data_model(self, payload: dict) -> dict:
+    def generate_semantic_data_model(self, payload: dict) -> GenerateSemanticDataModelResponse:
         """Generate a semantic data model from data connections and files."""
         url = urljoin(self.base_url + "/", "semantic-data-models/generate")
         response = requests.post(url, json=payload)
@@ -1413,7 +1416,7 @@ class AgentServerClient:
             raise requests.exceptions.HTTPError(
                 f"Error generating semantic data model: {response.status_code} {response.text}",
             ) from e
-        return response.json()
+        return GenerateSemanticDataModelResponse.model_validate(response.json())
 
     class TableToInspectTypedDict(TypedDict):
         name: str

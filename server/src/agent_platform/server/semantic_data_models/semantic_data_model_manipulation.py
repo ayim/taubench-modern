@@ -83,7 +83,7 @@ class SemanticDataModelIndex:
         self.logical_table_name_to_logical_table: dict[str, ValueForBaseTable] = {}
         self.table_name_and_dim_expr_to_dimension: dict[str, ValueForDimension] = {}
 
-        tables = semantic_data_model.get("tables") or []
+        tables = semantic_data_model.tables or []
         for table in tables:
             logical_table_name = table.get("name")
             if not logical_table_name:

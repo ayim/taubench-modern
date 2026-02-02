@@ -1,4 +1,4 @@
-import { SemanticDataConfiguration } from '@sema4ai/spar-ui';
+import { SemanticDataConfiguration } from '~/components/SemanticData/SemanticDataConfiguration';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/tenants/$tenantId/data-access/semantic-data/')({

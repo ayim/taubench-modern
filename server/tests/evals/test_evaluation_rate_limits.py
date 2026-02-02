@@ -48,10 +48,17 @@ def _make_rate_limit_error():
 
 
 def _build_inputs():
+    from unittest.mock import AsyncMock
+
+    from agent_platform.server.storage.errors import ConfigNotFoundError
+
     thread = cast(Thread, SimpleNamespace(messages=[]))
     scenario = cast(Scenario, SimpleNamespace(messages=[], agent_id="agent"))
     user = cast(User, SimpleNamespace(user_id="user"))
-    storage = cast(StorageDependency, SimpleNamespace())
+    storage = cast(
+        StorageDependency,
+        SimpleNamespace(get_config=AsyncMock(side_effect=ConfigNotFoundError())),
+    )
     return thread, scenario, user, storage
 
 

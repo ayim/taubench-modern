@@ -51,7 +51,7 @@ env:
 jobs:
   prepare:
     name: Detect changed paths
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     outputs:
       changed-paths: ${{ steps.determine-changes.outputs.changed-paths }}
     steps:
@@ -81,12 +81,10 @@ jobs:
 
   build:
     name: Build SPAR
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     outputs:
       tag: ${{ steps.build-metadata.outputs.tag }}
       image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
-      ace-prerelease: ${{ steps.build-metadata.outputs.ace-prerelease }}
-      invoked-by: ${{ steps.build-metadata.outputs.invoked-by }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -113,12 +111,9 @@ jobs:
           echo "Preparing metadata for version: ${spar_version}"
 
           if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
-            # Merge to main; Publish a CI ACE release
             spar_tag="${spar_version}+${build_details}"
-            ace_prerelease="none"
-            invoked_by="spar@${spar_tag}"
           else
-            # Push to dev branch; Publish a "manual" / dev ACE release
+            # Push to dev branch
             repo_name="$(
               echo "${{ github.event.repository.name }}" |
                 tr '[:upper:]' '[:lower:]' |
@@ -132,15 +127,11 @@ jobs:
             )"
 
             spar_tag="${spar_version}-${repo_name}-${branch_name}+${build_details}"
-            ace_prerelease="${repo_name}-spar-${branch_name}"
-            invoked_by="${{ github.event.repository.name }}/${BRANCH_NAME}"
           fi
 
           spar_tag_sanitized="${spar_tag//+/_}" # Replace + with _ for the tag to be valid
           echo "version=${spar_tag}" >> "${GITHUB_OUTPUT}"
           echo "tag=${spar_tag_sanitized}" >> "${GITHUB_OUTPUT}"
-          echo "ace-prerelease=${ace_prerelease}" >> "${GITHUB_OUTPUT}"
-          echo "invoked-by=${invoked_by}" >> "${GITHUB_OUTPUT}"
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -171,8 +162,8 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
           NODE_OPTIONS: '--max_old_space_size=4096'
-          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar'
-          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/spar' # Note: Caches live on the manual channel
+          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/moonraker/spar'
+          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/moonraker/spar' # Note: Caches live on the manual channel
           version: ${{ steps.build-metadata.outputs.version }}
           tag: ${{ steps.build-metadata.outputs.tag }}
         with:
@@ -207,213 +198,52 @@ jobs:
         id: print-image-uri
         if: success()
         env:
-          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/spar:${{ steps.build-metadata.outputs.tag }}'
+          IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/moonraker/spar:${{ steps.build-metadata.outputs.tag }}'
         run: |
           echo "image-uri=${IMAGE_URI}" >> "${GITHUB_OUTPUT}"
           echo "Docker image URI: ${IMAGE_URI}"
           echo "::notice::Successfully published ${IMAGE_URI}"
 
-  build-mcp-runtime:
-    name: Build MCP Runtime
-    needs: prepare
-    runs-on: ubuntu-24.04
-    if: contains(needs.prepare.outputs.changed-paths, 'workroom/mcp-runtime/')
-    outputs:
-      mcp-runtime-image-uri: ${{ steps.print-mcp-runtime-uri.outputs.mcp-runtime-image-uri }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate MCP Runtime build metadata
-        id: mcp-runtime-build-metadata
-        run: |
-          mcp_runtime_version="$(jq -r '.version' workroom/mcp-runtime/package.json)"
-          commit_hash="$(git rev-parse --short HEAD)"
-          timestamp="$(date -u +"%Y%m%dT%H%M%SZ")"
-          build_details="${commit_hash}.${timestamp}"
-
-          echo "Preparing MCP Runtime metadata for version: ${mcp_runtime_version}"
-
-          if [[ "${{ github.event_name }}" == "push" && "${BRANCH_NAME}" == "main" ]]; then
-            # Merge to main; Publish a CI ACE release
-            mcp_runtime_tag="${mcp_runtime_version}+${build_details}"
-          else
-            # Push to dev branch; Publish a "manual" / dev ACE release
-            repo_name="$(
-              echo "${{ github.event.repository.name }}" |
-                tr '[:upper:]' '[:lower:]' |
-                tr -cd 'a-z-'
-            )"
-            branch_name="$(
-              echo "${BRANCH_NAME}" |
-                tr '[:upper:]' '[:lower:]' |
-                tr -cd 'a-z' |
-                cut -c -20
-            )"
-
-            mcp_runtime_tag="${mcp_runtime_version}-${repo_name}-${branch_name}+${build_details}"
-          fi
-
-          mcp_runtime_tag_sanitized="${mcp_runtime_tag//+/_}" # Replace + with _ for the tag to be valid
-          echo "version=${mcp_runtime_tag}" >> "${GITHUB_OUTPUT}"
-          echo "tag=${mcp_runtime_tag_sanitized}" >> "${GITHUB_OUTPUT}"
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.ECR_REGION }}
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: GHA-JOB-${{ github.run_id }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: '${{ env.ECR_ACCOUNT }}'
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Get .npmrc file in place for Docker build
-        run: envsubst < .github/.npmrc-ci > .npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push MCP Runtime
-        id: build-mcp-runtime
-        uses: docker/build-push-action@v6
-        env:
-          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-          NODE_OPTIONS: '--max_old_space_size=4096'
-          repository: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/mcp-runtime'
-          cache-repository: '${{ steps.login-ecr.outputs.registry }}/manual/ace/mcp-runtime'
-          version: ${{ steps.mcp-runtime-build-metadata.outputs.version }}
-          tag: ${{ steps.mcp-runtime-build-metadata.outputs.tag }}
-        with:
-          file: './workroom/mcp-runtime/Dockerfile'
-          context: '.'
-          push: true
-          tags: '${{ env.repository }}:${{ env.tag }}'
-          cache-from: type=registry,ref=${{ env.cache-repository }}:build-cache,timeout=1m
-          cache-to: type=registry,mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,compression-level=3,ref=${{ env.cache-repository }}:build-cache,ignore-error=true,timeout=3m
-          provenance: false
-          secret-files: |
-            "npmrc=./.npmrc"
-
-      - name: Print MCP Runtime image URI
-        id: print-mcp-runtime-uri
-        if: success()
-        env:
-          MCP_RUNTIME_IMAGE_URI: '${{ steps.login-ecr.outputs.registry }}/${{ env.RELEASE_CHANNEL }}/ace/mcp-runtime:${{ steps.mcp-runtime-build-metadata.outputs.tag }}'
-        run: |
-          echo "mcp-runtime-image-uri=${MCP_RUNTIME_IMAGE_URI}" >> "${GITHUB_OUTPUT}"
-          echo "MCP Runtime image URI: ${MCP_RUNTIME_IMAGE_URI}"
-          echo "::notice::Successfully built and published ${MCP_RUNTIME_IMAGE_URI}"
-
-  fetch-mcp-runtime-tag:
-    name: Fetch latest MCP Runtime CI tag if not built now
-    needs: [prepare, build-mcp-runtime]
-    runs-on: ubuntu-24.04
-    if: always() && needs.build-mcp-runtime.result == 'skipped'
-    outputs:
-      mcp-runtime-image-uri: ${{ steps.fetch-image.outputs.mcp-runtime-image-uri }}
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ${{ env.ECR_REGION }}
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          role-session-name: GHA-JOB-${{ github.run_id }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registries: '${{ env.ECR_ACCOUNT }}'
-
-      - name: Fetch latest MCP Runtime image from CI channel
-        id: fetch-image
-        run: |
-          MCP_RUNTIME_TAG=$(aws ecr describe-images \
-            --repository-name "ci/ace/mcp-runtime" \
-            --region ${{ env.ECR_REGION }} \
-            --query 'sort_by(imageDetails[?!contains(imageTags, `build-cache`)],& imagePushedAt)[-1].imageTags[0]' \
-            --output text)
-          MCP_RUNTIME_IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/ci/ace/mcp-runtime:${MCP_RUNTIME_TAG}"
-          echo "mcp-runtime-image-uri=${MCP_RUNTIME_IMAGE_URI}" >> "${GITHUB_OUTPUT}"
-          echo "MCP Runtime image URI: ${MCP_RUNTIME_IMAGE_URI}"
-          echo "::notice::Using MCP Runtime image from CI: ${MCP_RUNTIME_IMAGE_URI}"
-
-  trigger-ace-publish:
-    name: Trigger ACE Publish Workflow
-    needs: [build, build-mcp-runtime, fetch-mcp-runtime-tag]
-    if: always() && needs.build.result == 'success'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Trigger ACE Publish Workflow
-        uses: actions/github-script@v7
-        with:
-          github-token: '${{ secrets.ACE_DEPLOY_WORKFLOW_TRIGGER_TOKEN }}'
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: 'ace',
-              workflow_id: 'ace-publish-v2.yml',
-              ref: 'master',
-              inputs: {
-                'branch': 'master',
-                'spar-version': '${{ needs.build.outputs.tag }}',
-                'prerelease': '${{ needs.build.outputs.ace-prerelease }}',
-                'invoked-by': '${{ needs.build.outputs.invoked-by }}'
-              }
-            })
-
   deploy-to-ecs:
     name: Deploy to ECS
-    needs: [build, build-mcp-runtime, fetch-mcp-runtime-tag]
-    runs-on: ubuntu-24.04
+    needs: [build]
+    runs-on: linux-x64-latest-32core
     if: always() && github.event_name == 'push' && github.ref_name == 'main' && needs.build.result == 'success'
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
+          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-moonraker
 
       - name: Run CodeBuild
         uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1
         env:
           SPAR_IMAGE_REF: '${{ needs.build.outputs.image-uri }}'
-          MCP_RUNTIME_IMAGE_REF: '${{ needs.build-mcp-runtime.outputs.mcp-runtime-image-uri || needs.fetch-mcp-runtime-tag.outputs.mcp-runtime-image-uri }}'
           RELEASE_NAME: main
         with:
-          project-name: team-edition-deployer-team-edition-1
-          env-vars-for-codebuild: SPAR_IMAGE_REF,MCP_RUNTIME_IMAGE_REF,RELEASE_NAME
+          project-name: moonraker-deployer-moonraker
+          env-vars-for-codebuild: SPAR_IMAGE_REF,RELEASE_NAME
 
   dynamic-deploy:
     name: Deploy to dynamic instance (AWS)
-    needs: [build, build-mcp-runtime, fetch-mcp-runtime-tag]
-    runs-on: ubuntu-24.04
+    needs: [build]
+    runs-on: linux-x64-latest-32core
     if: always() && github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dev_deploy_aws') && needs.build.result == 'success'
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5
         with:
           aws-region: us-east-1
-          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-team-edition-1
+          role-to-assume: arn:aws:iam::017820691865:role/github-deployer-moonraker
 
       - name: Run CodeBuild
         uses: aws-actions/aws-codebuild-run-build@4d15a47425739ac2296ba5e7eee3bdd4bfbdd767 # v1
         env:
           BRANCH_NAME: ${{ github.head_ref }}
           SPAR_IMAGE_REF: '${{ needs.build.outputs.image-uri }}'
-          MCP_RUNTIME_IMAGE_REF: '${{ needs.build-mcp-runtime.outputs.mcp-runtime-image-uri || needs.fetch-mcp-runtime-tag.outputs.mcp-runtime-image-uri }}'
           OPERATION: deploy
         with:
-          project-name: team-edition-dev-deployer-team-edition-1
-          env-vars-for-codebuild: BRANCH_NAME,SPAR_IMAGE_REF,MCP_RUNTIME_IMAGE_REF,OPERATION
+          project-name: moonraker-dev-deployer-moonraker
+          env-vars-for-codebuild: BRANCH_NAME,SPAR_IMAGE_REF,OPERATION
           source-version-override: ${{ github.head_ref }}

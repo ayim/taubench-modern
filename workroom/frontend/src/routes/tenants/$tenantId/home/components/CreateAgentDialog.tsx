@@ -2,13 +2,13 @@ import { FC, useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 import { Button, Dialog, Grid, Link } from '@sema4ai/components';
 import { IconPlus } from '@sema4ai/icons';
-import { AgentPackageInspectionResponse } from '@sema4ai/spar-ui/queries';
+import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
 import { IconConversationalAgents, IconWorkerAgents } from '@sema4ai/icons/logos';
-import { EXTERNAL_LINKS } from '@sema4ai/spar-ui';
+import { EXTERNAL_LINKS } from '~/lib/constants';
 
 import { useTenantContext } from '~/lib/tenantContext';
-import { AgentUploadForm } from './AgentUploadForm';
 import { RouterCardLink } from '~/components/RouterLink';
+import { AgentUploadForm } from './AgentUploadForm';
 
 type Props = {
   setAgentPackageUploadData: (data: {

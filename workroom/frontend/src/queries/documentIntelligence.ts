@@ -1,15 +1,27 @@
-import { queryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { components, ServerResponse, ServerRequest } from '@sema4ai/agent-server-interface';
 import { useRouteContext } from '@tanstack/react-router';
-import { dataConnectionsQueryKey } from '@sema4ai/spar-ui/queries';
-import { QueryProps } from './shared';
 
-export const documentIntelligenceQueryKey = (tenantId: string) => [tenantId, 'documentIntelligence'];
+import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
+import { dataConnectionsQueryKey } from './dataConnections';
 
-export const getDocumentIntelligenceQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
-  queryOptions({
-    queryKey: documentIntelligenceQueryKey(tenantId),
-    queryFn: () => agentAPIClient.getDocumentIntelligenceConfiguration({ tenantId }),
-  });
+export const documentIntelligenceQueryKey = () => ['documentIntelligence'];
+
+export const getDocumentIntelligenceQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: documentIntelligenceQueryKey(),
+  queryFn: async () => {
+    const documentIntelligence = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence');
+    if (!documentIntelligence.success) {
+      throw new QueryError(documentIntelligence.message || 'Failed to fetch document intelligence configuration', {
+        code: documentIntelligence.code,
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+    return documentIntelligence.data;
+  },
+}));
+
+export const useDocumentIntelligenceQuery = createSparQuery(getDocumentIntelligenceQueryOptions);
 
 export const useUpsertDocumentIntelligenceConfigMutation = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
@@ -17,7 +29,6 @@ export const useUpsertDocumentIntelligenceConfigMutation = () => {
 
   return useMutation({
     mutationFn: async ({
-      tenantId,
       configuration,
     }: {
       tenantId: string;
@@ -27,10 +38,10 @@ export const useUpsertDocumentIntelligenceConfigMutation = () => {
         dataConnectionId: string;
       };
     }) => {
-      await agentAPIClient.SPAR_upsertDocumentIntelligenceConfiguration({ tenantId, configuration });
+      await agentAPIClient.SPAR_upsertDocumentIntelligenceConfiguration({ configuration });
     },
-    onSuccess: async (_, { tenantId }) => {
-      await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey(tenantId) });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
       await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },
   });
@@ -41,12 +52,659 @@ export const useClearDocumentIntelligenceConfigMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tenantId }: { tenantId: string }) => {
-      await agentAPIClient.clearDocumentIntelligenceConfiguration({ tenantId });
+    mutationFn: async () => {
+      const response = await agentAPIClient.agentFetch('delete', '/api/v2/document-intelligence', {
+        params: {},
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to clear document intelligence configuration', {
+          code: response.code,
+          resource: ResourceType.DocumentIntelligence,
+        });
+      }
+      return response.data;
     },
-    onSuccess: async (_, { tenantId }) => {
-      await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey(tenantId) });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
       await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },
   });
 };
+
+const getListModelsQueryKey = () => ['document-intelligence', 'data-models'];
+const getDataModelQueryKey = (modelName: string) => ['document-intelligence', 'data-models', modelName];
+const getLayoutsQueryKey = () => ['document-intelligence', 'layouts'];
+const getLayoutQueryKey = (layoutName: string, dataModelName: string) => [
+  'document-intelligence',
+  'layouts',
+  layoutName,
+  dataModelName,
+];
+const getSchemaQueryKey = (agentId: string, threadId: string, fileName: string) => [
+  'document-intelligence',
+  'documents',
+  'schema',
+  agentId,
+  threadId,
+  fileName,
+];
+
+type CreateDataModelRequest = components['schemas']['CreateDataModelRequest'];
+type UpdateDataModelRequest = components['schemas']['UpdateDataModelRequest'];
+type ExtractDocumentPayload = components['schemas']['ExtractDocumentPayload'];
+type SimpleExtractPayload = components['schemas']['SimpleExtractPayload'];
+type GenerateDataQualityChecksRequest = components['schemas']['GenerateDataQualityChecksRequest'];
+type ExecuteQualityChecksRequest = ServerRequest<
+  'post',
+  '/api/v2/document-intelligence/quality-checks/execute',
+  'requestBody'
+>;
+
+/**
+ * File upload types for document intelligence endpoints
+ * - can be passed as File - will trigger file re-upload
+ * - can be passed as file reference - will not trigger file re-upload
+ */
+type DocumentIntelligenceFileUpload = File | string;
+
+// Layout data type from agent-server-interface
+type DocumentLayoutPayload = components['schemas']['DocumentLayoutPayload'];
+
+export const documentIntelligenceConfigQueryKey = () => ['document-intelligence', 'config'];
+
+export const documentIntelligenceConfigQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: documentIntelligenceConfigQueryKey(),
+  queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence'>> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence', {
+      params: {},
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch document intelligence config', {
+        code: response.code,
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useDocumentIntelligenceConfigQuery = createSparQuery(documentIntelligenceConfigQueryOptions);
+
+export const listModelsQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: getListModelsQueryKey(),
+  queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models'>> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence/data-models', {
+      params: {},
+    });
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to list document intelligence data models', {
+        code: response.code,
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+    return response.data;
+  },
+}));
+
+export const useListModelsQuery = createSparQuery(listModelsQueryOptions);
+
+export const useGetDataModelsMutation = createSparMutation<object, object>()(({ agentAPIClient }) => ({
+  mutationFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models'>> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence/data-models', {
+      params: {},
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const getDataModelQueryOptions = createSparQueryOptions<{ modelName: string }>()(
+  ({ agentAPIClient, modelName }) => ({
+    queryKey: getDataModelQueryKey(modelName),
+    queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/data-models/{model_name}'>> => {
+      const response = await agentAPIClient.agentFetch(
+        'get',
+        '/api/v2/document-intelligence/data-models/{model_name}',
+        {
+          params: { path: { model_name: modelName } },
+        },
+      );
+      if (!response.success) {
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+      }
+      return response.data;
+    },
+  }),
+);
+
+export const useGetDataModelQuery = createSparQuery(getDataModelQueryOptions);
+
+export const useSimpleExtractMutation = createSparMutation<
+  object,
+  {
+    agentId: string;
+    threadId: string;
+    fileRef: string;
+    extractionSchema: SimpleExtractPayload['extraction_schema'];
+    extractionConfig?: SimpleExtractPayload['extraction_config'];
+    prompt?: SimpleExtractPayload['prompt'];
+    startPage?: SimpleExtractPayload['start_page'];
+    endPage?: SimpleExtractPayload['end_page'];
+    force?: SimpleExtractPayload['force'];
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    agentId,
+    threadId,
+    fileRef,
+    extractionSchema,
+    extractionConfig,
+    prompt,
+    startPage,
+    endPage,
+    force,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/simple-extract'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/documents/simple-extract', {
+      params: {
+        query: {
+          agent_id: agentId,
+          thread_id: threadId,
+          file_ref: fileRef,
+        },
+      },
+      body: {
+        extraction_schema: extractionSchema,
+        extraction_config: extractionConfig,
+        prompt,
+        start_page: startPage,
+        end_page: endPage,
+        force: force ?? false,
+      },
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useParseDocumentMutation = createSparMutation<
+  object,
+  {
+    agentId: string;
+    threadId: string;
+    formData: DocumentIntelligenceFileUpload;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    agentId,
+    threadId,
+    formData,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/parse'>> => {
+    const fileRef = typeof formData === 'string' ? formData : formData.name;
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/documents/parse', {
+      params: {
+        query: {
+          agent_id: agentId,
+          thread_id: threadId,
+          file_ref: fileRef,
+        },
+      },
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useExtractDocumentMutation = createSparMutation<
+  object,
+  {
+    threadId: ExtractDocumentPayload['thread_id'];
+    fileName: ExtractDocumentPayload['file_name'];
+    jobId?: ExtractDocumentPayload['job_id'];
+    dataModelName?: ExtractDocumentPayload['data_model_name'];
+    dataModelPrompt?: ExtractDocumentPayload['data_model_prompt'];
+    layoutName?: ExtractDocumentPayload['layout_name'];
+    documentLayout?: ExtractDocumentPayload['document_layout'];
+    generateCitations?: ExtractDocumentPayload['generate_citations'];
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    fileName,
+    jobId,
+    dataModelName,
+    dataModelPrompt,
+    layoutName,
+    documentLayout,
+    generateCitations,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/extract'>> => {
+    // Validate the one of these two are provided. The backend will use jobId if given, else fall back to fileName.
+    if (!fileName && !jobId) {
+      throw new QueryError('One of fileName or jobId must be provided', {
+        code: 'INVALID_PARAMETERS',
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/documents/extract', {
+      body: {
+        thread_id: threadId,
+        file_name: fileName,
+        job_id: jobId ?? null,
+        data_model_name: dataModelName,
+        data_model_prompt: dataModelPrompt,
+        layout_name: layoutName,
+        document_layout: documentLayout,
+        generate_citations: generateCitations ?? true,
+      } satisfies ExtractDocumentPayload,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useCreateDataModelMutation = createSparMutation<
+  object,
+  {
+    agentId: string;
+    threadId?: string;
+    dataModel: CreateDataModelRequest['data_model'];
+  }
+>()(({ agentAPIClient, queryClient }) => ({
+  mutationFn: async ({ agentId, threadId, dataModel }) => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/data-models', {
+      params: {
+        query: {
+          agent_id: agentId,
+          thread_id: threadId,
+        },
+      },
+      body: {
+        data_model: dataModel,
+      } satisfies CreateDataModelRequest,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: getListModelsQueryKey() });
+  },
+}));
+
+export const useUpdateDataModelMutation = createSparMutation<
+  object,
+  {
+    modelName: string;
+    dataModel: UpdateDataModelRequest['data_model'];
+  }
+>()(({ agentAPIClient, queryClient }) => ({
+  mutationFn: async ({ modelName, dataModel }) => {
+    const response = await agentAPIClient.agentFetch('put', '/api/v2/document-intelligence/data-models/{model_name}', {
+      params: { path: { model_name: modelName } },
+      body: {
+        data_model: dataModel,
+      } satisfies UpdateDataModelRequest,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+  onSuccess: (_data, { modelName }) => {
+    queryClient.invalidateQueries({ queryKey: getListModelsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getDataModelQueryKey(modelName) });
+  },
+}));
+
+export const useDeleteDataModelMutation = createSparMutation<object, { modelName: string }>()(
+  ({ agentAPIClient, queryClient }) => ({
+    mutationFn: async ({ modelName }) => {
+      const response = await agentAPIClient.agentFetch(
+        'delete',
+        '/api/v2/document-intelligence/data-models/{model_name}',
+        {
+          params: { path: { model_name: modelName } },
+        },
+      );
+      if (!response.success) {
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getListModelsQueryKey() });
+    },
+  }),
+);
+
+export const useGenerateDataModelMutation = createSparMutation<
+  object,
+  {
+    threadId: string;
+    agentId: string;
+    formData: DocumentIntelligenceFileUpload;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    agentId,
+    formData,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/data-models/generate'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/data-models/generate', {
+      params: { query: { thread_id: threadId, agent_id: agentId } },
+      ...(typeof formData === 'string'
+        ? { body: { file: formData } }
+        : {
+            body: { file: formData as unknown as string },
+            bodySerializer(body: { file: string }) {
+              const formDataSerializer = new FormData();
+              formDataSerializer.append('file', body.file);
+              return formDataSerializer;
+            },
+          }),
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useGenerateDataModelDescriptionMutation = createSparMutation<
+  object,
+  {
+    threadId: string;
+    agentId: string;
+    fileRef: string;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    agentId,
+    fileRef,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/data-models/generate-description'>> => {
+    const response = await agentAPIClient.agentFetch(
+      'post',
+      '/api/v2/document-intelligence/data-models/generate-description',
+      {
+        params: { query: { agent_id: agentId, thread_id: threadId, file_ref: fileRef } },
+      },
+    );
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const listLayoutsQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: getLayoutsQueryKey(),
+  queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/layouts'>> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence/layouts', {
+      params: {},
+    });
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to list document intelligence layouts', {
+        code: response.code,
+        resource: ResourceType.DocumentIntelligence,
+      });
+    }
+    return response.data;
+  },
+}));
+export const useListLayoutsQuery = createSparQuery(listLayoutsQueryOptions);
+
+export const getLayoutQueryOptions = createSparQueryOptions<{
+  layoutName: string;
+  dataModelName: string;
+}>()(({ agentAPIClient, layoutName, dataModelName }) => ({
+  queryKey: getLayoutQueryKey(layoutName, dataModelName),
+  queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/layouts/{layout_name}'>> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence/layouts/{layout_name}', {
+      params: {
+        path: { layout_name: layoutName },
+        query: { data_model_name: dataModelName },
+      },
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+export const useGetLayoutQuery = createSparQuery(getLayoutQueryOptions);
+
+export const useUpsertLayoutMutation = createSparMutation<
+  object,
+  {
+    layoutData: DocumentLayoutPayload;
+  }
+>()(({ agentAPIClient, queryClient }) => ({
+  mutationFn: async ({ layoutData }) => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/layouts', {
+      body: layoutData,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: getLayoutsQueryKey() });
+  },
+}));
+
+export const useGenerateLayoutMutation = createSparMutation<
+  object,
+  {
+    dataModelName: string;
+    threadId: string;
+    agentId: string;
+    formData: DocumentIntelligenceFileUpload;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    dataModelName,
+    threadId,
+    agentId,
+    formData,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/layouts/generate'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/layouts/generate', {
+      params: {
+        query: {
+          data_model_name: dataModelName,
+          thread_id: threadId,
+          agent_id: agentId,
+        },
+      },
+      ...(typeof formData === 'string'
+        ? { body: { file: formData } }
+        : {
+            body: { file: formData as unknown as string },
+            bodySerializer(body: { file: string }) {
+              const formDataSerializer = new FormData();
+              formDataSerializer.append('file', body.file);
+              return formDataSerializer;
+            },
+          }),
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useIngestDocumentMutation = createSparMutation<
+  object,
+  {
+    threadId: string;
+    dataModelName: string;
+    layoutName: string;
+    agentId: string;
+    formData: DocumentIntelligenceFileUpload;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    dataModelName,
+    layoutName,
+    agentId,
+    formData,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/ingest'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/documents/ingest', {
+      params: {
+        query: {
+          thread_id: threadId,
+          data_model_name: dataModelName,
+          layout_name: layoutName,
+          agent_id: agentId,
+        },
+      },
+      ...(typeof formData === 'string'
+        ? { body: { file: formData } }
+        : {
+            body: { file: formData as unknown as string },
+            bodySerializer(body: { file: string }) {
+              const formDataSerializer = new FormData();
+              formDataSerializer.append('file', body.file);
+              return formDataSerializer;
+            },
+          }),
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useGenerateQualityChecksMutation = createSparMutation<
+  object,
+  {
+    agentId: string;
+    dataModelName: GenerateDataQualityChecksRequest['data_model_name'];
+    threadId?: string;
+    description?: GenerateDataQualityChecksRequest['description'];
+    limit?: GenerateDataQualityChecksRequest['limit'];
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    agentId,
+    dataModelName,
+    threadId,
+    description,
+    limit,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/quality-checks/generate'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/quality-checks/generate', {
+      params: {
+        query: {
+          agent_id: agentId,
+          thread_id: threadId,
+        },
+      },
+      body: {
+        data_model_name: dataModelName,
+        description,
+        limit: description ? 1 : (limit ?? 1),
+      } satisfies GenerateDataQualityChecksRequest,
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useExecuteQualityChecksMutation = createSparMutation<
+  object,
+  {
+    qualityChecks: ExecuteQualityChecksRequest['quality_checks'];
+    documentId: ExecuteQualityChecksRequest['document_id'];
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    qualityChecks,
+    documentId,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/quality-checks/execute'>> => {
+    const response = await agentAPIClient.agentFetch('post', '/api/v2/document-intelligence/quality-checks/execute', {
+      body: {
+        quality_checks: qualityChecks,
+        document_id: documentId,
+      },
+    });
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const useGenerateExtractionSchemaMutation = createSparMutation<
+  object,
+  {
+    threadId: string;
+    agentId: string;
+    formData: DocumentIntelligenceFileUpload;
+    instructions: string;
+    force: boolean;
+  }
+>()(({ agentAPIClient }) => ({
+  mutationFn: async ({
+    threadId,
+    agentId,
+    formData,
+    instructions,
+    force,
+  }): Promise<ServerResponse<'post', '/api/v2/document-intelligence/documents/generate-schema'>> => {
+    const fileRef = typeof formData === 'string' ? formData : formData.name;
+    const response = await agentAPIClient.agentFetch(
+      'post',
+      '/api/v2/document-intelligence/documents/generate-schema',
+      {
+        params: {
+          query: {
+            thread_id: threadId,
+            agent_id: agentId,
+            force,
+            file_ref: fileRef,
+          },
+        },
+        body: { instructions },
+      },
+    );
+    if (!response.success) {
+      throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+    }
+    return response.data;
+  },
+}));
+
+export const getSchemaQueryOptions = createSparQueryOptions<{ fileName: string; agentId: string; threadId: string }>()(
+  ({ agentAPIClient, fileName, agentId, threadId }) => ({
+    queryKey: getSchemaQueryKey(agentId, threadId, fileName),
+    queryFn: async (): Promise<ServerResponse<'get', '/api/v2/document-intelligence/documents/schema'>> => {
+      const response = await agentAPIClient.agentFetch('get', '/api/v2/document-intelligence/documents/schema', {
+        params: { query: { file_name: fileName, agent_id: agentId, thread_id: threadId } },
+      });
+      if (!response.success) {
+        throw new QueryError(response.message, { code: response.code, resource: ResourceType.DocumentIntelligence });
+      }
+      return response.data;
+    },
+  }),
+);
+
+export const useGetSchemaQuery = createSparQuery(getSchemaQueryOptions);

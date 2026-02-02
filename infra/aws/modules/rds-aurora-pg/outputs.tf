@@ -3,7 +3,7 @@ output "postgres_version" {
 }
 
 output "cluster_credentials_secret_arn" {
-  value = aws_secretsmanager_secret.ace-db-credentials[0].arn
+  value = aws_secretsmanager_secret.moonraker-db-credentials[0].arn
 }
 
 output "cluster_credentials" {

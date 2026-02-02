@@ -18,7 +18,7 @@ export const Route = createFileRoute('/tenants/$tenantId/$agentId/')({
       throw new Error(ERROR_VALUE_IN_PATH_IS_NOT_UUID);
     }
 
-    const agentResult = await agentAPIClient.agentFetch(tenantId, 'get', '/api/v2/agents/{aid}', {
+    const agentResult = await agentAPIClient.agentFetch('get', '/api/v2/agents/{aid}', {
       params: { path: { aid: agentId } },
     });
 
@@ -28,7 +28,7 @@ export const Route = createFileRoute('/tenants/$tenantId/$agentId/')({
 
     const agentMode = agentResult.data.mode;
 
-    const searchParams = new URLSearchParams(location.search);
+    const searchParams = new URLSearchParams(window.location.search);
     const params = Object.fromEntries(searchParams);
 
     switch (agentMode) {

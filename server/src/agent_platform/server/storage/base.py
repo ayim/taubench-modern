@@ -20,7 +20,7 @@ from structlog.stdlib import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, model_dump_sdm
+from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
     ExecutionState,
@@ -615,7 +615,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
         self,
         mcp_server: "MCPServer | MCPServerWithOAuthConfig",
         source: "MCPServerSource",
-        mcp_runtime_deployment_id: str | None = None,
     ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID.
 
@@ -654,7 +653,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             "name": mcp_server.name,
             "enc_config": self._encrypt_config(actual_mcp_server_dict),
             "source": source.value,
-            "mcp_runtime_deployment_id": mcp_runtime_deployment_id,
             "created_at": now,
             "updated_at": now,
         }
@@ -826,7 +824,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         """Build MCPServerWithMetadata from database row.
 
         Args:
-            row: Database row containing enc_config, source, mcp_runtime_deployment_id,
+            row: Database row containing enc_config, source,
                 authentication_type, and authentication_metadata_enc
             server_id: Server ID for logging purposes
 
@@ -841,13 +839,10 @@ class BaseStorage(AbstractStorage, CommonMixin):
         mcp_server_with_oauth = self._build_mcp_server_with_oauth_from_row(row, server_id)
 
         source = MCPServerSource(row["source"])
-        raw_deployment_id = row["mcp_runtime_deployment_id"]
-        deployment_id = str(raw_deployment_id) if raw_deployment_id else None
 
         return MCPServerWithMetadata(
             server=mcp_server_with_oauth,
             source=source,
-            deployment_id=deployment_id,
         )
 
     async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
@@ -857,12 +852,11 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # 1. Validate the uuid
         self._validate_uuid(mcp_server_id)
 
-        # 2. Get the MCP server with source, deployment_id, and OAuth info
+        # 2. Get the MCP server with source and OAuth info
         mcp_server_table = self._get_table("mcp_server")
         stmt = sa.select(
             mcp_server_table.c.enc_config,
             mcp_server_table.c.source,
-            mcp_server_table.c.mcp_runtime_deployment_id,
             mcp_server_table.c.authentication_type,
             mcp_server_table.c.authentication_metadata_enc,
         ).where(mcp_server_table.c.mcp_server_id == mcp_server_id)
@@ -890,7 +884,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
             mcp_server_table.c.mcp_server_id,
             mcp_server_table.c.enc_config,
             mcp_server_table.c.source,
-            mcp_server_table.c.mcp_runtime_deployment_id,
             mcp_server_table.c.authentication_type,
             mcp_server_table.c.authentication_metadata_enc,
         ).order_by(mcp_server_table.c.created_at.desc())
@@ -2368,8 +2361,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
         won't change (so, references tables will not be updated, just the semantic model itself)."""
         semantic_data_models = self._get_table("semantic_data_model")
 
-        # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
-        semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+        # Convert SemanticDataModel to dict with mode="json" to serialize datetime objects
+        semantic_model_clean = SemanticDataModel.model_validate(semantic_model).model_dump(mode="json")
 
         # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
         # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
@@ -2400,8 +2393,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         # Note: there's currently no validation at all here!
         async with self._write_connection() as conn:
-            # Convert SemanticDataModel TypedDict to dict (model_dump() handles datetime conversion)
-            semantic_model_clean = model_dump_sdm(typing.cast(SemanticDataModel, semantic_model))
+            # Convert SemanticDataModel to dict with mode="json" to serialize datetime objects
+            semantic_model_clean = SemanticDataModel.model_validate(semantic_model).model_dump(mode="json")
 
             # For PostgreSQL: pass dict directly to JSONB (SQLAlchemy auto-serializes)
             # For SQLite: must use json.dumps (SQLite doesn't support dict binding)
@@ -2516,8 +2509,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 verified_queries, semantic_data_model_id
             )
 
-        # Return as dict (TypedDict is just a type annotation, compatible with dict)
-        return dict(typing.cast(SemanticDataModel, semantic_model_dict))
+        # Return as dict - callers should use SemanticDataModel.model_validate() if needed
+        return semantic_model_dict
 
     async def delete_semantic_data_model(self, semantic_data_model_id: str) -> None:
         """Delete a semantic data model by ID."""
@@ -3061,12 +3054,15 @@ class BaseStorage(AbstractStorage, CommonMixin):
                             verified_queries, model_id
                         )
 
+                    # Convert dict to SemanticDataModel BaseModel
+                    semantic_model_obj = SemanticDataModel.model_validate(semantic_model)
+
                     updated_at = row["updated_at"]
                     if isinstance(updated_at, datetime):
                         updated_at = updated_at.isoformat()
 
                     models_by_id[model_id] = {
-                        "semantic_data_model": semantic_model,
+                        "semantic_data_model": semantic_model_obj,
                         "semantic_data_model_id": model_id,
                         "agent_ids": set(),
                         "thread_ids": set(),

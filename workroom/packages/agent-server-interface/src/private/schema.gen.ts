@@ -1197,40 +1197,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v2/mcp-servers/mcp-servers-hosted': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Create Hosted Mcp Server
-     * @description Create a hosted MCP server by uploading a package file.
-     *
-     *     This endpoint accepts multipart/form-data for deploying sema4ai_action_server
-     *     type MCP servers that require a package file.
-     *
-     *     Args:
-     *         file: The .zip package file (max 50MB)
-     *         name: Name of the MCP server
-     *         headers: Optional JSON string of headers for the MCP server
-     *         mcp_server_metadata: Optional JSON string of agent package inspection metadata
-     *         storage: Storage dependency
-     *         _: Quota check dependency
-     *
-     *     Returns:
-     *         MCPServerResponse with the created server details
-     */
-    post: operations['create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v2/mcp-servers/{mcp_server_id}': {
     parameters: {
       query?: never;
@@ -4916,20 +4882,6 @@ export interface components {
        */
       action_package_type?: ('zip' | 'folder') | null;
     };
-    /** Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post */
-    Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
-      /**
-       * File
-       * Format: binary
-       */
-      file: string;
-      /** Name */
-      name: string;
-      /** Headers */
-      headers?: string | null;
-      /** Mcp Server Metadata */
-      mcp_server_metadata?: string | null;
-    };
     /** Body_diff_agent_package_package_diff_post */
     Body_diff_agent_package_package_diff_post: {
       /**
@@ -5108,7 +5060,8 @@ export interface components {
       | 'AGENT_THREAD_RETENTION_PERIOD'
       | 'POSTGRES_POOL_MAX_SIZE'
       | 'MAX_CACHE_SIZE_IN_BYTES'
-      | 'WORK_ITEM_TIMEOUT_SECONDS';
+      | 'WORK_ITEM_TIMEOUT_SECONDS'
+      | 'GLOBAL_EVAL_PLATFORM_PARAMS_ID';
     /** ConfirmRemoteFileUploadPayload */
     ConfirmRemoteFileUploadPayload: {
       /** File Ref */
@@ -6244,12 +6197,7 @@ export interface components {
      * @description Response for generating a semantic data model.
      */
     GenerateSemanticDataModelResponse: {
-      /** Semantic Model */
-      semantic_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          };
+      semantic_model: components['schemas']['SemanticDataModel'];
     };
     /** GooglePlatformParameters */
     GooglePlatformParameters: {
@@ -7131,13 +7079,6 @@ export interface components {
       /** @description The source of the MCP server (FILE or API). */
       source: components['schemas']['MCPServerSource'];
       /**
-       * Is Hosted
-       * @description Whether this MCP server is hosted on our MCP Runtime.
-       *                 True for servers deployed via agent package upload.
-       * @default false
-       */
-      is_hosted: boolean;
-      /**
        * @description Metadata from agent package inspection for hosted MCP servers.
        *                 Contains action packages, secrets, and other package information.
        */
@@ -7295,13 +7236,6 @@ export interface components {
       mcp_server_id: string;
       /** @description The source of the MCP server (FILE or API). */
       source: components['schemas']['MCPServerSource'];
-      /**
-       * Is Hosted
-       * @description Whether this MCP server is hosted on our MCP Runtime.
-       *                 True for servers deployed via agent package upload.
-       * @default false
-       */
-      is_hosted: boolean;
       /**
        * @description Metadata from agent package inspection for hosted MCP servers.
        *                 Contains action packages, secrets, and other package information.
@@ -9542,18 +9476,42 @@ export interface components {
      * @description A semantic model represents a collection of tables with their relationships.
      */
     SemanticDataModel: {
-      /** Name */
+      /**
+       * Name
+       * @description A descriptive name for this semantic model. Must be unique and follow the unquoted identifiers requirements. It also cannot conflict with Snowflake reserved keywords.
+       */
       name: string;
-      /** Description */
+      /**
+       * Id
+       * @description The unique identifier of this semantic model.
+       */
+      id?: string | null;
+      /**
+       * Description
+       * @description A description of this semantic model, including details of what kind of analysis it's useful for.
+       */
       description?: string | null;
-      /** Tables */
+      /**
+       * Tables
+       * @description A list of logical tables in this semantic model.
+       */
       tables?: components['schemas']['LogicalTable'][];
-      /** Relationships */
+      /**
+       * Relationships
+       * @description A list of joins between logical tables.
+       */
       relationships?: components['schemas']['Relationship'][] | null;
-      /** Errors */
-      errors?: components['schemas']['ValidationMessage'][];
-      /** Verified Queries */
+      /**
+       * Errors
+       * @description Validation errors for this semantic data model, if any.
+       */
+      errors?: components['schemas']['ValidationMessage'][] | null;
+      /**
+       * Verified Queries
+       * @description A list of validated queries that were saved from data frames created from SQL computations.
+       */
       verified_queries?: components['schemas']['VerifiedQuery'][] | null;
+      /** @description Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables. */
       metadata?: components['schemas']['SemanticDataModelMetadata'] | null;
     };
     /**
@@ -11243,12 +11201,7 @@ export interface components {
     ValidateSemanticDataModelResultItem: {
       /** Semantic Data Model Id */
       semantic_data_model_id: string | null;
-      /** Semantic Data Model */
-      semantic_data_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          };
+      semantic_data_model: components['schemas']['SemanticDataModel'];
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][];
       /** Warnings */
@@ -18305,39 +18258,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['MCPServerCreate'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['MCPServerResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorEnvelope'];
-        };
-      };
-    };
-  };
-  create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'multipart/form-data': components['schemas']['Body_create_hosted_mcp_server_mcp_servers_mcp_servers_hosted_post'];
       };
     };
     responses: {

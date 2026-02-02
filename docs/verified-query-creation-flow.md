@@ -270,8 +270,8 @@ The current implementation is **forward compatible** for future auto-detection o
 
 - **Frontend:**
 
-  - `workroom/spar-ui/src/components/DataFrame/CreateVerifiedQueryFromDataFrameDialog.tsx`
-  - `workroom/spar-ui/src/queries/dataFrames.ts`
+  - `workroom/frontend/src/components/DataFrame/CreateVerifiedQueryFromDataFrameDialog.tsx`
+  - `workroom/frontend/src/queries/dataFrames.ts`
 
 - **Types:**
 

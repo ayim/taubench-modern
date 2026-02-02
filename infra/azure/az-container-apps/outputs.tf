@@ -1,5 +1,5 @@
 output "app_environment_id" {
-  value = azurerm_container_app_environment.team_edition.id
+  value = azurerm_container_app_environment.moonraker.id
 }
 
 output "app_uai_id" {
@@ -11,7 +11,7 @@ output "vnet_name" {
 }
 
 output "key_vault_uri" {
-  value = trimsuffix(azurerm_key_vault.team_edition.vault_uri, "/")
+  value = trimsuffix(azurerm_key_vault.moonraker.vault_uri, "/")
 }
 
 output "acr_login_server" {
@@ -24,8 +24,4 @@ output "acr_registry_name" {
 
 output "resource_group_name" {
   value = local.resource_group_name
-}
-
-output "mcp_runtime_storage_name" {
-  value = module.mcp_runtime_storage.mcp_runtime_storage_name
 }

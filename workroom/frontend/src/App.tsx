@@ -3,12 +3,12 @@ import { ThemeProvider } from '@sema4ai/theme';
 import { Box, Button, EmptyState, Snackbar, useLocalStorage, ViewportProvider } from '@sema4ai/components';
 import { ConfirmationDialogProvider } from '@sema4ai/layouts';
 
+import errorIllustration from '~/assets/error.svg';
 import { QueryClientProvider } from './components/providers/QueryClient';
 import { AuthProvider } from './components/providers/AuthProvider';
 import { UIStateContext } from './components/providers/Theme';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { resolveWorkroomURL } from './lib/utils';
-import errorIllustration from '~/assets/error.svg';
 import { TRPCProvider } from './components/TRPCProvider';
 
 export const App = () => {

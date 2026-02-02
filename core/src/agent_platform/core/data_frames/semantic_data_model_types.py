@@ -6,22 +6,23 @@ which describe collections of tables with their relationships and metadata.
 
 from __future__ import annotations
 
-import copy
-import json
 import typing
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
-from types import NoneType
 from typing import Annotated, Any, Literal, Required, TypedDict
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
     ValidationError,
     ValidationInfo,
     field_validator,
+    model_serializer,
     model_validator,
 )
 
@@ -29,6 +30,12 @@ from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
 )
+
+# Type alias for sample values used in Dimension, TimeDimension, Fact, and Metric
+SampleValue = str | int | float | bool | date | datetime | None
+
+if typing.TYPE_CHECKING:
+    from pydantic.main import IncEx
 
 # ============================================================================
 # Validation Enums
@@ -245,7 +252,7 @@ class Dimension(TypedDict, total=False):
     description: Annotated[str | None, "A brief description about this dimension, including what data it has"]
     unique: Annotated[bool | None, "A boolean value that indicates this dimension has unique values"]
     sample_values: Annotated[
-        list[str | int | float | bool | NoneType] | None,
+        list[SampleValue] | None,
         """Sample values of this column, if any. Add any value that is likely to be
         referenced in the user questions""",
     ]
@@ -302,7 +309,7 @@ class TimeDimension(TypedDict, total=False):
     ]
     unique: Annotated[bool | None, "A boolean value that indicates this column has unique values"]
     sample_values: Annotated[
-        list[str | int | float | bool | NoneType] | None,
+        list[SampleValue] | None,
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
@@ -347,7 +354,7 @@ class Fact(TypedDict, total=False):
     description: Annotated[str | None, "A brief description about this measure, including what data this column has"]
     unique: Annotated[bool | None, "A boolean value that indicates this column has unique values"]
     sample_values: Annotated[
-        list[str | int | float | bool | NoneType] | None,
+        list[SampleValue] | None,
         """Sample values of this column, if any. Add any values that are likely to be
         referenced in the user questions. This field is optional""",
     ]
@@ -411,7 +418,7 @@ class Metric(TypedDict, total=False):
     ]
     description: Annotated[str | None, "A brief description of this metric, including what data this column has"]
     sample_values: Annotated[
-        list[str | int | float | bool | NoneType] | None,
+        list[SampleValue] | None,
         "Sample values of this column, if any. Add any values that are likely to be referenced in the user questions",
     ]
     errors: Annotated[list[ValidationMessage] | None, "Validation errors for this metric, if any"]
@@ -938,13 +945,18 @@ class VerifiedQuery(BaseModel):
         context: VerifiedQueryValidationContext,
         dialect: str,
     ) -> None:
-        """Validate parameters in SQL against the parameter definitions."""
-        from agent_platform.server.data_frames.sql_parameter_utils import (
+        """Validate parameters in SQL against the parameter definitions.
+
+        Checks that:
+        - No extra parameters are defined that aren't used in SQL
+        - No parameters are defined when SQL has no placeholders
+        """
+        from agent_platform.core.data_frames.semantic_data_model_utils import (
             extract_parameters_from_sql,
-            validate_parameter_definitions,
         )
 
         provided_params_list = self.parameters or []
+        provided_params_by_name = {p.name: p for p in provided_params_list}
 
         try:
             extracted_param_names = extract_parameters_from_sql(self.sql, dialect=dialect)
@@ -953,48 +965,18 @@ class VerifiedQuery(BaseModel):
             return
 
         if extracted_param_names:
-            # SQL contains parameters - validate definitions
-            if not provided_params_list:
-                param_names_str = ", ".join(extracted_param_names)
+            # Check for extra parameters (defined but not in SQL)
+            extra_params = set(provided_params_by_name.keys()) - set(extracted_param_names)
+            if extra_params:
+                param_name = next(iter(sorted(extra_params)))
                 raise VerifiedQueryParameterError(
                     message=(
-                        f"SQL query contains {len(extracted_param_names)} "
-                        f"parameter(s) ({param_names_str}) but no parameter "
-                        "definitions were provided. Please provide parameter "
-                        "definitions with name, data_type, example_value, and "
-                        "description."
+                        f"Parameter definition for '{param_name}' is provided but "
+                        "not used in the SQL query. Please remove this definition "
+                        f"or add :{param_name} to the SQL."
                     ),
+                    level=ValidationMessageLevel.WARNING,
                 )
-            else:
-                # Validate parameter definitions
-                validation_result = validate_parameter_definitions(
-                    self.sql,
-                    provided_params_list,
-                    dialect=dialect,
-                )
-
-                # Raise immediately on missing parameters (errors)
-                if validation_result.missing_in_definitions:
-                    param_name = next(iter(validation_result.missing_in_definitions))
-                    raise VerifiedQueryParameterError(
-                        message=(
-                            f"SQL query contains parameter '{param_name}' that is not "
-                            "defined. Please add a parameter definition with name, "
-                            "data_type, example_value, and description."
-                        ),
-                    )
-
-                # Raise immediately on extra parameters (warnings)
-                if validation_result.extra_in_definitions:
-                    param_name = next(iter(validation_result.extra_in_definitions))
-                    raise VerifiedQueryParameterError(
-                        message=(
-                            f"Parameter definition for '{param_name}' is provided but "
-                            "not used in the SQL query. Please remove this definition "
-                            f"or add :{param_name} to the SQL."
-                        ),
-                        level=ValidationMessageLevel.WARNING,
-                    )
 
         elif provided_params_list:
             # No parameters in SQL but definitions provided - raise warning
@@ -1092,211 +1074,167 @@ class VerifiedQuery(BaseModel):
             )
 
 
-class SemanticDataModel(TypedDict, total=False):
+def _remove_none_values(obj: Any) -> Any:
+    """Recursively remove None values from dicts and lists."""
+    if isinstance(obj, dict):
+        return {k: _remove_none_values(v) for k, v in obj.items() if v is not None}
+    elif isinstance(obj, list):
+        return [_remove_none_values(item) for item in obj]
+    return obj
+
+
+class SemanticDataModel(BaseModel):
     """A semantic model represents a collection of tables with their relationships."""
 
-    # Required fields
-    name: Required[
-        Annotated[
-            str,
-            """A descriptive name for this semantic model. Must be unique and follow the
-        unquoted identifiers requirements. It also cannot conflict with Snowflake reserved
-        keywords""",
-        ]
-    ]
+    model_config = ConfigDict(
+        extra="forbid",
+        populate_by_name=True,
+    )
+
+    # Required field
+    name: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "A descriptive name for this semantic model. Must be unique and follow the "
+            "unquoted identifiers requirements. It also cannot conflict with Snowflake reserved keywords."
+        ),
+    )
 
     # Optional fields
-    description: Annotated[
-        str | None,
-        "A description of this semantic model, including details of what kind of analysis it's useful for",
-    ]
-    tables: Annotated[list[LogicalTable], "A list of logical tables in this semantic model"]
-    relationships: Annotated[list[Relationship] | None, "A list of joins between logical tables"]
-    errors: Annotated[list[ValidationMessage], "Validation errors for this semantic data model, if any"]
-    verified_queries: Annotated[
-        list[VerifiedQuery] | None,
-        "A list of validated queries that were saved from data frames created from SQL computations.",
-    ]
-    metadata: Annotated[
-        SemanticDataModelMetadata | None,
-        """Metadata container for inspection snapshots, schemas, and other metadata.
-        Stores data directly within the SDM JSON payload without extra storage tables.""",
-    ]
+    id: str | None = Field(
+        default=None,
+        description="The unique identifier of this semantic model.",
+    )
+    description: str | None = Field(
+        default=None,
+        description="A description of this semantic model, including details of what kind of analysis it's useful for.",
+    )
+    tables: list[LogicalTable] = Field(
+        default_factory=list,
+        description="A list of logical tables in this semantic model.",
+    )
+    relationships: list[Relationship] | None = Field(
+        default=None,
+        description="A list of joins between logical tables.",
+    )
+    # TODO we should make this default to a list to avoid extra null-checks in the REST API
+    errors: list[ValidationMessage] | None = Field(
+        default=None,
+        description="Validation errors for this semantic data model, if any.",
+    )
+    verified_queries: list[VerifiedQuery] | None = Field(
+        default=None,
+        description="A list of validated queries that were saved from data frames created from SQL computations.",
+    )
+    metadata: SemanticDataModelMetadata | None = Field(
+        default=None,
+        description=(
+            "Metadata container for inspection snapshots, schemas, and other metadata. "
+            "Stores data directly within the SDM JSON payload without extra storage tables."
+        ),
+    )
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        """Strip whitespace from name."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
-# ============================================================================
-# Public API for SemanticDataModel
-# ============================================================================
-
-
-# TODO SemanticDataModel needs to be rewritten to be a DataClass/Pydantic model.
-# We have details which should be encapsulated on the class which cannot be because
-# of the choice of base type.
-def model_dump_sdm(sdm: SemanticDataModel, *, exclude_none: bool = False) -> dict:
-    """Public API for serializing SemanticDataModel to dict.
-
-    Converts datetime objects to ISO format strings to make the SDM JSON-serializable.
-    This is needed because YAML parsers (like ruamel.yaml) auto-convert ISO date strings
-    to Python datetime objects, which are not JSON serializable by default.
-
-    Args:
-        sdm: The SemanticDataModel to serialize
-        exclude_none: If True, exclude fields with None values
-
-    Returns:
-        A dict with datetime objects converted to ISO strings, ready for JSON serialization
-    """
-
-    def convert_datetimes_for_json(obj: Any) -> Any:
-        """Recursively convert datetime objects to ISO format strings for JSON serialization."""
-        # Handle Pydantic models
-        if isinstance(obj, BaseModel):
-            # For VerifiedQuery and QueryParameter models, always exclude None to avoid
-            # clutter in exports (error fields and optional fields are None when not set)
-            if isinstance(obj, VerifiedQuery | QueryParameter):
-                return convert_datetimes_for_json(obj.model_dump(exclude_none=True))
+    @field_validator("verified_queries", mode="before")
+    @classmethod
+    def convert_verified_queries(cls, v: list | None) -> list[VerifiedQuery] | None:
+        """Convert verified query dicts to VerifiedQuery models."""
+        if v is None:
+            return None
+        result = []
+        for item in v:
+            if isinstance(item, dict):
+                result.append(VerifiedQuery.model_validate(item))
             else:
-                return convert_datetimes_for_json(obj.model_dump(exclude_none=exclude_none))
-        elif isinstance(obj, dict):
-            return {k: convert_datetimes_for_json(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [convert_datetimes_for_json(item) for item in obj]
-        elif isinstance(obj, datetime | date):
-            return obj.isoformat()
-        return obj
+                result.append(item)
+        return result
 
-    # Deep copy to avoid mutating the original
-    sdm_dict = copy.deepcopy(dict(sdm))
+    def model_dump(
+        self,
+        *,
+        mode: Literal["json", "python"] | str = "python",
+        include: IncEx | None = None,
+        exclude: IncEx | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+        exclude_none: bool = True,  # Defaulting to always excluding None for SDM, which pydantic doesn't do by default
+        round_trip: bool = False,
+        warnings: bool | Literal["none", "warn", "error"] = True,
+        fallback: Callable[[Any], Any] | None = None,
+        serialize_as_any: bool = False,
+    ) -> dict[str, Any]:
+        """Dump the model to a dictionary.
 
-    # Optionally exclude None values at the top level
-    if exclude_none:
-        sdm_dict = {k: v for k, v in sdm_dict.items() if v is not None}
+        Overrides the default to set exclude_none=True by default.
+        """
+        return super().model_dump(
+            mode=mode,
+            include=include,
+            exclude=exclude,
+            context=context,
+            by_alias=by_alias,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            round_trip=round_trip,
+            warnings=warnings,
+            serialize_as_any=serialize_as_any,
+        )
 
-    # Convert datetime objects to ISO strings and Pydantic models to dicts
-    # VerifiedQuery and QueryParameter models always exclude None values
-    return convert_datetimes_for_json(sdm_dict)
+    @model_serializer(mode="wrap")
+    def _serialize_exclude_none(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        """Serialize the model, excluding None values by default.
 
+        This ensures FastAPI responses exclude None values, while still respecting
+        explicit exclude_none=False calls.
+        """
+        serialized = handler(self)
+        # Respect the exclude_none parameter:
+        # - If exclude_none=False was explicitly passed, keep None values
+        # - Otherwise (True or None/default), strip None values for FastAPI compatibility
+        if info.exclude_none is False:
+            return serialized
+        return _remove_none_values(serialized)
 
-def model_validate_sdm(data: dict) -> SemanticDataModel:
-    """Public API for deserializing dict to SemanticDataModel.
+    def to_comparable_json(self, *, exclude_metadata: bool = True) -> str:
+        """Convert to sorted JSON string for comparison, stripping environment-specific fields.
 
-    Validates and converts a dict to SemanticDataModel TypedDict.
-    Converts verified_queries and their parameters from dicts to Pydantic models.
+        This strips environment-specific fields (data_connection_id, data_connection_name,
+        file_reference) to enable comparison of semantic structure only.
 
-    Args:
-        data: Dictionary containing semantic data model fields
+        Args:
+            exclude_metadata: If True, also excludes metadata from comparison (default: True)
 
-    Returns:
-        Validated SemanticDataModel
-    """
-    # Convert verified_queries from dicts to Pydantic models if present
-    if "verified_queries" in data and isinstance(data["verified_queries"], list):
-        validated_queries = []
-        for query in data["verified_queries"]:
-            if isinstance(query, dict):
-                try:
-                    validated_queries.append(VerifiedQuery.model_validate(query))
-                except Exception:
-                    # If validation fails, keep as dict (will be caught by validator later)
-                    validated_queries.append(query)
-            elif isinstance(query, VerifiedQuery):
-                validated_queries.append(query)
-            else:
-                validated_queries.append(query)
-        data = {**data, "verified_queries": validated_queries}
+        Returns:
+            A sorted JSON string representation suitable for comparison
+        """
+        import json
 
-    # Type checker will validate the structure
-    return typing.cast(SemanticDataModel, data)
+        # Use mode="json" to serialize datetime objects to ISO strings
+        data = self.model_dump(mode="json")
 
+        # Strip environment-specific fields from tables
+        for table in data.get("tables") or []:
+            if base_table := table.get("base_table"):
+                base_table.pop("data_connection_id", None)
+                base_table.pop("data_connection_name", None)
+                base_table.pop("file_reference", None)
+            table.pop("file", None)
 
-def to_json_string_for_comparison(sdm: SemanticDataModel, *, exclude_metadata: bool = True) -> str:
-    """Convert SDM to sorted JSON string for comparison.
+        # Optionally exclude metadata
+        if exclude_metadata:
+            data.pop("metadata", None)
 
-    This ensures consistent comparison regardless of dict ordering.
-    The SDM is normalized (environment-specific fields stripped) before serialization.
-
-    Args:
-        sdm: The SemanticDataModel to convert
-        exclude_metadata: If True, also excludes metadata from comparison (default: False)
-
-    Returns:
-        A sorted JSON string representation of the normalized SDM
-    """
-    # Step 1: Normalize (strip environment-specific fields)
-    normalized = _normalize_for_comparison(sdm, exclude_metadata=exclude_metadata)
-
-    # Step 2: Convert to dict and handle datetime conversion
-    normalized_dict = model_dump_sdm(normalized, exclude_none=False)
-
-    # Step 3: Convert to sorted JSON string for consistent comparison
-    return json.dumps(normalized_dict, sort_keys=True)
-
-
-# ============================================================================
-# Private helpers for SemanticDataModel normalization
-# ============================================================================
-
-
-def _strip_environment_specific_fields(sdm: SemanticDataModel) -> SemanticDataModel:
-    """Private helper: Remove environment-specific fields from SDM.
-
-    Environment-specific fields that are stripped:
-    - data_connection_id in base_table (environment-specific UUID)
-    - data_connection_name in base_table (resolved to ID during import)
-    - file references (thread_id, file_ref) (environment-specific)
-
-    Preserved fields (portable across environments):
-    - database and schema in base_table (part of the SDM definition)
-    - table name (part of the SDM definition)
-
-    Args:
-        sdm: The SemanticDataModel to clean
-
-    Returns:
-        A new SemanticDataModel with environment-specific fields removed
-    """
-    # Deep copy to avoid mutating the original
-    sdm_clean: dict[str, Any] = copy.deepcopy(dict(sdm))
-
-    # Remove only environment-specific IDs and names (keep database/schema)
-    tables = sdm_clean.get("tables", [])
-    if isinstance(tables, list):
-        for table in tables:
-            if isinstance(table, dict):
-                if "base_table" in table:
-                    base_table = table.get("base_table")
-                    if isinstance(base_table, dict):
-                        base_table.pop("data_connection_id", None)
-                        base_table.pop("data_connection_name", None)
-                        # Remove file references from base_table
-                        base_table.pop("file_reference", None)
-                        # Note: database and schema are NOT stripped - they are part of the SDM definition
-
-                if "file" in table:
-                    table.pop("file", None)
-
-    return typing.cast(SemanticDataModel, sdm_clean)
-
-
-def _normalize_for_comparison(sdm: SemanticDataModel, *, exclude_metadata: bool = True) -> SemanticDataModel:
-    """Normalize SDM for comparison.
-
-    Strips environment-specific fields to enable comparison of semantic structure only.
-
-    Args:
-        sdm: The SemanticDataModel to normalize
-        exclude_metadata: If True, also removes metadata field (default: False)
-
-    Returns:
-        A normalized SemanticDataModel suitable for comparison
-    """
-    # Strip environment-specific fields (data_connection_id, data_connection_name, file)
-    normalized = _strip_environment_specific_fields(sdm)
-
-    # Optionally remove metadata from comparison (it's provenance/documentation, not semantic structure)
-    if exclude_metadata:
-        normalized_dict = dict(normalized)
-        normalized_dict.pop("metadata", None)
-        normalized = typing.cast(SemanticDataModel, normalized_dict)
-
-    return normalized
+        return json.dumps(data, sort_keys=True)

@@ -60,11 +60,13 @@ def _get_example_semantic_model():
         }
     ]
 
-    semantic_model_example: SemanticDataModel = {
-        "name": "Sales Data",
-        "description": "This semantic model can be used for asking questions over the sales data.",
-        "tables": tables_example,
-    }
+    semantic_model_example: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": "Sales Data",
+            "description": "This semantic model can be used for asking questions over the sales data.",
+            "tables": tables_example,
+        }
+    )
 
     return semantic_model_example
 
@@ -152,11 +154,13 @@ def _get_example_semantic_model_with_two_tables():
         },
     ]
 
-    semantic_model_example: SemanticDataModel = {
-        "name": "Sales and Inventory Data",
-        "description": ("This semantic model can be used for asking questions over sales and inventory data."),
-        "tables": tables_example,
-    }
+    semantic_model_example: SemanticDataModel = SemanticDataModel.model_validate(
+        {
+            "name": "Sales and Inventory Data",
+            "description": ("This semantic model can be used for asking questions over sales and inventory data."),
+            "tables": tables_example,
+        }
+    )
 
     return semantic_model_example
 

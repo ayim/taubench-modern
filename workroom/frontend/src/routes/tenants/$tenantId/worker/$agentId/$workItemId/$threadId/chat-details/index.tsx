@@ -1,4 +1,4 @@
-import { ChatDetails } from '@sema4ai/spar-ui';
+import { ChatDetails } from '~/components/ChatDetails';
 import { createFileRoute } from '@tanstack/react-router';
 import { Sidebar } from '~/components/Sidebar';
 

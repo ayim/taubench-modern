@@ -22,13 +22,11 @@
   "workspaces": [
     "backend",
     "frontend",
-    "spar-ui",
-    "mcp-runtime",
     "packages/*"
   ],
   "devDependencies": {
     "prettier": "^3.5.3",
-    "turbo": "2.5.6"
+    "turbo": "^2.7.6"
   },
   "dependencies": {
     "@sema4ai/secret-management": "^2.0.1"

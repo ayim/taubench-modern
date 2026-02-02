@@ -5,7 +5,7 @@ Semantic data model generator for converting table/column information to semanti
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Any
 
 from structlog import get_logger
@@ -17,10 +17,10 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     FileReference,
     InputDataConnectionSnapshot,
     LogicalTable,
+    SampleValue,
     SemanticDataModel,
     SemanticDataModelMetadata,
     TimeDimension,
-    model_validate_sdm,
 )
 from agent_platform.core.payloads.semantic_data_model_payloads import (
     ColumnInfo,
@@ -122,8 +122,8 @@ class SemanticDataModelGenerator:
             if metadata:
                 semantic_model_dict["metadata"] = metadata
 
-        # Convert to SemanticDataModel TypedDict
-        return model_validate_sdm(semantic_model_dict)
+        # Convert to SemanticDataModel
+        return SemanticDataModel.model_validate(semantic_model_dict)
 
     def _create_logical_table_from_data_connection(
         self, table_info: TableInfo, data_connection_id: str
@@ -276,7 +276,7 @@ class SemanticDataModelGenerator:
 
         return time_dimension
 
-    def _get_sample_values(self, sample_values: list[Any] | None) -> list[str | int | float | bool | None] | None:
+    def _get_sample_values(self, sample_values: list[Any] | None) -> list[SampleValue] | None:
         """Normalize and de-duplicate sample values.
 
         Notes:
@@ -287,12 +287,12 @@ class SemanticDataModelGenerator:
         if sample_values is None:
             return None
 
-        ret: list[str | int | float | bool | None] = []
-        seen: set[tuple[type, str | int | float | bool | None]] = set()
+        ret: list[SampleValue] = []
+        seen: set[tuple[type, SampleValue]] = set()
 
         for value in sample_values:
-            if value is None or isinstance(value, str | int | float | bool):
-                normalized: str | int | float | bool | None = value
+            if value is None or isinstance(value, str | int | float | bool | date | datetime):
+                normalized: SampleValue = value
             else:
                 normalized = str(value)
 

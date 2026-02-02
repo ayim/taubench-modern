@@ -6,6 +6,8 @@ import { IconDotsVertical } from '@sema4ai/icons';
 import { TrpcOutput } from '~/lib/trpc';
 
 type Users = TrpcOutput['userManagement']['listUsers']['users'];
+export type RoleLabels = Record<Users[number]['role'], string>;
+
 type Props = {
   canUpdateUsers: boolean;
   items: Users;
@@ -13,8 +15,6 @@ type Props = {
   roleLabels: RoleLabels;
   tenantId: string;
 };
-
-export type RoleLabels = Record<Users[number]['role'], string>;
 
 const getFilterConfiguration = ({
   providerIdentifierType,

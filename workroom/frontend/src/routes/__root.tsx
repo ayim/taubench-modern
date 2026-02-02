@@ -22,6 +22,7 @@ const TanStackRouterDevtools =
   process.env.NODE_ENV !== 'development'
     ? () => null
     : lazy(() =>
+        // eslint-disable-next-line import/no-extraneous-dependencies
         import('@tanstack/router-devtools').then((res) => ({
           default: res.TanStackRouterDevtools,
         })),

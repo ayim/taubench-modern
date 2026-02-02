@@ -1,25 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createFileRoute, Link, Outlet, useRouteContext } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
 import { useLocalStorage } from '@sema4ai/robocloud-ui-utils';
 import { Button, Progress } from '@sema4ai/components';
 
-import { Thread } from '@sema4ai/spar-ui';
+import { useThreadQuery } from '~/queries/threads';
+import { Thread } from '~/components/Thread';
 import { EmptyView } from '~/components/EmptyView';
 import { getAgentMetaQueryOptions } from '~/queries/agents';
+import { AgentMetaContext } from '~/lib/agentMetaContext';
+import { getPreferenceKey, setUserPreferenceId } from '~/utils';
 import { ThreadsUIContext } from './components/ThreadsUIContext';
 import { Layout } from './components/Layout';
 import { Header } from './components/Header';
-import { AgentMetaContext } from '~/lib/agentMetaContext';
-import { getPreferenceKey, setUserPreferenceId } from '~/utils';
-import { getThreadQueryOptions } from '~/queries/thread';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId')({
-  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId, tenantId } }) => {
+  loader: async ({ context: { agentAPIClient, queryClient }, params: { agentId } }) => {
     const agentMeta = await queryClient.ensureQueryData(
       getAgentMetaQueryOptions({
         agentId,
-        tenantId,
         agentAPIClient,
       }),
     );
@@ -32,12 +30,8 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
 
 function View() {
   const { agentMeta } = Route.useLoaderData();
-  const { agentId, threadId, tenantId } = Route.useParams();
-
-  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
-  const { data: threadResult, isLoading: isThreadLoading } = useQuery(
-    getThreadQueryOptions({ threadId, tenantId, agentAPIClient }),
-  );
+  const { agentId, threadId } = Route.useParams();
+  const { data: thread } = useThreadQuery({ threadId });
 
   const { storageValue: threadsExpanded, setStorageValue: setThreadsExpanded } = useLocalStorage<boolean>({
     key: 'chat-conversational-threads-ui',
@@ -51,14 +45,17 @@ function View() {
     [threadsExpanded, setThreadsExpanded, threadsHovered, setThreadsHovered],
   );
 
-  // Only save non-evaluation threads as preferred threads
-  // Evaluation threads are identified by having a scenario_id in metadata
-  const isEvaluationThread = Boolean(threadResult?.success && threadResult.data.metadata?.scenario_id);
   useEffect(() => {
-    if (!isThreadLoading && !isEvaluationThread) {
+    if (!thread) {
+      return;
+    }
+    // Only save non-evaluation threads as preferred threads
+    // Evaluation threads are identified by having a scenario_id in metadata
+    const isEvaluationThread = Boolean(thread.metadata?.scenario_id);
+    if (!isEvaluationThread) {
       setUserPreferenceId(getPreferenceKey({ agentId }), threadId);
     }
-  }, [isEvaluationThread, agentId, threadId, isThreadLoading]);
+  }, [thread]);
 
   if (agentMeta?.workroomUi && !agentMeta.workroomUi.conversations.enabled) {
     return (

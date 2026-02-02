@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { EvalSidebarView } from '@sema4ai/spar-ui';
+import { EvalSidebarView } from '~/components/Eval/components/EvalSidebarView/EvalSidebarView';
 import { Sidebar } from '~/components/Sidebar';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId/evaluations/')({

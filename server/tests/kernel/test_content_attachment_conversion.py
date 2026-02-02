@@ -82,25 +82,29 @@ async def test_thread_attachment_content_as_text_content_with_description(
             owner=owner,
         )
         if scenario == "semantic_data_model_matching":
+            from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+
             # We need to create a semantic data model with the file reference
             await model_creator.obtain_sample_semantic_data_model(
-                semantic_model={
-                    "name": "test_semantic_model",
-                    "description": "A test semantic model",
-                    "tables": [
-                        {
-                            "name": "test_table",
-                            "description": "A table referencing the name and age.",
-                            "base_table": {
-                                "file_reference": {
-                                    "thread_id": thread.thread_id,
-                                    "file_ref": sample_file.file_ref,
-                                    "sheet_name": None,
+                semantic_model=SemanticDataModel.model_validate(
+                    {
+                        "name": "test_semantic_model",
+                        "description": "A test semantic model",
+                        "tables": [
+                            {
+                                "name": "test_table",
+                                "description": "A table referencing the name and age.",
+                                "base_table": {
+                                    "file_reference": {
+                                        "thread_id": thread.thread_id,
+                                        "file_ref": sample_file.file_ref,
+                                        "sheet_name": None,
+                                    },
                                 },
                             },
-                        },
-                    ],
-                },
+                        ],
+                    }
+                ),
             )
 
         if scenario == "data_frames_disabled":
@@ -129,7 +133,7 @@ async def test_thread_attachment_content_as_text_content_with_description(
         name=sample_file.file_ref,
         mime_type=sample_file.mime_type,
         # That's what the UI does for description:
-        # https://github.com/Sema4AI/agent-platform/blob/main/workroom/spar-ui/src/queries/threads.ts#L210
+        # https://github.com/Sema4AI/agent-platform/blob/main/workroom/frontend/src/queries/threads.ts#L210
         description="1kb",
         uri=f"agent-server-file://{file_id}",
     )

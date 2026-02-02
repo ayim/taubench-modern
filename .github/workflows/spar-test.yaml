@@ -33,7 +33,7 @@ permissions:
 jobs:
   spar-integration-tests:
     name: Run SPAR Integration Tests
-    runs-on: ubuntu-24.04
+    runs-on: linux-x64-latest-32core
     timeout-minutes: 40
 
     steps:

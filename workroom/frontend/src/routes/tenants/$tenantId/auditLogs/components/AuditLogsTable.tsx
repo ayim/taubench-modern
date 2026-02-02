@@ -49,7 +49,7 @@ const getActionDetails = (item: Item) => {
     default:
       return {
         label: item.type,
-        details: <></>,
+        details: null,
       };
   }
 };
@@ -62,6 +62,8 @@ const getActorDetails = (item: Item) => {
           <span>Agent</span>
         </Tooltip>
       );
+    default:
+      return null;
   }
 };
 

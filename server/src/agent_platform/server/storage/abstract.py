@@ -532,7 +532,6 @@ class AbstractStorage(ABC):
         self,
         mcp_server: "MCPServer | MCPServerWithOAuthConfig",
         source: "MCPServerSource",
-        mcp_runtime_deployment_id: str | None = None,
     ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID.
 
@@ -579,8 +578,8 @@ class AbstractStorage(ABC):
         """Update an MCP server. Only updates fields that are provided (not None) in mcp_server_update."""
 
     @abstractmethod
-    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
-        """Delete MCP servers. Returns list of (mcp_server_id, mcp_runtime_deployment_id) tuples."""
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
+        """Delete MCP servers."""
 
     @abstractmethod
     async def count_mcp_servers(self) -> int:

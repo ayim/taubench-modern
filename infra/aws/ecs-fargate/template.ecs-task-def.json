@@ -92,8 +92,6 @@
         },
         { "name": "SEMA4AI_AGENT_SERVER_DB_TYPE", "value": "postgres" },
         { "name": "SEMA4AI_AGENT_SERVER_OTEL_ENABLED", "value": "true" },
-        { "name": "SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL", "value": "http://localhost:8003" },
-        { "name": "SEMA4AI_ENABLE_SPAR_ONLY_FEATURES", "value": "true" },
         {
           "name": "SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE",
           "value": "perry@sema4.ai;karri@sema4.ai;ben@sema4.ai;michal@sema4.ai"
@@ -112,51 +110,6 @@
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -sf http://localhost:8001/ || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 60
-      }
-    },
-    {
-      "name": "mcp-runtime",
-      "image": "${MCP_RUNTIME_IMAGE_REF}",
-      "cpu": 1024,
-      "memory": 4096,
-      "essential": true,
-      "dependsOn": [{ "containerName": "psql-init", "condition": "SUCCESS" }],
-      "mountPoints": [
-        {
-          "sourceVolume": "data",
-          "containerPath": "/data",
-          "readOnly": false
-        }
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/${ECS_CLUSTER_NAME}/${RELEASE_NAME}",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
-        }
-      },
-      "portMappings": [{ "containerPort": 8003, "protocol": "tcp" }],
-      "secrets": [
-        { "name": "POSTGRES_HOST", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:host::" },
-        { "name": "POSTGRES_PORT", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:port::" },
-        { "name": "POSTGRES_USER", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:username::" },
-        { "name": "POSTGRES_PASSWORD", "valueFrom": "${RDS_CREDENTIALS_SECRET_ARN}:password::" }
-      ],
-      "environment": [
-        { "name": "SEMA4AI_MCP_RUNTIME_PERSISTENT_DATA_DIR", "value": "/data/${RELEASE_NAME}" },
-        { "name": "SEMA4AI_MCP_RUNTIME_MAXIMUM_PACKAGE_SIZE", "value": "50mb" },
-        { "name": "SEMA4AI_MCP_RUNTIME_SERVER_HOST_OVERRIDE", "value": "http://localhost:8003" },
-        { "name": "POSTGRES_DB", "value": "${DB_NAME}" },
-        { "name": "LOG_LEVEL", "value": "INFO" }
-      ],
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8003/api/health || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
@@ -189,19 +142,6 @@
         "timeout": 5,
         "retries": 3,
         "startPeriod": 60
-      }
-    }
-  ],
-  "volumes": [
-    {
-      "name": "data",
-      "efsVolumeConfiguration": {
-        "fileSystemId": "${MCP_RUNTIME_EFS_FILESYSTEM_ID}",
-        "transitEncryption": "ENABLED",
-        "authorizationConfig": {
-          "accessPointId": "${MCP_RUNTIME_EFS_ACCESS_POINT_ID}",
-          "iam": "DISABLED"
-        }
       }
     }
   ]

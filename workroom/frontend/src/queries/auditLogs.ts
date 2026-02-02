@@ -1,16 +1,14 @@
-import { queryOptions } from '@tanstack/react-query';
 import { components as workroomComponents } from '@sema4ai/workroom-interface';
 
-import { QueryProps } from './shared';
+import { createSparQueryOptions } from './shared';
 
 type AuditLog = workroomComponents['schemas']['AuditLog'];
 
-export const getListAuditLogsQueryKey = (tenantId: string) => [tenantId, 'auditLogs'];
+export const getListAuditLogsQueryKey = () => ['auditLogs'];
 
-export const getListAuditLogsQueryOptions = ({ tenantId, agentAPIClient }: QueryProps<{ tenantId: string }>) =>
-  queryOptions({
-    queryKey: getListAuditLogsQueryKey(tenantId),
-    queryFn: async (): Promise<AuditLog[]> => {
-      return agentAPIClient.listAuditLogs(tenantId);
-    },
-  });
+export const getListAuditLogsQueryOptions = createSparQueryOptions()(({ agentAPIClient }) => ({
+  queryKey: getListAuditLogsQueryKey(),
+  queryFn: async (): Promise<AuditLog[]> => {
+    return agentAPIClient.listAuditLogs();
+  },
+}));

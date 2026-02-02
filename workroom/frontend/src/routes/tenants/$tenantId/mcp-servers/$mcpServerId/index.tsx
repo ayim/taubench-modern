@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 
-import { EditMcpServerDialog } from '@sema4ai/spar-ui';
+import { EditMcpServerDialog } from '~/components/MCPServers/MCPServerDialog/EditMcpServerDialog';
 
 export const Route = createFileRoute('/tenants/$tenantId/mcp-servers/$mcpServerId/')({
   component: RouteComponent,
@@ -15,8 +15,7 @@ function RouteComponent() {
       open
       mcpServerId={mcpServerId}
       onClose={() => navigate({ to: '/tenants/$tenantId/mcp-servers', params: { tenantId } })}
-      serverTypes={['generic_mcp', 'sema4ai_action_server', 'hosted']}
-      showStdioTransport={false}
+      serverTypes={['generic_mcp']}
     />
   );
 }

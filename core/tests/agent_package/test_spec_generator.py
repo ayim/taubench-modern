@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import pytest
 
@@ -404,13 +404,14 @@ class TestAgentSpecGeneratorPrivateMethods:
 
     def test_get_semantic_data_models_with_models(self):
         """Test _get_semantic_data_models with models."""
-        semantic_models: list[SemanticDataModel] = cast(
-            list[SemanticDataModel],
-            [
-                {"name": "model1", "other_field": "ignored"},
-                {"name": "model2"},
-            ],
-        )
+        semantic_models = [
+            SemanticDataModel.model_validate(
+                {"name": "model1", "tables": [{"name": "t1", "base_table": {"table": "t1"}}]}
+            ),
+            SemanticDataModel.model_validate(
+                {"name": "model2", "tables": [{"name": "t2", "base_table": {"table": "t2"}}]}
+            ),
+        ]
         result = AgentSpecGenerator._get_semantic_data_models(semantic_models)
         assert result is not None
         assert len(result) == 2
@@ -484,9 +485,14 @@ class TestAgentSpecGeneratorFromAgent:
             },
         )
 
-        semantic_models: list[SemanticDataModel] = cast(
-            list[SemanticDataModel], [{"name": "model1"}, {"name": "model2"}]
-        )
+        semantic_models = [
+            SemanticDataModel.model_validate(
+                {"name": "model1", "tables": [{"name": "t1", "base_table": {"table": "t1"}}]}
+            ),
+            SemanticDataModel.model_validate(
+                {"name": "model2", "tables": [{"name": "t2", "base_table": {"table": "t2"}}]}
+            ),
+        ]
         spec = AgentSpecGenerator.from_agent(
             agent,
             semantic_data_models=semantic_models,

@@ -66,6 +66,7 @@ function getRouteMap(): {
     'post /api/v2/package/read': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/metadata': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
     'post /api/v2/package/build': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
+    'post /api/v2/agents/': [ALLOWED, SIGN_WITH_TENANT, agentWritePermissions],
 
     // Allowed routes with user-level signing
     'delete /api/v2/threads/{tid}/files': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
@@ -110,7 +111,6 @@ function getRouteMap(): {
     'get /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/mcp-servers/': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
-    'post /api/v2/mcp-servers/mcp-servers-hosted': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'put /api/v2/mcp-servers/{mcp_server_id}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{run_id}/status': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/runs/{aid}/stream': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
@@ -269,7 +269,6 @@ function getRouteMap(): {
     'get /api/v2/debug/artifacts': [DISALLOWED],
     'get /api/v2/debug/artifacts/search': [DISALLOWED],
     'get /api/v2/debug/artifacts/{aid}': [DISALLOWED],
-    'post /api/v2/agents/': [DISALLOWED],
     'patch /api/v2/agents/{aid}': [DISALLOWED],
     'put /api/v2/agents/{aid}/raw': [DISALLOWED],
     'post /api/v2/agents/{aid}/refresh-tools': [DISALLOWED],

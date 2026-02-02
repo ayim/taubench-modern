@@ -96,26 +96,19 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
             # 4. Return the MCP servers as a dict of name -> id
             return {row[1]: row[0] for row in rows}
 
-    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> list[tuple[str, str | None]]:
-        """
-        Delete one or more MCP servers.
-
-        Returns list of (mcp_server_id, mcp_runtime_deployment_id) tuples.
-        """
-        # 1. Validate all uuids
+    async def delete_mcp_server(self, mcp_server_ids: list[str]) -> None:
+        """Delete one or more MCP servers."""
         for server_id in mcp_server_ids:
             self._validate_uuid(server_id)
 
         if not mcp_server_ids:
-            return []
+            return
 
         async with self._transaction() as cur:
-            # 2. First, get the deployment IDs before deleting
-            # (SQLite doesn't support RETURNING in DELETE)
             placeholders = ",".join("?" * len(mcp_server_ids))
             await cur.execute(
                 f"""
-                SELECT mcp_server_id, mcp_runtime_deployment_id FROM v2_mcp_server
+                SELECT mcp_server_id FROM v2_mcp_server
                 WHERE mcp_server_id IN ({placeholders})
                 """,
                 mcp_server_ids,
@@ -127,10 +120,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 missing_ids = set(mcp_server_ids) - found_ids
                 raise MCPServerNotFoundError(f"MCP servers not found: {', '.join(missing_ids)}")
 
-            # 3. Extract deployment IDs from deleted servers
-            deleted_servers = [(row["mcp_server_id"], row["mcp_runtime_deployment_id"]) for row in rows]
-
-            # 4. Delete the MCP servers
             await cur.execute(
                 f"""
                 DELETE FROM v2_mcp_server
@@ -138,8 +127,6 @@ class SQLiteStorageMCPServersMixin(CursorMixin, CommonMixin):
                 """,
                 mcp_server_ids,
             )
-
-            return deleted_servers
 
     async def count_mcp_servers(self) -> int:
         """Count the number of MCP servers."""
