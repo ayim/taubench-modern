@@ -20,8 +20,8 @@
       line: 21
   severity: 2
   source: sema4ai
-- message: 'agent-package/agents/mcp-servers/transport: When the transport is ''stdio'',
-    the command-line must be defined.'
+- message: "agent-package/agents/mcp-servers/transport: When the transport is 'stdio',
+    the command-line must be defined."
   range:
     end:
       character: 0
