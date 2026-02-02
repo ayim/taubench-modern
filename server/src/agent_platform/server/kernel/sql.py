@@ -217,7 +217,8 @@ def _get_sql_generation_instructions(
             dedent("""
             **SQL SYNTAX RULES:**
             - Reference tables by their logical name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
-            - Always qualify column names with their table (e.g., `my_table.column_name`), especially in CTEs and JOINs.
+            - Qualify column names with the table or its alias, especially in CTEs and JOINs.
+              If not aliased, use `table_name.column_name`; when aliased, use `alias.column_name`. Never use `alias.table_name.column`.
             """)
         )
 
