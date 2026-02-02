@@ -28,17 +28,17 @@
 
 The extraction pipeline (Epic B) uses transform/validate engines from Epic C, so Epic C must be implemented first.
 
-| Story | Description                           | Implementation Sections                     |
-| ------- | --------------------------------------- | --------------------------------------------- |
-| A-1   | Define Schemas in SDM YAML            | §6 Data Structures (Schema TypedDicts)     |
-| A-2   | Semantic Annotations in JSON Schema   | §6 Data Structures (annotation parsing)    |
-| C-1   | Execute JQ Transformations            | §8 Core Algorithm (execute_transformation) |
-| C-2   | Execute JQ Validations                | §8 Core Algorithm (validate_schema_data)   |
-| B-1   | DI Extraction with Reducto            | §8 Core Algorithm (Reducto integration)    |
-| B-2   | MCP/API Response Handling             | §8 Core Algorithm (API data packaging)     |
-| B-3   | Extraction Pipeline Orchestration     | §8 Core Algorithm (pipeline orchestration) |
-| D-1   | Include Schemas in LLM Prompts        | §7 API Design (prompt builder extension)   |
-| D-2   | Generate and Execute JQ Queries       | §8 Core Algorithm (JQ execution path)      |
+| Story | Description                         | Implementation Sections                    |
+| ----- | ----------------------------------- | ------------------------------------------ |
+| A-1   | Define Schemas in SDM YAML          | §6 Data Structures (Schema TypedDicts)     |
+| A-2   | Semantic Annotations in JSON Schema | §6 Data Structures (annotation parsing)    |
+| C-1   | Execute JQ Transformations          | §8 Core Algorithm (execute_transformation) |
+| C-2   | Execute JQ Validations              | §8 Core Algorithm (validate_schema_data)   |
+| B-1   | DI Extraction with Reducto          | §8 Core Algorithm (Reducto integration)    |
+| B-2   | MCP/API Response Handling           | §8 Core Algorithm (API data packaging)     |
+| B-3   | Extraction Pipeline Orchestration   | §8 Core Algorithm (pipeline orchestration) |
+| D-1   | Include Schemas in LLM Prompts      | §7 API Design (prompt builder extension)   |
+| D-2   | Generate and Execute JQ Queries     | §8 Core Algorithm (JQ execution path)      |
 
 ---
 
@@ -119,16 +119,15 @@ Data Flow (Runtime - Data Acquisition Pipeline):
 
 **Components:**
 
-
-| Component         | Purpose                   | Technology       | Location                       |
-| ------------------- | --------------------------- | ------------------ | -------------------------------- |
-| Schema Models     | Define schema structure   | Python/Pydantic  | `semantic_data_model_types.py` |
-| Prompt Builder    | Add schema context        | Python           | `semantic_data_model.py`       |
-| JQ Executor       | Run JQ queries            | jq/pyjq          | `_jq_transform.py` (existing)  |
-| B-1 DI Extract    | Reducto extraction        | Python           | `di_service.py` (existing)     |
-| B-2 API Receive   | Package API JSON          | Python           | NEW                            |
-| B-3 Pipeline      | Orchestrate extract flow  | Python           | NEW                            |
-| Enrichment Store  | Store runtime data        | AgentServer DB (thread metadata) | Thread metadata       |
+| Component        | Purpose                  | Technology                       | Location                       |
+| ---------------- | ------------------------ | -------------------------------- | ------------------------------ |
+| Schema Models    | Define schema structure  | Python/Pydantic                  | `semantic_data_model_types.py` |
+| Prompt Builder   | Add schema context       | Python                           | `semantic_data_model.py`       |
+| JQ Executor      | Run JQ queries           | jq/pyjq                          | `_jq_transform.py` (existing)  |
+| B-1 DI Extract   | Reducto extraction       | Python                           | `di_service.py` (existing)     |
+| B-2 API Receive  | Package API JSON         | Python                           | NEW                            |
+| B-3 Pipeline     | Orchestrate extract flow | Python                           | NEW                            |
+| Enrichment Store | Store runtime data       | AgentServer DB (thread metadata) | Thread metadata                |
 
 ---
 
@@ -211,15 +210,14 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 
 **Transformations:**
 
-
-| Stage    | Input             | Output           | Component                    |
-| ---------- | ------------------- | ------------------ | ------------------------------ |
-| Parse    | YAML string       | Schema dict      | YAML parser                  |
-| Validate | Schema dict       | Validated Schema | Pydantic                     |
-| Store    | SemanticDataModel | SDM JSONB row    | AgentServer DB (SDM table)   |
-| Query    | NL question       | JQ expression    | LLM                          |
-| Resolve  | SchemaSource      | JSON data        | SourceResolver               |
-| Execute  | JQ + JSON         | Query result     | JQExecutor                   |
+| Stage    | Input             | Output           | Component                  |
+| -------- | ----------------- | ---------------- | -------------------------- |
+| Parse    | YAML string       | Schema dict      | YAML parser                |
+| Validate | Schema dict       | Validated Schema | Pydantic                   |
+| Store    | SemanticDataModel | SDM JSONB row    | AgentServer DB (SDM table) |
+| Query    | NL question       | JQ expression    | LLM                        |
+| Resolve  | SchemaSource      | JSON data        | SourceResolver             |
+| Execute  | JQ + JSON         | Query result     | JQExecutor                 |
 
 ---
 
@@ -231,9 +229,8 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 
 **Options:**
 
-
 | Option                          | Pros                     | Cons                         |
-| --------------------------------- | -------------------------- | ------------------------------ |
+| ------------------------------- | ------------------------ | ---------------------------- |
 | A: Extend tables with JSON type | Consistent with existing | Loses hierarchical structure |
 | B: Separate`schemas:` array     | Clear separation         | More complex SDM             |
 | C: Metadata-only (no querying)  | Simple                   | Can't query JSON data        |
@@ -250,9 +247,8 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 
 **Options:**
 
-
 | Option                  | Pros                               | Cons                         |
-| ------------------------- | ------------------------------------ | ------------------------------ |
+| ----------------------- | ---------------------------------- | ---------------------------- |
 | A: Custom DSL           | Tailored to use case               | Learning curve, maintenance  |
 | B: JQ                   | Powerful, standard, existing infra | JQ syntax complexity         |
 | C: JSONPath + templates | Simpler syntax                     | Limited transformation power |
@@ -279,16 +275,15 @@ YAML → Parse → Validate → Store → Query → Resolve → Execute → Resu
 
 ### Existing Infrastructure to Reuse
 
-
-| Component          | Location                                   | How to reuse                     |
-| -------------------- | -------------------------------------------- | ---------------------------------- |
-| SDM types          | `core/.../semantic_data_model_types.py`    | Add `schemas: list[Schema]`      |
+| Component          | Location                                   | How to reuse                         |
+| ------------------ | ------------------------------------------ | ------------------------------------ |
+| SDM types          | `core/.../semantic_data_model_types.py`    | Add `schemas: list[Schema]`          |
 | SDM storage        | `server/.../storage/base.py`               | Stores SDM in AgentServer DB (JSONB) |
-| Prompt builder     | `server/.../kernel/semantic_data_model.py` | Extend for schemas               |
-| JQ execution       | `server/.../orchestrator/_jq_transform.py` | Use directly for C-1, C-2        |
-| DI service         | `document-intelligence/.../services/`      | B-1: Extract with SDM schema     |
-| Thread metadata    | `server/.../storage/base.py`               | B-3: Store enrichments (NEW)     |
-| MCP infrastructure | Existing                                   | B-2: Receive API JSON            |
+| Prompt builder     | `server/.../kernel/semantic_data_model.py` | Extend for schemas                   |
+| JQ execution       | `server/.../orchestrator/_jq_transform.py` | Use directly for C-1, C-2            |
+| DI service         | `document-intelligence/.../services/`      | B-1: Extract with SDM schema         |
+| Thread metadata    | `server/.../storage/base.py`               | B-3: Store enrichments (NEW)         |
+| MCP infrastructure | Existing                                   | B-2: Receive API JSON                |
 
 ### New Types
 
@@ -353,7 +348,7 @@ class ValidationResult:
 @dataclass
 class SchemaEnrichment:
     """Runtime data linking transformed JSON to an SDM schema.
-    
+
     Stored in thread/workflow metadata, NOT in the SDM.
     """
     enrichment_id: str
@@ -371,12 +366,12 @@ class SchemaEnrichment:
 
 **Key Principle: Design Time vs Runtime**
 
-| Aspect | SDM (Design Time) | Enrichments (Runtime) |
-|--------|------------------|----------------------|
-| **What** | Schema definitions | Extracted data per file |
-| **Volume** | 10s of schemas | 1000s of files |
-| **Lifecycle** | Long-lived | Tied to thread |
-| **Storage** | SDM YAML → AgentServer DB (JSONB in SDM table) | AgentServer thread metadata (not external DB) |
+| Aspect        | SDM (Design Time)                              | Enrichments (Runtime)                         |
+| ------------- | ---------------------------------------------- | --------------------------------------------- |
+| **What**      | Schema definitions                             | Extracted data per file                       |
+| **Volume**    | 10s of schemas                                 | 1000s of files                                |
+| **Lifecycle** | Long-lived                                     | Tied to thread                                |
+| **Storage**   | SDM YAML → AgentServer DB (JSONB in SDM table) | AgentServer thread metadata (not external DB) |
 
 Enrichments reference SDM schemas by name. They are NOT stored in the SDM itself.
 
@@ -401,7 +396,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
                 output += f"{desc}\n"
             if props := schema.get("jsonschema", {}).get("properties"):
                 output += f"Fields: {', '.join(props.keys())}\n"
-  
+
     return output
 ```
 
@@ -424,20 +419,20 @@ async def di_extract(
     sdm_name: str,
 ) -> dict:
     """Extract data from document using Reducto.
-    
+
     Returns raw extracted JSON (no transformation).
     Pipeline processing happens in Story B-3.
     """
     # Get schema from SDM
     schema = await get_schema(schema_name, sdm_name)
     jsonschema = schema["jsonschema"]
-    
+
     # Parse document with Reducto
     parsed_doc = await reducto.parse(file_id)
-    
+
     # Extract with schema
     raw_data = await reducto.extract(jsonschema, parsed_doc)
-    
+
     return raw_data  # Raw, no transformation
 ```
 
@@ -465,7 +460,7 @@ async def receive_api_response(
     """Package API response for pipeline processing."""
     # Validate schema exists
     await get_schema(schema_name, sdm_name)  # Raises if not found
-    
+
     return RawSchemaData(
         source_type="api",
         source_id=str(uuid.uuid4()),
@@ -501,27 +496,27 @@ async def process_pipeline(
     raw_data: RawSchemaData,
 ) -> SchemaEnrichment:
     """Process raw data through transform/validate/store pipeline."""
-    
+
     # 1. Get schema definition
     schema = await get_schema(raw_data.schema_name, raw_data.sdm_name)
-    
+
     # 2. Transform (if defined)
     transformed_data, target_schema_name = await _apply_transformation(
-        raw_data.raw_data, 
+        raw_data.raw_data,
         schema
     )
-    
+
     # 3. Validate
     validation_results = await _run_validations(
-        transformed_data, 
+        transformed_data,
         schema.get("validations", [])
     )
-    
+
     # Check for reject-mode failures
     rejects = [r for r in validation_results if not r.passed and r.mode == "reject"]
     if rejects:
         raise ValidationRejectError(f"Validation rejected: {rejects}")
-    
+
     # 4. Store enrichment
     enrichment = await create_enrichment(
         thread_id=thread_id,
@@ -534,7 +529,7 @@ async def process_pipeline(
         extracted_data=transformed_data,
         validation_results=validation_results,
     )
-    
+
     return enrichment
 ```
 
@@ -546,25 +541,25 @@ Transform and validate engines used by B-3 pipeline.
 from agent_platform.orchestrator._jq_transform import apply_jq_transform
 
 async def _apply_transformation(
-    data: dict, 
+    data: dict,
     schema: Schema
 ) -> tuple[dict, str]:
     """Apply transformation if defined.
-    
+
     Returns (transformed_data, target_schema_name).
     If no transformation, returns (data, source_schema_name).
     """
     transformations = schema.get("transformations", [])
     if not transformations:
         return data, schema["name"]
-    
+
     # Apply first transformation (could extend to chain)
     transform = transformations[0]
     transformed = apply_jq_transform(data, transform["jq"])
     return transformed, transform["target"]
 
 async def _run_validations(
-    data: dict, 
+    data: dict,
     validations: list[SchemaValidation]
 ) -> list[ValidationResult]:
     """Run JQ validations, return list of results."""
