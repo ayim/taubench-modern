@@ -1,0 +1,22 @@
+- message: Expected agent-package/agents/mcp-servers/command-line to be a list (found
+    string).
+  range:
+    end:
+      character: 0
+      line: 22
+    start:
+      character: 24
+      line: 21
+  severity: 1
+  source: sema4ai
+- message: 'Expected all items in agent-package/agents/mcp-servers/command-line to
+    be strings. Found: int'
+  range:
+    end:
+      character: 0
+      line: 26
+    start:
+      character: 25
+      line: 25
+  severity: 1
+  source: sema4ai

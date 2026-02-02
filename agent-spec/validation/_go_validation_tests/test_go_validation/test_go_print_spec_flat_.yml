@@ -1,0 +1,807 @@
+agent-package:
+  Deprecated: false
+  Description: Root element for the agent spec
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package
+  Required: true
+agent-package/agents:
+  Deprecated: false
+  Description: 'Defines the agents in the package (note: only a single agent is expected
+    to be defined)'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents
+  Required: true
+agent-package/agents/action-packages:
+  Deprecated: false
+  Description: Section with the action packages that the agent can use.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages
+  Required: true
+agent-package/agents/action-packages/name:
+  Deprecated: false
+  Description: 'The name of the action package. Example: "my-action-package"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: action_package_name_link
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages/name
+  Required: true
+agent-package/agents/action-packages/organization:
+  Deprecated: false
+  Description: 'The organization that provided the action. Example: "MyActions"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages/organization
+  Required: true
+agent-package/agents/action-packages/path:
+  Deprecated: false
+  Description: 'Relative path under "actions" to access the action package folder
+    or zip. Example: "MyActions/my-action-package" or "Sema4.ai/free-web-search/1.0.0.zip".
+    Note that "zips" are only supported when the agent is packaged for distribution.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: /actions
+  Path: agent-package/agents/action-packages/path
+  Required: true
+agent-package/agents/action-packages/type:
+  Deprecated: false
+  Description: The type of the action package distribution. Accepted values are "zip"
+    and "folder". Note that "zip" is only supported when the agent is packaged for
+    distribution.
+  ExpectedType:
+    EnumValues:
+    - zip
+    - folder
+    ExpectedType: zip_or_folder_based_on_path
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages/type
+  Required: true
+agent-package/agents/action-packages/version:
+  Deprecated: false
+  Description: 'Version of the action package. Example: "1.3.0"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: action_package_version_link
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages/version
+  Required: true
+agent-package/agents/action-packages/whitelist:
+  Deprecated: false
+  Description: 'Whitelist of actions (comma-separated string) accepted in the action
+    package. An empty string value for whitelist implies usage of all actions. Example:
+    action1, action2'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/action-packages/whitelist
+  Required: true
+agent-package/agents/agent-settings:
+  Deprecated: false
+  Description: Section to describe the agent settings (this field is currently open-ended
+    and can contain anything)
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: dynamic_object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/agent-settings
+  Required: false
+agent-package/agents/architecture:
+  Deprecated: false
+  Description: 'The agent type. Accepted values are: "agent", "plan_execute". "agent"
+    means using chat + RAG + tools, "plan_execute" means chat + RAG + Tools with the
+    ability to plan/replan its approach to coming up with an answer to a user''s question/prompt.'
+  ExpectedType:
+    EnumValues:
+    - agent
+    - plan_execute
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/architecture
+  Required: true
+agent-package/agents/conversation-guide:
+  Deprecated: false
+  Description: 'Conversation guide for the agent. Example: "conversation-guide.yaml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/conversation-guide
+  Required: false
+agent-package/agents/conversation-starter:
+  Deprecated: false
+  Description: 'Initial message to start a conversation with the agent. Example: "Hello,
+    what can you do?"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/conversation-starter
+  Required: false
+agent-package/agents/description:
+  Deprecated: false
+  Description: 'Description for the agent. Example: "My smart agent that does what
+    I want"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/description
+  Required: true
+agent-package/agents/docker-mcp-gateway:
+  Deprecated: false
+  Description: Section to define the Docker MCP Gateway configuration for the agent.
+    Docker MCP Gateway is a tool that allows you to run MCP servers in a Docker containers.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/docker-mcp-gateway
+  Required: false
+agent-package/agents/docker-mcp-gateway/catalog:
+  Deprecated: false
+  Description: 'Optional custom catalog file path. If not specified, the default catalog
+    from Docker MCP Gateway is used. Example: "./custom-catalog.yml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/docker-mcp-gateway/catalog
+  Required: false
+agent-package/agents/docker-mcp-gateway/servers:
+  Deprecated: false
+  Description: Configuration for MCP servers in the Docker MCP Gateway.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: map[string,object]
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/docker-mcp-gateway/servers
+  Required: true
+agent-package/agents/docker-mcp-gateway/servers/tools:
+  Deprecated: false
+  Description: 'Tools configuration for a server. Can be a list of tool names. If
+    empty or not specified, all tools are allowed. Example: ["tool1", "tool2"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_tools
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/docker-mcp-gateway/servers/tools
+  Required: false
+agent-package/agents/document-intelligence:
+  Deprecated: false
+  Description: 'Document intelligence version to use. Example: "v2" or "v2.1"'
+  ExpectedType:
+    EnumValues:
+    - v2
+    - v2.1
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/document-intelligence
+  Required: false
+agent-package/agents/knowledge:
+  Deprecated: false
+  Description: Section to indicate additional knowledge files for the agent or actions.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/knowledge
+  Required: false
+agent-package/agents/knowledge/digest:
+  Deprecated: false
+  Description: SHA-256 hex string for the knowledge file content. Should not be specified
+    while developing, but when a package is built for distribution, tooling should
+    generate this.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/knowledge/digest
+  Required: false
+agent-package/agents/knowledge/embedded:
+  Deprecated: false
+  Description: Setting embedded to true means that the file is vectorized and embedded
+    into the context. False means that the file is not used in the context, but can
+    be uploaded for use in actions.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: bool
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/knowledge/embedded
+  Required: true
+agent-package/agents/knowledge/name:
+  Deprecated: false
+  Description: Relative path under "knowledge" for the related knowledge file.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./knowledge
+  Path: agent-package/agents/knowledge/name
+  Required: true
+agent-package/agents/mcp-servers:
+  Deprecated: false
+  Description: Section to define MCP (Model Context Protocol) servers that the agent
+    can connect to.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers
+  Required: false
+agent-package/agents/mcp-servers/command-line:
+  Deprecated: false
+  Description: 'Command line to execute for stdio MCP servers. Example: ["uv", "run",
+    "python", "-m", "my-server"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_command_line
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/command-line
+  Required: false
+agent-package/agents/mcp-servers/cwd:
+  Deprecated: false
+  Description: Working directory for the command line (defaults to agent-spec directory
+    if not specified). Can be relative or absolute path.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/cwd
+  Required: false
+agent-package/agents/mcp-servers/description:
+  Deprecated: false
+  Description: Description of the MCP server and configuration instructions.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/description
+  Required: false
+agent-package/agents/mcp-servers/env:
+  Deprecated: false
+  Description: Environment variables for the MCP server (only for stdio kind).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: map[string,object]#mcp_server_env
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env
+  Required: false
+agent-package/agents/mcp-servers/env/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the environment variable.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/description
+  Required: false
+agent-package/agents/mcp-servers/env/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/provider
+  Required: false
+agent-package/agents/mcp-servers/env/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/scopes
+  Required: false
+agent-package/agents/mcp-servers/env/type:
+  Deprecated: false
+  Description: 'The type of the environment variable. Accepted values: "secret", "oauth2-secret",
+    "string", "data-server-info"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_var_type
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/type
+  Required: true
+agent-package/agents/mcp-servers/env/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/env/value
+  Required: false
+agent-package/agents/mcp-servers/force-serial-tool-calls:
+  Deprecated: false
+  Description: If true, tool calls are serialized (default is false).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: bool
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/force-serial-tool-calls
+  Required: false
+agent-package/agents/mcp-servers/headers:
+  Deprecated: false
+  Description: Required headers for the MCP server connection (only for streamable-http
+    and sse kinds).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: map[string,object]#mcp_server_headers
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers
+  Required: false
+agent-package/agents/mcp-servers/headers/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the header.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/description
+  Required: false
+agent-package/agents/mcp-servers/headers/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/provider
+  Required: false
+agent-package/agents/mcp-servers/headers/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/scopes
+  Required: false
+agent-package/agents/mcp-servers/headers/type:
+  Deprecated: false
+  Description: 'The type of the header. Accepted values: "secret", "oauth2-secret",
+    "string", "data-server-info"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_var_type
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/type
+  Required: true
+agent-package/agents/mcp-servers/headers/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/headers/value
+  Required: false
+agent-package/agents/mcp-servers/name:
+  Deprecated: false
+  Description: 'The name of the MCP server. Example: "my-server"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/name
+  Required: true
+agent-package/agents/mcp-servers/transport:
+  Deprecated: false
+  Description: 'The transport to use for the MCP server connection. Accepted values:
+    "streamable-http", "sse", "stdio", "auto". Note: "auto " will try to detect the
+    mode automatically based on whether the url is defined (if not it''s stdio) and
+    whether the url ends with /mcp or /sse (default being streamable-http).'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_transport
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/transport
+  Required: false
+agent-package/agents/mcp-servers/url:
+  Deprecated: false
+  Description: 'URL for the MCP server (only for streamable-http and sse kinds). Example:
+    "http://localhost:8000"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: mcp_server_url
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/mcp-servers/url
+  Required: false
+agent-package/agents/metadata:
+  Deprecated: false
+  Description: Metadata on how to run the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/metadata
+  Required: true
+agent-package/agents/metadata/mode:
+  Deprecated: false
+  Description: 'Mode of worker allowed values: "conversational" | "worker"'
+  ExpectedType:
+    EnumValues:
+    - conversational
+    - worker
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/metadata/mode
+  Required: true
+agent-package/agents/metadata/worker-config:
+  Deprecated: false
+  Description: Configuration for the worker (only required if 'mode' is worker)
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/metadata/worker-config
+  Required: false
+agent-package/agents/metadata/worker-config/document-type:
+  Deprecated: false
+  Description: Document type (required if 'worker-config' is specified)
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/metadata/worker-config/document-type
+  Required: true
+agent-package/agents/metadata/worker-config/type:
+  Deprecated: false
+  Description: Worker type (required if 'worker-config' is specified)
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/metadata/worker-config/type
+  Required: true
+agent-package/agents/model:
+  Deprecated: false
+  Description: Section to describe the LLM used by the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/model
+  Required: true
+agent-package/agents/model/name:
+  Deprecated: false
+  Description: The LLM model name to be used.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues:
+    - gpt-3.5-turbo
+    - gpt-4-turbo
+    - gpt-4o
+    - gpt-4
+    - llama3
+    RelativeTo: ''
+  Path: agent-package/agents/model/name
+  Required: true
+agent-package/agents/model/provider:
+  Deprecated: false
+  Description: The LLM Provider.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues:
+    - OpenAI
+    - Azure
+    - Anthropic
+    - Google
+    - Amazon
+    - Ollama
+    RelativeTo: ''
+  Path: agent-package/agents/model/provider
+  Required: true
+agent-package/agents/name:
+  Deprecated: false
+  Description: 'The name of the agent. Example: "My Agent"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/name
+  Required: true
+agent-package/agents/reasoning:
+  Deprecated: false
+  Description: 'The reasoning level for the agent. Accepted values: "disabled", "enabled",
+    "verbose"'
+  ExpectedType:
+    EnumValues:
+    - disabled
+    - enabled
+    - verbose
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/reasoning
+  Required: true
+agent-package/agents/reasoningLevel:
+  Deprecated: true
+  Description: Please use 'reasoning' instead
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: NOT_SET
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/reasoningLevel
+  Required: false
+agent-package/agents/resources:
+  Deprecated: true
+  Description: Please use 'knowledge' instead
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: NOT_SET
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/resources
+  Required: false
+agent-package/agents/runbook:
+  Deprecated: false
+  Description: The runbook is used to build the prompt passed to the agent to define
+    its behavior. Relative path (right next to the "agent-spec.yaml") for the file
+    to be used for the runbook. A markdown formatted file is expected.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./
+  Path: agent-package/agents/runbook
+  Required: true
+agent-package/agents/runbooks:
+  Deprecated: true
+  Description: Please use 'runbook' instead
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: NOT_SET
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/runbooks
+  Required: false
+agent-package/agents/selected-tools:
+  Deprecated: false
+  Description: Selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: object
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools
+  Required: false
+agent-package/agents/selected-tools/tools:
+  Deprecated: false
+  Description: List of the selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools/tools
+  Required: false
+agent-package/agents/selected-tools/tools/name:
+  Deprecated: false
+  Description: Name of the selected tools for the agent
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/selected-tools/tools/name
+  Required: true
+agent-package/agents/semantic-data-models:
+  Deprecated: false
+  Description: Section to indicate semantic data models for the agent.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/semantic-data-models
+  Required: false
+agent-package/agents/semantic-data-models/name:
+  Deprecated: false
+  Description: 'Relative path under "semantic-data-models" for the semantic data model
+    file. Example: "customer-analytics.yaml"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: file
+    RecommendedValues: null
+    RelativeTo: ./semantic-data-models
+  Path: agent-package/agents/semantic-data-models/name
+  Required: true
+agent-package/agents/type:
+  Deprecated: true
+  Description: Please use 'architecture' instead
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: NOT_SET
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/type
+  Required: false
+agent-package/agents/version:
+  Deprecated: false
+  Description: 'Version of the Agent Package. Example: "1.3.0"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: agent_semver_version
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/version
+  Required: true
+agent-package/agents/welcome-message:
+  Deprecated: false
+  Description: 'Welcome message displayed to users when they first interact with the
+    agent. Example: "What tools do you have?"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/agents/welcome-message
+  Required: false
+agent-package/exclude:
+  Deprecated: false
+  Description: 'List of files to exclude from the agent package. Example: ["*.zip",
+    "*.pyc"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/exclude
+  Required: false
+agent-package/spec-version:
+  Deprecated: false
+  Description: 'The version of the spec being used. Example: "v2"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: version_v2
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/spec-version
+  Required: true
+agent-package/variables:
+  Deprecated: false
+  Description: Variables that can be used in mcp-server header values and env values.
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables
+  Required: false
+agent-package/variables/description:
+  Deprecated: false
+  Description: 'Optional: human-readable description of the variable.'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/description
+  Required: false
+agent-package/variables/name:
+  Deprecated: false
+  Description: 'The name of the variable. Example: "api-key"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/name
+  Required: true
+agent-package/variables/provider:
+  Deprecated: false
+  Description: 'OAuth2 provider name (only required for oauth2-secret type). Example:
+    "Microsoft"'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/provider
+  Required: false
+agent-package/variables/scopes:
+  Deprecated: false
+  Description: 'OAuth2 scopes (only required for oauth2-secret type). Example: ["user.read",
+    "user.write"]'
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: list
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/scopes
+  Required: false
+agent-package/variables/type:
+  Deprecated: false
+  Description: 'The type of the variable. Accepted values: "secret", "oauth2-secret",
+    "string"'
+  ExpectedType:
+    EnumValues:
+    - secret
+    - oauth2-secret
+    - string
+    ExpectedType: enum
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/type
+  Required: true
+agent-package/variables/value:
+  Deprecated: false
+  Description: Default value for the variable (only for string or secret type).
+  ExpectedType:
+    EnumValues: null
+    ExpectedType: string
+    RecommendedValues: null
+    RelativeTo: ''
+  Path: agent-package/variables/value
+  Required: false

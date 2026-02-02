@@ -1,0 +1,75 @@
+root (no data)
+  agent-package (required)
+    agents (required)
+      action-packages (required)
+        name (required)
+        organization (required)
+        path (required)
+        type (required)
+        version (required)
+        whitelist (required)
+      agent-settings
+      architecture (required)
+      conversation-guide
+      conversation-starter
+      description (required)
+      docker-mcp-gateway
+        catalog
+        servers (required)
+          tools
+      document-intelligence
+      knowledge
+        digest
+        embedded (required)
+        name (required)
+      mcp-servers
+        command-line
+        cwd
+        description
+        env
+          description
+          provider
+          scopes
+          type (required)
+          value
+        force-serial-tool-calls
+        headers
+          description
+          provider
+          scopes
+          type (required)
+          value
+        name (required)
+        transport
+        url
+      metadata (required)
+        mode (required)
+        worker-config
+          document-type (required)
+          type (required)
+      model (required)
+        name (required)
+        provider (required)
+      name (required)
+      reasoning (required)
+      reasoningLevel (deprecated)
+      resources (deprecated)
+      runbook (required)
+      runbooks (deprecated)
+      selected-tools
+        tools
+          name (required)
+      semantic-data-models
+        name (required)
+      type (deprecated)
+      version (required)
+      welcome-message
+    exclude
+    spec-version (required)
+    variables
+      description
+      name (required)
+      provider
+      scopes
+      type (required)
+      value
