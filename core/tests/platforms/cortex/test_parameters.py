@@ -151,3 +151,68 @@ class TestCortexPlatformParameters:
 
         # Host is computed from account
         assert updated_params.snowflake_host == "test-account.snowflakecomputing.com"
+
+    def test_model_validate_with_none_password(self) -> None:
+        """Test that model_validate handles None snowflake_password correctly.
+
+        This is a regression test for EPD-3714: when Studio is linked to Snowflake
+        using JWT/OAuth auth (no password), the platform config includes
+        'snowflake_password': null. This should not raise an error.
+        """
+        data = {
+            "kind": "cortex",
+            "snowflake_account": "test-account",
+            "snowflake_password": None,
+        }
+
+        params = CortexPlatformParameters.model_validate(data)
+
+        assert params.snowflake_account == "test-account"
+        assert params.snowflake_password is None
+
+    def test_model_validate_with_password(self) -> None:
+        """Test that model_validate correctly wraps a password in SecretString."""
+        data = {
+            "kind": "cortex",
+            "snowflake_account": "test-account",
+            "snowflake_password": "my-secret-password",
+        }
+
+        params = CortexPlatformParameters.model_validate(data)
+
+        assert params.snowflake_account == "test-account"
+        assert params.snowflake_password is not None
+        assert isinstance(params.snowflake_password, SecretString)
+        assert params.snowflake_password.get_secret_value() == "my-secret-password"
+
+    def test_model_validate_without_password_key(self) -> None:
+        """Test that model_validate works when snowflake_password key is absent."""
+        data = {
+            "kind": "cortex",
+            "snowflake_account": "test-account",
+        }
+
+        params = CortexPlatformParameters.model_validate(data)
+
+        assert params.snowflake_account == "test-account"
+        assert params.snowflake_password is None
+
+    def test_model_validate_roundtrip(self) -> None:
+        """Test that model_dump -> model_validate roundtrip works correctly.
+
+        This tests the full round-trip that occurs when Studio fetches an agent
+        and then saves it back - the data should survive the serialization cycle.
+        """
+        original = CortexPlatformParameters(
+            snowflake_account="test-account",
+            snowflake_username="test-user",
+            snowflake_warehouse="test-warehouse",
+        )
+
+        dumped = original.model_dump(exclude_none=False)
+        restored = CortexPlatformParameters.model_validate(dumped)
+
+        assert restored.snowflake_account == original.snowflake_account
+        assert restored.snowflake_username == original.snowflake_username
+        assert restored.snowflake_warehouse == original.snowflake_warehouse
+        assert restored.snowflake_password is None

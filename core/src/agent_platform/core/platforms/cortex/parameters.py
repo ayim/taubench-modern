@@ -185,9 +185,15 @@ class CortexPlatformParameters(PlatformParameters):
         # Convert datetime strings back to datetime objects
         cls._convert_datetime_fields(obj)
 
+        # Defensive removal of 'kind', commonly done by PlatformParameters.model_validate
+        if "kind" in obj:
+            del obj["kind"]
+
         # Directly pass the dictionary to the constructor.
         # The constructor and __post_init__ will handle extra parameters.
-        if "snowflake_password" in obj:
+        # Only wrap snowflake_password in SecretString if it's not None.
+        # This handles the case where JWT/OAuth auth is used (no password).
+        if "snowflake_password" in obj and obj["snowflake_password"] is not None:
             obj["snowflake_password"] = SecretString(
                 obj["snowflake_password"],
             )
