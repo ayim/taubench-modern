@@ -73,6 +73,7 @@ export const VerifiedQuery = z.object({
   nlq_errors: z.array(ValidationMessage).optional().catch(undefined),
   name_errors: z.array(ValidationMessage).optional().catch(undefined),
   parameter_errors: z.array(ValidationMessage).optional().catch(undefined),
+  result_type: z.enum(['table', 'rows_affected']).nullish(),
 });
 export type VerifiedQuery = z.infer<typeof VerifiedQuery>;
 

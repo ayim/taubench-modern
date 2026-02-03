@@ -8997,6 +8997,16 @@ export interface components {
     } & {
       [key: string]: unknown;
     };
+    /**
+     * ResultType
+     * @description The type of result a SQL query produces.
+     *
+     *     Used to distinguish between queries that return tabular data (SELECT, or mutations
+     *     with RETURNING) and queries that return a count of affected rows (INSERT/UPDATE/DELETE
+     *     without RETURNING).
+     * @enum {string}
+     */
+    ResultType: 'table' | 'rows_affected';
     /** Run */
     Run: {
       /**
@@ -11384,6 +11394,8 @@ export interface components {
        * @description Validation errors for the parameters
        */
       parameter_errors?: components['schemas']['ValidationMessage'][] | null;
+      /** @description The type of result this query produces. TABLE for queries returning rows (SELECT or mutations with RETURNING), ROWS_AFFECTED for mutations without RETURNING. Computed during verification based on SQL analysis. */
+      result_type?: components['schemas']['ResultType'] | null;
     };
     /** VerifyVerifiedQueryPayload */
     VerifyVerifiedQueryPayload: {

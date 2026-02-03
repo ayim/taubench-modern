@@ -526,7 +526,7 @@ class Dependencies:
                 )
 
             logger.error(
-                "❌ Error executing SQL computation",
+                "Error executing SQL computation",
                 error=error_msg,
                 data_frame_name=data_frame.name,
                 sql_query=sql_query,
@@ -675,7 +675,7 @@ class DataFramesKernel:
                     f"defined, which is needed to materialize it. Data frame name: "
                     f"{data_frame.name}, id: {data_frame.data_frame_id}"
                 )
-            sql_ast = validate_sql_query(sql_query, data_frame.sql_dialect)
+            sql_ast = validate_sql_query(sql_query, data_frame.sql_dialect, allow_mutate=data_frame.allow_mutate)
             required_variable_names = extract_variable_names_required_from_sql_computation(sql_ast)
 
             for name in required_variable_names:
@@ -877,3 +877,116 @@ class DataFramesKernel:
                 error_code=ErrorCode.PRECONDITION_FAILED,
                 message=f"Unsupported input_id_type: {data_frame.input_id_type}",
             )
+
+    async def execute_sql_returning_row_count(
+        self,
+        sql_query: str,
+        computation_input_sources: "dict[str, DataFrameSource]",
+        dialect: str,
+    ) -> int:
+        """Execute a SQL query and return the number of rows affected.
+
+        This method is for SQL statements that return a row count rather than
+        a result set (e.g., INSERT/UPDATE/DELETE without RETURNING, CREATE TABLE, etc.).
+        It uses raw_sql() to execute the query directly.
+
+        Args:
+            sql_query: The SQL query to execute
+            computation_input_sources: Sources for table resolution (from SDM)
+            dialect: The resolved SQL dialect
+
+        Returns:
+            Number of rows affected by the statement
+        """
+        import sqlglot
+
+        from agent_platform.core.data_frames.data_frames import DataFrameSource
+        from agent_platform.core.errors.base import PlatformError
+        from agent_platform.server.data_frames.data_node import (
+            DUCK_DB_BACKEND,
+            SupportedIbisBackends,
+            make_data_connection_backend,
+        )
+        from agent_platform.server.data_frames.sql_manipulation import (
+            update_column_references,
+            update_column_table_qualifiers,
+            update_table_names,
+        )
+
+        # Build table name mappings and column mappings from computation_input_sources
+        logical_table_name_to_actual_table_name: dict[str, str] = {}
+        table_name_to_column_names_to_expr: dict[str, dict[str, str]] = {}
+        required_backends: set[SupportedIbisBackends] = set()
+
+        df_source: DataFrameSource
+        sdm_sources = [
+            s
+            for s in computation_input_sources.values()
+            if s.source_type == "semantic_data_model" and s.base_table is not None
+        ]
+        for df_source in sdm_sources:
+            assert df_source.base_table is not None  # filtered above
+
+            # Store column mappings if available
+            if df_source.logical_column_names_to_expr and df_source.logical_table_name:
+                table_name_to_column_names_to_expr[df_source.logical_table_name] = (
+                    df_source.logical_column_names_to_expr
+                )
+
+            if df_source.base_table.get("data_connection_id") is not None:
+                assert df_source.logical_table_name is not None
+                base_table = df_source.base_table
+                actual_table_name = base_table.get("table")
+                if actual_table_name:
+                    schema = base_table.get("schema")
+                    if schema:
+                        actual_table_name = f"{schema}.{actual_table_name}"
+                    logical_table_name_to_actual_table_name[df_source.logical_table_name] = actual_table_name
+
+                data_connection_id = base_table.get("data_connection_id")
+                if data_connection_id:
+                    required_backends.add(make_data_connection_backend(data_connection_id))
+            else:
+                # File reference or data frame reference - use duckdb
+                required_backends.add(DUCK_DB_BACKEND)
+
+        # Default to duckdb if no backends found
+        if not required_backends:
+            required_backends.add(DUCK_DB_BACKEND)
+
+        # For row count operations, we only support single backend
+        if len(required_backends) != 1:
+            raise PlatformError(
+                message=f"Unable to execute SQL: multiple backends required: {required_backends}. "
+                "Federation not supported for row count operations."
+            )
+
+        use_backend = required_backends.pop()
+
+        # Get the connection
+        con = await use_backend.create_connection(self._storage)
+
+        # Transform the SQL query with table name and column mappings
+        # Parse and transform SQL
+        sql_ast = sqlglot.parse_one(sql_query, dialect=dialect)
+        sql_ast = update_table_names(sql_ast, logical_table_name_to_actual_table_name)
+        sql_ast = update_column_table_qualifiers(sql_ast, logical_table_name_to_actual_table_name)
+        sql_ast = update_column_references(
+            sql_ast,
+            table_name_to_column_names_to_expr,
+            logical_table_name_to_actual_table_name,
+            data_frame_names=set(),  # No data frames to exclude
+        )
+        full_sql_query_str = sql_ast.sql(dialect=dialect, pretty=True)
+
+        # Execute DML and return row count
+        try:
+            return await con.execute_dml(full_sql_query_str)
+        except Exception as e:
+            logger.error(
+                "Error executing SQL for row count",
+                error=str(e),
+                sql_query=sql_query,
+                full_sql_query_str=full_sql_query_str,
+            )
+            raise PlatformError(message=f"Error executing SQL query: {e}") from e

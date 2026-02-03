@@ -112,6 +112,9 @@ class ExtraDataFrameData(TypedDict, total=False):
     sample_rows: "list[Row] | None"
     """The sample rows for the data frame."""
 
+    allow_mutate: bool
+    """Whether this data frame allows mutation operations (INSERT/UPDATE/DELETE)."""
+
 
 # The maximum number of rows to return to the LLM when using a data frame
 # (this is the amount of samples that we'll always preload and save in the data
@@ -214,6 +217,7 @@ class PlatformDataFrame:
         *,
         sql_dialect: str | None = None,
         sample_rows: "list[Row] | None" = None,
+        allow_mutate: bool | None = None,
     ) -> ExtraDataFrameData:
         """Build the extra data for the data frame."""
         extra_data: ExtraDataFrameData = {}
@@ -223,6 +227,9 @@ class PlatformDataFrame:
 
         if sample_rows is not None:
             extra_data["sample_rows"] = sample_rows
+
+        if allow_mutate is not None:
+            extra_data["allow_mutate"] = allow_mutate
 
         return extra_data
 
@@ -271,6 +278,16 @@ class PlatformDataFrame:
         if self.extra_data is None:
             return []
         return self.extra_data.get("sample_rows") or []
+
+    @property
+    def allow_mutate(self) -> bool:
+        """Whether this data frame allows mutation operations (INSERT/UPDATE/DELETE).
+
+        This is used for verified queries that execute mutations without RETURNING.
+        """
+        if self.extra_data is None:
+            return False
+        return self.extra_data.get("allow_mutate", False)
 
     def __post_init__(self) -> None:
         self.verify()

@@ -56,3 +56,20 @@ class AsyncMySQLConnection(AsyncIbisConnection):
             return cursor
 
         return await asyncio.to_thread(_execute)
+
+    async def execute_dml(self, query: str, *, auto_commit: bool = True) -> int:
+        """Execute a DML statement and return the affected row count.
+
+        Args:
+            query: DML statement (INSERT, UPDATE, or DELETE)
+            auto_commit: If True (default), commit after execution.
+
+        Returns:
+            Number of rows affected. Returns -1 if the count is unavailable.
+        """
+        cursor = await self.raw_sql(query, auto_commit=auto_commit)
+        try:
+            row_count = cursor.rowcount
+            return row_count if row_count is not None else -1
+        finally:
+            cursor.close()

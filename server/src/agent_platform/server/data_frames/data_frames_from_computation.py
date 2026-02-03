@@ -5,6 +5,8 @@ import uuid
 
 from structlog.stdlib import get_logger
 
+from agent_platform.core.errors import PlatformError
+
 if typing.TYPE_CHECKING:
     from sema4ai.actions import Table
 
@@ -114,7 +116,7 @@ async def _get_tables_from_data_frames_and_sdms(
     dict[str, "LogicalTable"],
     dict[str, str],
     dict[str, "DataFrameSource"],
-    set[str | None],
+    set[str],
 ]:
     """Get table info when semantic_data_model_name is None.
 
@@ -144,7 +146,7 @@ async def _get_tables_from_data_frames_and_sdms(
     table_name_to_table_info: dict[str, LogicalTable] = {}
     table_name_to_sdm_name: dict[str, str] = {}
     computation_input_sources: dict[str, DataFrameSource] = {}
-    dialects_found: set[str | None] = set()
+    dialects_found: set[str] = set()
 
     # First, check for data frames in the thread
     for df in all_data_frames:
@@ -190,7 +192,7 @@ async def _process_tables_and_get_dialect(
     table_name_to_table_info: "dict[str, LogicalTable]",
     table_name_to_sdm_name: dict[str, str],
     computation_input_sources: dict,
-    dialects_found: set[str | None],
+    dialects_found: set[str],
     dialect: str | None,
     semantic_data_model_name: str | None,
 ) -> str | None:
@@ -269,7 +271,6 @@ async def _process_tables_and_get_dialect(
             data_connections = await data_frames_kernel.get_data_connections(data_connection_ids)
             dialects_found.update(data_connection.engine for data_connection in data_connections)
 
-        dialects_found.discard(None)
         if len(dialects_found) == 1:
             dialect = dialects_found.pop()
         else:
@@ -277,6 +278,136 @@ async def _process_tables_and_get_dialect(
             dialect = "duckdb"
 
     return dialect
+
+
+async def _prepare_sql_execution(
+    data_frames_kernel: "DataFramesKernel",
+    sql_query: str,
+    dialect: str | None,
+    semantic_data_model_name: str | None,
+    allow_mutate: bool,
+) -> "tuple[dict[str, DataFrameSource], str | None]":
+    """Prepare for SQL execution by validating query and resolving tables.
+
+    This is the common preparation logic shared by both create_data_frame_from_sql_computation_api
+    and invoke_sql_for_rows_affected.
+
+    Args:
+        data_frames_kernel: The data frames kernel instance
+        sql_query: The SQL query to execute
+        dialect: The SQL dialect (or None to auto-detect)
+        semantic_data_model_name: If provided, only use tables from this SDM
+        allow_mutate: If True, allows INSERT/UPDATE/DELETE operations
+
+    Returns:
+        A tuple of (computation_input_sources, resolved_dialect)
+
+    Raises:
+        PlatformError: If the query is invalid or tables are not found
+    """
+    from agent_platform.core.data_frames.data_frames import DataFrameSource
+    from agent_platform.core.errors.base import PlatformError
+    from agent_platform.server.data_frames.sql_manipulation import (
+        extract_variable_names_required_from_sql_computation,
+        validate_sql_query,
+    )
+
+    sql_ast = validate_sql_query(sql_query, dialect, allow_mutate=allow_mutate)
+    required_table_names: set[str] = extract_variable_names_required_from_sql_computation(sql_ast)
+
+    all_data_frames = await data_frames_kernel.list_data_frames()
+
+    # Get table info based on whether semantic_data_model_name is provided
+    if semantic_data_model_name is not None:
+        table_name_to_table_info = await _get_tables_from_specific_sdm(
+            data_frames_kernel,
+            semantic_data_model_name,
+        )
+        table_name_to_sdm_name: dict[str, str] = {}
+        computation_input_sources: dict[str, DataFrameSource] = {}
+        dialects_found: set[str] = set()
+    else:
+        (
+            table_name_to_table_info,
+            table_name_to_sdm_name,
+            computation_input_sources,
+            dialects_found,
+        ) = await _get_tables_from_data_frames_and_sdms(
+            data_frames_kernel,
+            all_data_frames,
+            required_table_names,
+        )
+
+    # Process tables and determine dialect (None for files)
+    resolved_dialect = await _process_tables_and_get_dialect(
+        data_frames_kernel,
+        required_table_names,
+        table_name_to_table_info,
+        table_name_to_sdm_name,
+        computation_input_sources,
+        dialects_found,
+        dialect,
+        semantic_data_model_name,
+    )
+
+    if required_table_names:
+        raise PlatformError(
+            message=(
+                f"Data frame(s) or Semantic Data Model table(s) with name(s) {required_table_names!r} not found.\n"
+                f"Available data frames in thread: {[df.name for df in all_data_frames]}\n"
+                f"Available Semantic Data Model tables: {list(table_name_to_table_info.keys())}\n"
+                f"Expected SQL to be compatible with: {resolved_dialect}"
+            )
+        )
+
+    return computation_input_sources, resolved_dialect
+
+
+async def invoke_sql_for_rows_affected(
+    data_frames_kernel: "DataFramesKernel",
+    sql_query: str,
+    dialect: str | None = None,
+    semantic_data_model_name: str | None = None,
+) -> int:
+    """Execute a SQL query and return the number of rows affected.
+
+    This function is designed for SQL statements that return a row count rather
+    than a result set (e.g., INSERT/UPDATE/DELETE without RETURNING clause).
+
+    Args:
+        data_frames_kernel: The data frames kernel instance
+        sql_query: The SQL query to execute
+        dialect: The SQL dialect (or None to auto-detect)
+        semantic_data_model_name: If provided, only use tables from this SDM
+
+    Returns:
+        The number of rows affected by the statement
+
+    Raises:
+        PlatformError: If the query is invalid or execution fails
+    """
+    # Prepare for execution (validate SQL, resolve tables)
+    computation_input_sources, resolved_dialect = await _prepare_sql_execution(
+        data_frames_kernel=data_frames_kernel,
+        sql_query=sql_query,
+        dialect=dialect,
+        semantic_data_model_name=semantic_data_model_name,
+        allow_mutate=True,  # This function is specifically for mutations
+    )
+
+    # If we're running SQL, we require a dialect to execute
+    if resolved_dialect is None:
+        raise PlatformError(
+            message="Unable to determine SQL dialect for executing the query.",
+            data={"semantic_data_model_name": semantic_data_model_name},
+        )
+
+    # Execute SQL directly and return row count
+    return await data_frames_kernel.execute_sql_returning_row_count(
+        sql_query=sql_query,
+        computation_input_sources=computation_input_sources,
+        dialect=resolved_dialect,
+    )
 
 
 async def create_data_frame_from_sql_computation_api(
@@ -288,6 +419,7 @@ async def create_data_frame_from_sql_computation_api(
     description: str | None = None,
     num_samples: int = 0,
     semantic_data_model_name: str | None = None,
+    allow_mutate: bool = False,
 ) -> "tuple[DataNodeResult, Table]":
     """Create a new data frame from existing data frames using a SQL query.
 
@@ -306,6 +438,8 @@ async def create_data_frame_from_sql_computation_api(
             frame).
         semantic_data_model_name: If provided, only use tables from this semantic data model.
             When set, source resolution will skip data frames and other semantic data models.
+        allow_mutate: If True, allows INSERT/UPDATE/DELETE operations.
+            Defaults to False for security. Only set to True for verified queries.
     Returns:
         A node which can later be queried for the data (the platform data frame is
         available in it) and a table with the number of samples required.
@@ -327,7 +461,7 @@ async def create_data_frame_from_sql_computation_api(
         validate_sql_query,
     )
 
-    sql_ast = validate_sql_query(sql_query, dialect)
+    sql_ast = validate_sql_query(sql_query, dialect, allow_mutate=allow_mutate)
 
     required_table_names: set[str] = extract_variable_names_required_from_sql_computation(sql_ast)
 
@@ -342,7 +476,7 @@ async def create_data_frame_from_sql_computation_api(
         )
         table_name_to_sdm_name: dict[str, str] = {}
         computation_input_sources: dict[str, DataFrameSource] = {}
-        dialects_found: set[str | None] = set()
+        dialects_found: set[str] = set()
     else:
         (
             table_name_to_table_info,

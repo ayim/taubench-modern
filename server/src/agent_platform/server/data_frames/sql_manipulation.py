@@ -9,6 +9,8 @@ if typing.TYPE_CHECKING:
     from sqlglot import exp
     from sqlglot.expressions import Expression
 
+    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+
 DESTRUCTIVE_KEYS = {
     "INSERT",
     "UPDATE",
@@ -38,6 +40,10 @@ DESTRUCTIVE_KEYS = {
 
 READONLY_TOPLEVEL = {"SELECT", "UNION", "EXCEPT", "INTERSECT", "VALUES", "WITH"}
 
+# DML operations that can be allowed for verified queries when allow_mutate=True
+# Note: DDL operations (CREATE, DROP, ALTER, TRUNCATE, etc.) are NEVER allowed
+ALLOWED_MUTATING_TOPLEVEL = {"INSERT", "UPDATE", "DELETE"}
+
 
 def _root_key(e: exp.Expression) -> str:
     # Unwrap wrappers to get to the "real" statement
@@ -49,7 +55,7 @@ def _root_key(e: exp.Expression) -> str:
 
 
 def _contains_destructive(e: exp.Expression) -> str | None:
-    # Walk the whole tree looking for any destructive node
+    """Walk the tree looking for any destructive node."""
     for node in e.walk():
         k = (node.key or "").upper()
         if k in DESTRUCTIVE_KEYS:
@@ -57,15 +63,40 @@ def _contains_destructive(e: exp.Expression) -> str | None:
     return None
 
 
-def get_destructive_reasons(stmt: exp.Expression) -> list[str]:
-    """
-    Returns reasons for why the statement is destructive.
+def get_destructive_reasons(stmt: exp.Expression, allow_mutate: bool = False) -> list[str]:
+    """Returns reasons for why the statement is destructive.
+
+    Args:
+        stmt: The parsed SQL statement
+        allow_mutate: If True, allows INSERT/UPDATE/DELETE operations but still
+                     blocks DDL (CREATE, DROP, ALTER, TRUNCATE).
+                     This should only be set to True for verified queries.
+                     Defaults to False for security.
+
+    Returns:
+        List of reasons why the statement is destructive, or empty list if allowed.
     """
     reasons: list[str] = []
     root = _root_key(stmt)
-    if root not in READONLY_TOPLEVEL:
-        reasons.append(f"Only read-only top-levels are allowed. Found non-read-only top-level: {root}")
+
+    # Determine valid top-level statements based on allow_mutate
+    if allow_mutate:
+        valid_toplevel = READONLY_TOPLEVEL | ALLOWED_MUTATING_TOPLEVEL
+    else:
+        valid_toplevel = READONLY_TOPLEVEL
+
+    if root not in valid_toplevel:
+        if allow_mutate:
+            reasons.append(f"Only read-only or DML (INSERT/UPDATE/DELETE) top-levels are allowed. Found: {root}")
+        else:
+            reasons.append(f"Only read-only top-levels are allowed. Found non-read-only top-level: {root}")
         return reasons
+
+    # If allow_mutate is True and root is a DML operation, it's allowed
+    if allow_mutate and root in ALLOWED_MUTATING_TOPLEVEL:
+        return reasons
+
+    # Standard read-only check for SELECT/UNION/etc
     which = _contains_destructive(stmt)
     if which is not None:
         reasons.append(f"Only read-only statements are allowed. Found destructive clause: {which}")
@@ -569,9 +600,85 @@ def extract_variable_names_required_from_sql_computation(sql_ast: Expression) ->
     return required_variable_names
 
 
+def get_mutation_type(sql_query: str, dialect: str | None) -> str | None:
+    """Return the mutation type if the SQL is a mutation, else None.
+
+    Args:
+        sql_query: The SQL query to analyze
+        dialect: The SQL dialect to use for parsing
+
+    Returns:
+        'INSERT', 'UPDATE', or 'DELETE' if the query is a mutation, None otherwise.
+    """
+    import sqlglot
+
+    try:
+        expressions = sqlglot.parse(sql_query, dialect=dialect)
+        if len(expressions) != 1 or expressions[0] is None:
+            return None
+
+        root = _root_key(expressions[0])
+        if root in ALLOWED_MUTATING_TOPLEVEL:
+            return root
+        return None
+    except Exception:
+        return None
+
+
+def has_returning_clause(sql_query: str, dialect: str | None) -> bool:
+    """Check if a SQL query has a RETURNING clause.
+
+    Args:
+        sql_query: The SQL query to analyze
+        dialect: The SQL dialect to use for parsing
+
+    Returns:
+        True if the query has a RETURNING clause, False otherwise.
+    """
+    import sqlglot
+    from sqlglot import exp
+
+    try:
+        expressions = sqlglot.parse(sql_query, dialect=dialect)
+        if len(expressions) != 1 or expressions[0] is None:
+            return False
+
+        # Look for RETURNING clause in the AST
+        return expressions[0].find(exp.Returning) is not None
+    except Exception:
+        return False
+
+
+def determine_result_type(sql_query: str, dialect: str | None) -> ResultType:
+    """Determine the result type of a SQL query.
+
+    Args:
+        sql_query: The SQL query to analyze
+        dialect: The SQL dialect to use for parsing
+
+    Returns:
+        ResultType.TABLE if the query returns rows (SELECT, or mutation with RETURNING)
+        ResultType.ROWS_AFFECTED if the query is a mutation without RETURNING
+    """
+    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+
+    mutation_type = get_mutation_type(sql_query, dialect)
+
+    if mutation_type is None:
+        # Not a mutation (SELECT, UNION, etc.) - returns a table
+        return ResultType.TABLE
+
+    # It's a mutation - check for RETURNING clause
+    if has_returning_clause(sql_query, dialect):
+        return ResultType.TABLE
+
+    return ResultType.ROWS_AFFECTED
+
+
 def validate_sql_query(
     sql_query: str,
     dialect: str | None,
+    allow_mutate: bool = False,
 ) -> Expression:
     """Validate the SQL query and return the AST.
 
@@ -582,12 +689,14 @@ def validate_sql_query(
         sql_query: The SQL query to validate (may contain :param_name)
         dialect: The SQL dialect to use for parsing. If None, uses a
             permissive internal sqlglot dialect.
+        allow_mutate: If True, allows INSERT/UPDATE/DELETE operations.
+            Defaults to False for security. Only set to True for verified queries.
 
     Returns:
         The parsed sqlglot AST expression
 
     Raises:
-        PlatformError: If the query is invalid or contains destructive
+        PlatformError: If the query is invalid or contains disallowed
             operations
 
     Example:
@@ -611,7 +720,7 @@ def validate_sql_query(
     if expr is None or not hasattr(expr, "key"):
         raise PlatformError(message=f"SQL query is not a valid expression: {sql_query!r}")
 
-    reasons = get_destructive_reasons(expr)
+    reasons = get_destructive_reasons(expr, allow_mutate=allow_mutate)
     if reasons:
         raise PlatformError(message=(f"Unable to create data frame from SQL query: {sql_query} (Errors: {reasons})"))
     return expr

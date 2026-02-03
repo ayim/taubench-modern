@@ -21426,6 +21426,13 @@ export const spec = {
         required: ['name', 'pages'],
         title: 'ResultSplitPartition',
       },
+      ResultType: {
+        type: 'string',
+        enum: ['table', 'rows_affected'],
+        title: 'ResultType',
+        description:
+          'The type of result a SQL query produces.\n\nUsed to distinguish between queries that return tabular data (SELECT, or mutations\nwith RETURNING) and queries that return a count of affected rows (INSERT/UPDATE/DELETE\nwithout RETURNING).',
+      },
       Run: {
         properties: {
           run_id: {
@@ -26287,6 +26294,18 @@ export const spec = {
             ],
             title: 'Parameter Errors',
             description: 'Validation errors for the parameters',
+          },
+          result_type: {
+            anyOf: [
+              {
+                $ref: '#/components/schemas/ResultType',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            description:
+              'The type of result this query produces. TABLE for queries returning rows (SELECT or mutations with RETURNING), ROWS_AFFECTED for mutations without RETURNING. Computed during verification based on SQL analysis.',
           },
         },
         type: 'object',

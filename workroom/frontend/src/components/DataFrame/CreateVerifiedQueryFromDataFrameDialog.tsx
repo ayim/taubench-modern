@@ -213,6 +213,7 @@ export const CreateVerifiedQueryFromDataFrameDialog: FC<CreateVerifiedQueryDialo
         verified_at: verifiedQuery.verified_at,
         verified_by: verifiedQuery.verified_by,
         parameters: verifiedQuery.parameters ?? queryToVerify.parameters,
+        result_type: verifiedQuery.result_type,
       };
 
       await saveMutation.mutateAsync({

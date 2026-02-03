@@ -56,3 +56,34 @@ class AsyncDatabricksConnection(AsyncIbisConnection):
             return cursor
 
         return await asyncio.to_thread(_execute)
+
+    async def execute_dml(self, query: str, *, auto_commit: bool = True) -> int:
+        """Execute a DML statement and return the affected row count.
+
+        Databricks cursor does NOT have a rowcount attribute. For DML operations,
+        the affected row count is returned in the result set (e.g., as
+        num_affected_rows or in the first column).
+
+        Args:
+            query: DML statement (INSERT, UPDATE, or DELETE)
+            auto_commit: If True (default), commit after execution.
+
+        Returns:
+            Number of rows affected. Returns -1 if the count is unavailable.
+        """
+        cursor = await self.raw_sql(query, auto_commit=auto_commit)
+        try:
+            # Databricks DML returns result with affected row info
+            result = cursor.fetchone()
+            if result is not None:
+                # Check for num_affected_rows attribute (Row object)
+                if hasattr(result, "num_affected_rows"):
+                    return int(result.num_affected_rows)
+                # Fallback: first column may contain the row count
+                if len(result) > 0:
+                    first_val = result[0]
+                    if isinstance(first_val, int):
+                        return first_val
+            return -1
+        finally:
+            cursor.close()

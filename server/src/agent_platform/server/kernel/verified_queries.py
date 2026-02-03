@@ -15,6 +15,7 @@ if typing.TYPE_CHECKING:
     from inspect import Parameter
 
     from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+    from agent_platform.core.kernel import ThreadStateInterface
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
@@ -92,6 +93,7 @@ class VerifiedQueryToolBuilder:
 
         from agent_platform.core.data_frames.semantic_data_model_types import (
             QUERY_PARAMETER_TYPE_TO_PYTHON,
+            ResultType,
         )
 
         params_list: list[Parameter] = []
@@ -114,40 +116,42 @@ class VerifiedQueryToolBuilder:
                     )
                 )
 
-        # Add standard data frame parameters
-        params_list.append(
-            Parameter(
-                "new_data_frame_name",
-                Parameter.POSITIONAL_OR_KEYWORD,
-                annotation=Annotated[
-                    str,
-                    """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
-                    such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-                    and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
-                    unique in the thread (updating an existing data frame is not possible).""",
-                ],
-            )
-        )
-        params_list.extend(
-            [
+        # Only add data frame parameters if this query returns a table
+        # Mutations without RETURNING don't create a data frame
+        if verified_query.result_type != ResultType.ROWS_AFFECTED:
+            params_list.append(
                 Parameter(
-                    "new_data_frame_description",
+                    "new_data_frame_name",
                     Parameter.POSITIONAL_OR_KEYWORD,
-                    default=None,
-                    annotation=Annotated[str | None, "Optional description for the data frame."],
-                ),
-                Parameter(
-                    "num_samples",
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    default=10,
                     annotation=Annotated[
-                        int,
-                        """The number of samples to return from the newly created data frame (number of rows
-                        to return). Default is 10 (max 500).""",
+                        str,
+                        """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
+                        such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
+                        and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
+                        unique in the thread (updating an existing data frame is not possible).""",
                     ],
-                ),
-            ]
-        )
+                )
+            )
+            params_list.extend(
+                [
+                    Parameter(
+                        "new_data_frame_description",
+                        Parameter.POSITIONAL_OR_KEYWORD,
+                        default=None,
+                        annotation=Annotated[str | None, "Optional description for the data frame."],
+                    ),
+                    Parameter(
+                        "num_samples",
+                        Parameter.POSITIONAL_OR_KEYWORD,
+                        default=10,
+                        annotation=Annotated[
+                            int,
+                            """The number of samples to return from the newly created data frame (number of rows
+                            to return). Default is 10 (max 500).""",
+                        ],
+                    ),
+                ]
+            )
 
         return params_list
 
@@ -161,14 +165,30 @@ class VerifiedQueryToolBuilder:
         Returns:
             Formatted docstring in Python function style
         """
-        # Simple docstring with just the NLQ description and return value explanation
-        return f"""{verified_query.nlq}
-This tool may return a status of success or needs_retry.
+        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
 
+        base = f"""{verified_query.nlq}
+This tool may return a status of success or needs_retry.
+"""
+
+        if verified_query.result_type == ResultType.ROWS_AFFECTED:
+            return (
+                base
+                + """
+This query modifies data (INSERT/UPDATE/DELETE). On success, it returns the number
+of rows affected by the operation. No data frame is created.
+If the status indicates needs_retry, inform the user of the failure along with
+the error message."""
+            )
+        else:
+            return (
+                base
+                + """
 If the status indicates success, a new data frame is created with the query results,
 and a sample of the data is returned (specified by num_samples).
 If the status indicates needs_retry, you should inform the user of the failure,
 along with the error message."""
+            )
 
     def create_and_add_tool(
         self,
@@ -176,7 +196,7 @@ along with the error message."""
         semantic_data_model_name: str,
         dialect: str,
         sql_executor_callback,
-        thread_state,
+        thread_state: ThreadStateInterface,
     ) -> str:
         """Create a tool definition for executing a verified query and add it to the tools list.
 
@@ -214,8 +234,8 @@ along with the error message."""
         # Create the execution function
         async def execute_verified_query(**kwargs: Any) -> dict[str, Any]:
             """Execute this verified query with the provided parameters."""
-            # Extract standard parameters
-            new_data_frame_name = kwargs.pop("new_data_frame_name")
+            # Extract standard parameters (only present for TABLE result type)
+            new_data_frame_name = kwargs.pop("new_data_frame_name", None)
             new_data_frame_description = kwargs.pop("new_data_frame_description", None)
             num_samples = kwargs.pop("num_samples", 10)
 
@@ -263,8 +283,11 @@ along with the error message."""
 
             start_time = perf_counter()
 
+            # allow_mutate=True enables INSERT/UPDATE/DELETE for verified queries only
+            # result_type is passed so the callback knows whether to create a dataframe or return rows_affected
             result = await sql_executor_callback(
                 sql_query=sql_with_params,
+                result_type=verified_query.result_type,
                 new_data_frame_name=new_data_frame_name,
                 new_data_frame_description=new_data_frame_description,
                 num_samples=num_samples,

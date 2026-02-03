@@ -116,6 +116,7 @@ export const EditVerifiedQueryDialog: FC<Props> = ({ open, onClose, queryIndex, 
       verified_at: verifiedQuery.verified_at,
       verified_by: verifiedQuery.verified_by,
       parameters: verifiedQuery.parameters || queryToVerify.parameters,
+      result_type: verifiedQuery.result_type,
     };
 
     if (isEditMode && queryIndex !== undefined) {

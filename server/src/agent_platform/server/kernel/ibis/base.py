@@ -188,6 +188,28 @@ class AsyncIbisConnection(ABC):
         """
         ...
 
+    @abstractmethod
+    async def execute_dml(self, query: str, *, auto_commit: bool = True) -> int:
+        """Execute a DML statement and return the affected row count.
+
+        Use this for INSERT, UPDATE, DELETE statements where you need the
+        affected row count but not the cursor itself.
+
+        Handles backend-specific differences in how row counts are retrieved
+        and ensures proper cursor cleanup.
+
+        This is a blocking I/O operation wrapped with asyncio.to_thread.
+
+        Args:
+            query: DML statement (INSERT, UPDATE, or DELETE)
+            auto_commit: If True (default), commit after execution. Set to False
+                for explicit transaction control.
+
+        Returns:
+            Number of rows affected. Returns -1 if the count is unavailable.
+        """
+        ...
+
 
 class AsyncIbisTable:
     """Async wrapper for ibis table objects.

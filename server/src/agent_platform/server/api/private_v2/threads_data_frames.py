@@ -1628,6 +1628,17 @@ async def save_data_frame_as_validated_query(
     # Cast the verified query from the payload
     verified_query = typing.cast(VerifiedQuery, payload.verified_query)
 
+    # Compute result_type based on SQL analysis
+    from agent_platform.server.data_frames.sql_manipulation import determine_result_type
+    from agent_platform.server.kernel.semantic_data_model import get_dialect_from_semantic_data_model
+
+    dialect = await get_dialect_from_semantic_data_model(semantic_data_model, base_storage)
+    # We should always be able to figure out the dialect if we're adding a VQ.
+    if not dialect:
+        raise ValueError("Unable to determine SQL dialect from semantic data model")
+
+    verified_query.result_type = determine_result_type(verified_query.sql, dialect)
+
     # Check if a verified query with this name already exists
     verified_queries = semantic_data_model.verified_queries
     existing_query_index = None

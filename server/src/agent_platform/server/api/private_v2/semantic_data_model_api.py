@@ -646,8 +646,10 @@ async def export_semantic_data_model(
             SemanticDataModel.model_validate(semantic_model), storage
         )
 
-        # Convert to dict for YAML serialization (model_dump handles datetime conversion)
-        portable_model_dict = portable_model.model_dump(exclude_none=False)
+        # Convert to dict for YAML serialization
+        # mode="json" ensures enums are serialized as strings (not Python objects)
+        # so yaml.safe_load() can deserialize them
+        portable_model_dict = portable_model.model_dump(mode="json", exclude_none=False)
 
         # Convert to YAML
         yaml_content = yaml.dump(
@@ -1275,6 +1277,17 @@ async def verify_verified_query(
             validated_query = VerifiedQuery.model_validate(
                 verified_query_dict,
                 context={"validation_context": validation_context},
+            )
+
+            # Compute result_type based on SQL analysis
+            # This determines if the query returns a table or rows_affected
+            from agent_platform.server.data_frames.sql_manipulation import (
+                determine_result_type,
+            )
+
+            validated_query.result_type = determine_result_type(
+                validated_query.sql,
+                validation_context.dialect,
             )
         except (
             VerifiedQuerySQLError,

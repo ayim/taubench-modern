@@ -8,6 +8,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+
 if typing.TYPE_CHECKING:
     from agent_platform.server.storage.sqlite import SQLiteStorage
 
@@ -216,6 +218,8 @@ async def test_save_data_frame_as_validated_query(
     assert verified_query.verified_at is not None
     # Verify verified_at is a valid ISO format string
     datetime.fromisoformat(verified_query.verified_at)
+    # Verify result_type is set correctly for SELECT query
+    assert verified_query.result_type == ResultType.TABLE, "SELECT query should have result_type='table'"
 
     # Test updating an existing verified query by calling the endpoint again
     # This should update the verified_at timestamp
@@ -255,6 +259,8 @@ async def test_save_data_frame_as_validated_query(
     assert fix_sql_query(updated_query.sql) == "SELECT * FROM file_data"
     # Verify verified_at was updated (should be different timestamp)
     assert updated_query.verified_at != verified_query.verified_at
+    # Verify result_type is still set correctly after update
+    assert updated_query.result_type == ResultType.TABLE, "Updated SELECT query should have result_type='table'"
 
 
 @pytest.mark.asyncio
@@ -570,3 +576,105 @@ async def test_validated_query_with_parameterization(
     assert year_param["data_type"] == "integer"
     assert year_param["example_value"] == 2021
     assert "description" in year_param
+
+
+@pytest.mark.asyncio
+async def test_validated_query_insert_has_rows_affected_result_type(
+    sqlite_storage: "SQLiteStorage",
+    tmpdir: Path,
+    client: TestClient,
+    test_user,
+):
+    """Test that INSERT query gets result_type='rows_affected' when saved."""
+
+    from server.tests.storage.sample_model_creator import SampleModelCreator
+
+    # Setup model creator
+    model_creator = SampleModelCreator(sqlite_storage, tmpdir)
+    await model_creator.setup()
+
+    # Create thread
+    thread = await model_creator.obtain_sample_thread()
+
+    # Create a CSV file
+    csv_content = b"id,name,value\n1,Alice,100\n2,Bob,200"
+    csv_file = await model_creator.obtain_sample_file(
+        file_content=csv_content,
+        file_name="test_data.csv",
+        mime_type="text/csv",
+    )
+
+    # Create a semantic data model with file reference
+    semantic_model = {
+        "name": "test_insert_model",
+        "description": "Test semantic model for INSERT query",
+        "tables": [
+            {
+                "name": "test_table",
+                "base_table": {
+                    "table": "data_frame_file",
+                    "file_reference": {
+                        "thread_id": thread.thread_id,
+                        "file_ref": csv_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {"name": "id", "expr": "id", "data_type": "INTEGER"},
+                    {"name": "name", "expr": "name", "data_type": "TEXT"},
+                ],
+                "facts": [
+                    {"name": "value", "expr": "value", "data_type": "INTEGER"},
+                ],
+            }
+        ],
+    }
+
+    semantic_data_model_id = await sqlite_storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[],
+        file_references=[(thread.thread_id, csv_file.file_ref)],
+    )
+
+    # Associate model to thread
+    await sqlite_storage.set_thread_semantic_data_models(
+        thread_id=thread.thread_id, semantic_data_model_ids=[semantic_data_model_id]
+    )
+
+    # Create a verified query with INSERT statement (no RETURNING clause)
+    insert_verified_query = {
+        "name": "insert new record",
+        "nlq": "Insert a new record into test_table",
+        "sql": "INSERT INTO test_table (id, name, value) VALUES (:id, :name, :value)",
+        "verified_at": "2024-01-01T00:00:00Z",
+        "verified_by": test_user.user_id,
+        "parameters": [
+            {"name": "id", "data_type": "integer", "example_value": 3, "description": "Record ID"},
+            {"name": "name", "data_type": "string", "example_value": "Charlie", "description": "Name"},
+            {"name": "value", "data_type": "integer", "example_value": 300, "description": "Value"},
+        ],
+    }
+
+    # Save the INSERT verified query
+    response = client.post(
+        f"/api/v2/threads/{thread.thread_id}/data-frames/save-as-validated-query",
+        json={
+            "verified_query": insert_verified_query,
+            "semantic_data_model_id": semantic_data_model_id,
+        },
+    )
+
+    assert response.status_code == 200
+
+    # Retrieve the saved verified query and check result_type
+    retrieved_model = await sqlite_storage.get_semantic_data_model(semantic_data_model_id)
+    assert "verified_queries" in retrieved_model
+    assert len(retrieved_model["verified_queries"]) == 1
+
+    saved_query = retrieved_model["verified_queries"][0]
+    assert saved_query.name == "insert new record"
+    # INSERT without RETURNING should have result_type='rows_affected'
+    assert saved_query.result_type == "rows_affected", (
+        "INSERT query without RETURNING should have result_type='rows_affected'"
+    )

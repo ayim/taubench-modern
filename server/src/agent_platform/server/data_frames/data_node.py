@@ -13,7 +13,8 @@ if typing.TYPE_CHECKING:
 
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.server.data_frames.data_reader import DataReaderSheet
-    from agent_platform.server.kernel.ibis import AsyncIbisTable
+    from agent_platform.server.kernel.ibis import AsyncIbisConnection, AsyncIbisTable
+    from agent_platform.server.storage.base import BaseStorage
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
@@ -60,6 +61,39 @@ class SupportedIbisBackends:
 
     # The data_connection_id of the data connection
     data_connection_id: str | None = None
+
+    async def create_connection(self, storage: "BaseStorage") -> "AsyncIbisConnection":
+        """Create an ibis connection for this backend.
+
+        Args:
+            storage: Platform storage to fetch data connections from (only used for data-connection backend).
+
+        Returns:
+            AsyncIbisConnection for executing queries.
+
+        Raises:
+            PlatformError: If the backend is unsupported or data_connection_id is missing.
+        """
+        from agent_platform.core.errors.base import PlatformError
+
+        if self.backend == "duckdb":
+            import ibis
+
+            from agent_platform.server.kernel.ibis import create_async_connection
+
+            raw_con = ibis.duckdb.connect()
+            return create_async_connection(raw_con, engine="duckdb")
+        elif self.backend == "data-connection":
+            from agent_platform.server.kernel.data_connection_inspector import (
+                DataConnectionInspector,
+            )
+
+            if self.data_connection_id is None:
+                raise PlatformError(message=f"Data connection id is None for backend: {self}")
+            data_connection = await storage.get_data_connection(self.data_connection_id)
+            return await DataConnectionInspector.create_ibis_connection(data_connection)
+        else:
+            raise PlatformError(message=f"Unsupported backend: {self}")
 
 
 # Simple backends

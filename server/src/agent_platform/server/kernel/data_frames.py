@@ -21,6 +21,7 @@ from agent_platform.server.kernel.verified_queries import (
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
     from agent_platform.core.data_frames.semantic_data_model_types import (
+        ResultType,
         VerifiedQuery,
     )
     from agent_platform.core.files.files import UploadedFile
@@ -482,21 +483,41 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         Returns:
             Formatted string section for verified query tools, or empty string if none exist.
         """
+        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+
         ret = "## Verified Query Tools\n\n"
         ret += (
             "These tools are used to execute pre-validated SQL queries against semantic data model tables. "
             "They are optimized for specific use cases and should be preferred when "
             "user query matches the tool description rather than generating SQL. "
-            "If you find matching query but couldnt determine the parameters then ask user to provide them. "
-            "The tools and their descriptions are:\n\n"
+            "If you find matching query but couldn't determine the parameters then ask user to provide them.\n\n"
         )
 
-        # List each tool with its description
+        # Separate queries by result type for clarity
+        table_queries = []
+        mutation_queries = []
+
         for query_info in self._verified_queries.values():
             if query_info.tool_name:
-                ret += f"- `{query_info.tool_name}`: {query_info.verified_query.nlq}\n"
+                if query_info.verified_query.result_type == ResultType.ROWS_AFFECTED:
+                    mutation_queries.append(query_info)
+                else:
+                    table_queries.append(query_info)
 
-        ret += "\n"
+        # List queries that return data frames
+        if table_queries:
+            ret += "**Queries that return data (creates a data frame):**\n"
+            for query_info in table_queries:
+                ret += f"- `{query_info.tool_name}`: {query_info.verified_query.nlq}\n"
+            ret += "\n"
+
+        # List mutation queries that return rows affected
+        if mutation_queries:
+            ret += "**Queries that modify data (returns number of rows affected):**\n"
+            for query_info in mutation_queries:
+                ret += f"- `{query_info.tool_name}`: {query_info.verified_query.nlq}\n"
+            ret += "\n"
+
         return ret
 
     @property
@@ -894,12 +915,15 @@ class _DataFrameTools:
         Returns:
             The generated tool name
         """
+        if not self._thread_state:
+            raise RuntimeError("ThreadState is required to create verified query tools")
+
         builder = VerifiedQueryToolBuilder(self._data_frame_tools)
         return builder.create_and_add_tool(
             verified_query=verified_query,
             semantic_data_model_name=semantic_data_model_name,
             dialect=dialect,
-            sql_executor_callback=self._create_data_frame_from_sql_impl,
+            sql_executor_callback=self._execute_verified_query_sql,
             thread_state=self._thread_state,
         )
 
@@ -1230,10 +1254,21 @@ class _DataFrameTools:
         new_data_frame_description: str | None = None,
         num_samples: int = 10,
         semantic_data_model_name: str | None = None,
+        allow_mutate: bool = False,
     ) -> dict[str, Any]:
         """Internal implementation for creating a data frame from SQL.
 
-        This is called by both the SQL strategies and create_data_frame_from_verified_query.
+        This is called by both the SQL strategies and verified query tools.
+
+        Args:
+            sql_query: The SQL query to execute
+            new_data_frame_name: Name for the new data frame
+            new_data_frame_description: Optional description
+            num_samples: Number of sample rows to return
+            semantic_data_model_name: Optional SDM name to use
+            allow_mutate: If True, allows INSERT/UPDATE/DELETE operations.
+                Defaults to False for security. Only verified query tools
+                should set this to True.
         """
         import keyword
 
@@ -1261,6 +1296,7 @@ class _DataFrameTools:
                 description=new_data_frame_description,
                 num_samples=num_samples if num_samples > 0 else 0,
                 semantic_data_model_name=semantic_data_model_name,
+                allow_mutate=allow_mutate,
             )
 
             self._name_to_data_frame[new_data_frame_name] = resolved_df.platform_data_frame
@@ -1306,3 +1342,106 @@ class _DataFrameTools:
                 "data_frame_name": None,
                 "sample_data": None,
             }
+
+    async def _invoke_sql_for_rows_affected(
+        self,
+        sql_query: str,
+        semantic_data_model_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Execute a mutation SQL query and return the number of rows affected.
+
+        This is used for INSERT/UPDATE/DELETE queries without RETURNING clause.
+        No data frame is created or saved.
+
+        Args:
+            sql_query: The SQL mutation query to execute
+            semantic_data_model_name: Optional SDM name to use
+
+        Returns:
+            Dict with status, result message, and rows_affected count
+        """
+        from agent_platform.server.data_frames.data_frames_from_computation import (
+            invoke_sql_for_rows_affected,
+        )
+        from agent_platform.server.data_frames.sql_manipulation import (
+            get_mutation_type,
+        )
+
+        data_frames_kernel = self._create_data_frames_kernel()
+
+        rows_affected = await invoke_sql_for_rows_affected(
+            data_frames_kernel=data_frames_kernel,
+            sql_query=sql_query,
+            dialect=None,  # Auto-detect from SDM
+            semantic_data_model_name=semantic_data_model_name,
+        )
+
+        # Determine the mutation type for a more descriptive message
+        mutation_type = get_mutation_type(sql_query, dialect=None)
+        verb = {"INSERT": "inserted", "UPDATE": "updated", "DELETE": "deleted"}.get(mutation_type or "", "affected")
+        row_word = "row" if rows_affected == 1 else "rows"
+
+        return {
+            "status": "success",
+            "result": f"{rows_affected} {row_word} {verb}",
+            "rows_affected": rows_affected,
+            "data_frame_name": None,
+            "sample_data": None,
+        }
+
+    async def _execute_verified_query_sql(
+        self,
+        sql_query: str,
+        result_type: ResultType | None,
+        new_data_frame_name: str | None,
+        new_data_frame_description: str | None,
+        num_samples: int,
+        semantic_data_model_name: str,
+    ) -> dict[str, Any]:
+        """Execute verified query SQL with appropriate handling based on result_type.
+
+        This is the main entry point for verified query execution. It routes to either
+        the dataframe creation path or the rows_affected path based on result_type.
+
+        Args:
+            sql_query: The SQL query to execute
+            result_type: The type of result expected (TABLE or ROWS_AFFECTED).
+                If None, defaults to TABLE for backward compatibility.
+            new_data_frame_name: Name for the new data frame (required for TABLE result_type)
+            new_data_frame_description: Optional description for the data frame
+            num_samples: Number of sample rows to return
+            semantic_data_model_name: The SDM name this query belongs to
+
+        Returns:
+            Dict with status, result, and either sample_data/data_frame_name or rows_affected
+        """
+        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+
+        # Fallback for old VQs that don't have result_type set
+        if result_type is None:
+            result_type = ResultType.TABLE
+
+        if result_type == ResultType.TABLE:
+            # Ensure we have a data frame name for TABLE result type
+            if not new_data_frame_name:
+                return {
+                    "status": "needs_retry",
+                    "message": "new_data_frame_name is required for queries that return data",
+                    "data_frame_name": None,
+                    "sample_data": None,
+                }
+
+            return await self._create_data_frame_from_sql_impl(
+                sql_query=sql_query,
+                new_data_frame_name=new_data_frame_name,
+                new_data_frame_description=new_data_frame_description,
+                num_samples=num_samples,
+                semantic_data_model_name=semantic_data_model_name,
+                allow_mutate=True,  # VQs are allowed to mutate
+            )
+        else:
+            # ResultType.ROWS_AFFECTED
+            return await self._invoke_sql_for_rows_affected(
+                sql_query=sql_query,
+                semantic_data_model_name=semantic_data_model_name,
+            )

@@ -49,6 +49,21 @@ class ValidationMessageLevel(StrEnum):
     WARNING = "warning"
 
 
+class ResultType(StrEnum):
+    """The type of result a SQL query produces.
+
+    Used to distinguish between queries that return tabular data (SELECT, or mutations
+    with RETURNING) and queries that return a count of affected rows (INSERT/UPDATE/DELETE
+    without RETURNING).
+    """
+
+    TABLE = "table"
+    """Returns a dataframe (SELECT, or mutations with RETURNING clause)."""
+
+    ROWS_AFFECTED = "rows_affected"
+    """Returns count of affected rows (INSERT/UPDATE/DELETE without RETURNING)."""
+
+
 class ValidationMessageKind(StrEnum):
     """The kind of a validation message."""
 
@@ -827,6 +842,15 @@ class VerifiedQuery(BaseModel):
         description="Validation errors for the parameters",
     )
 
+    result_type: ResultType | None = Field(
+        default=None,
+        description=(
+            "The type of result this query produces. TABLE for queries returning rows "
+            "(SELECT or mutations with RETURNING), ROWS_AFFECTED for mutations without "
+            "RETURNING. Computed during verification based on SQL analysis."
+        ),
+    )
+
     @field_validator("name", "nlq", "sql", mode="before")
     @classmethod
     def strip_string_fields(cls, v: str) -> str:
@@ -1004,7 +1028,7 @@ class VerifiedQuery(BaseModel):
 
         # Parse SQL once and validate syntax
         try:
-            sql_ast = validate_sql_query(self.sql, dialect=context.dialect)
+            sql_ast = validate_sql_query(self.sql, dialect=context.dialect, allow_mutate=True)
         except Exception as e:
             raise VerifiedQuerySQLError(
                 message=f"SQL syntax error: {e}",
