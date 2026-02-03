@@ -1,4 +1,4 @@
-- message: 'Action Package path not referenced in the `agent-spec.yaml`: ''MyActions/control-room-test/0.0.1/new-path.zip''.'
+- message: "Action Package path not referenced in the `agent-spec.yaml`: 'MyActions/control-room-test/0.0.1/new-path.zip'."
   range:
     end:
       character: 0

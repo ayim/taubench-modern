@@ -1,7 +1,7 @@
 """Agent package metadata generation.
 
 This module provides the main entry points for generating agent package metadata
-from agent packages, mirroring the Go implementation in golang-agent-cli/cmd/package_metadata.go.
+from agent packages.
 
 The main entry point is:
 - `AgentMetadataGenerator`: Class-based API for generating metadata

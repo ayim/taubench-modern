@@ -19,8 +19,8 @@
       line: 16
   severity: 1
   source: sema4ai
-- message: 'agent-package/agents/mcp-servers/transport: When the transport is ''auto'',
-    either the url or command-line field must be defined.'
+- message: "agent-package/agents/mcp-servers/transport: When the transport is 'auto',
+    either the url or command-line field must be defined."
   range:
     end:
       character: 0

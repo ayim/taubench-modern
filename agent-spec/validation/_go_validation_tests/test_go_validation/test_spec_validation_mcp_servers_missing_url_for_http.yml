@@ -9,8 +9,8 @@
       line: 21
   severity: 1
   source: sema4ai
-- message: 'agent-package/agents/mcp-servers/transport: When the transport is ''streamable-http''
-    or ''sse'', the url must be defined.'
+- message: "agent-package/agents/mcp-servers/transport: When the transport is 'streamable-http'
+    or 'sse', the url must be defined."
   range:
     end:
       character: 0
@@ -20,8 +20,8 @@
       line: 19
   severity: 1
   source: sema4ai
-- message: 'agent-package/agents/mcp-servers/transport: When the transport is ''streamable-http''
-    or ''sse'', the url must be defined.'
+- message: "agent-package/agents/mcp-servers/transport: When the transport is 'streamable-http'
+    or 'sse', the url must be defined."
   range:
     end:
       character: 0

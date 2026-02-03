@@ -1,6 +1,6 @@
-- message: 'Expected agent-package/spec-version to be ''v2'' (validation will proceed
+- message: "Expected agent-package/spec-version to be 'v2' (validation will proceed
     considering v2 spec, unexpected nodes will be reported as warnings and the related
-    functionality will be disabled). Found: v44'
+    functionality will be disabled). Found: v44"
   range:
     end:
       character: 0

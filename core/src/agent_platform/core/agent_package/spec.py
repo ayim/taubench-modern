@@ -369,8 +369,6 @@ class AgentSpecGenerator:
                     "version": ap.version,
                     "type": action_package_type,
                     "whitelist": ",".join(ap.allowed_actions),
-                    # The path was created in the agent-cli from the gallery path.
-                    # We need to create it here the same way is it created for the gallery.
                     "path": create_action_package_path(action_package_type, ap.organization, ap.name, ap.version),
                 }
             )

@@ -68,8 +68,8 @@ agent-package/agents/action-packages/type:
     distribution.
   ExpectedType:
     EnumValues:
-    - zip
-    - folder
+      - zip
+      - folder
     ExpectedType: zip_or_folder_based_on_path
     RecommendedValues: null
     RelativeTo: ''
@@ -115,8 +115,8 @@ agent-package/agents/architecture:
     ability to plan/replan its approach to coming up with an answer to a user''s question/prompt.'
   ExpectedType:
     EnumValues:
-    - agent
-    - plan_execute
+      - agent
+      - plan_execute
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''
@@ -202,8 +202,8 @@ agent-package/agents/document-intelligence:
   Description: 'Document intelligence version to use. Example: "v2" or "v2.1"'
   ExpectedType:
     EnumValues:
-    - v2
-    - v2.1
+      - v2
+      - v2.1
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''
@@ -482,8 +482,8 @@ agent-package/agents/metadata/mode:
   Description: 'Mode of worker allowed values: "conversational" | "worker"'
   ExpectedType:
     EnumValues:
-    - conversational
-    - worker
+      - conversational
+      - worker
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''
@@ -536,11 +536,11 @@ agent-package/agents/model/name:
     EnumValues: null
     ExpectedType: string
     RecommendedValues:
-    - gpt-3.5-turbo
-    - gpt-4-turbo
-    - gpt-4o
-    - gpt-4
-    - llama3
+      - gpt-3.5-turbo
+      - gpt-4-turbo
+      - gpt-4o
+      - gpt-4
+      - llama3
     RelativeTo: ''
   Path: agent-package/agents/model/name
   Required: true
@@ -551,12 +551,12 @@ agent-package/agents/model/provider:
     EnumValues: null
     ExpectedType: string
     RecommendedValues:
-    - OpenAI
-    - Azure
-    - Anthropic
-    - Google
-    - Amazon
-    - Ollama
+      - OpenAI
+      - Azure
+      - Anthropic
+      - Google
+      - Amazon
+      - Ollama
     RelativeTo: ''
   Path: agent-package/agents/model/provider
   Required: true
@@ -576,9 +576,9 @@ agent-package/agents/reasoning:
     "verbose"'
   ExpectedType:
     EnumValues:
-    - disabled
-    - enabled
-    - verbose
+      - disabled
+      - enabled
+      - verbose
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''
@@ -787,9 +787,9 @@ agent-package/variables/type:
     "string"'
   ExpectedType:
     EnumValues:
-    - secret
-    - oauth2-secret
-    - string
+      - secret
+      - oauth2-secret
+      - string
     ExpectedType: enum
     RecommendedValues: null
     RelativeTo: ''
