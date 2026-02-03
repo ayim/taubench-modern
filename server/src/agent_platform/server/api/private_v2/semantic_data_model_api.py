@@ -12,18 +12,6 @@ from pydantic import ValidationError
 from structlog import get_logger
 from structlog.stdlib import BoundLogger
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
-    SemanticDataModel,
-    ValidationMessage,
-    ValidationMessageKind,
-    ValidationMessageLevel,
-    VerifiedQuery,
-    VerifiedQueryNameError,
-    VerifiedQueryNLQError,
-    VerifiedQueryParameterError,
-    VerifiedQuerySQLError,
-    VerifiedQueryValidationContext,
-)
 from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.payloads import (
@@ -41,6 +29,18 @@ from agent_platform.core.payloads.semantic_data_model_payloads import (
     VerifyVerifiedQueryPayload,
     VerifyVerifiedQueryResponse,
     _ValidateSemanticDataModelResultsSummary,
+)
+from agent_platform.core.semantic_data_model.types import (
+    SemanticDataModel,
+    ValidationMessage,
+    ValidationMessageKind,
+    ValidationMessageLevel,
+    VerifiedQuery,
+    VerifiedQueryNameError,
+    VerifiedQueryNLQError,
+    VerifiedQueryParameterError,
+    VerifiedQuerySQLError,
+    VerifiedQueryValidationContext,
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
@@ -226,7 +226,7 @@ async def set_semantic_data_model(
     """Set a semantic data mode.
     Returns the ID of the semantic data model (the same one passed in) as well as the
     data connection IDs and file references that were used to set the semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.semantic_data_models import (
@@ -289,7 +289,7 @@ async def create_semantic_data_model(
     """Create a new semantic data model.
     Returns the ID of the created semantic data model as well as the
     data connection IDs and file references that were used to create the semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.semantic_data_models import (
@@ -549,7 +549,7 @@ async def list_semantic_data_models(
     thread_id: str | None = None,
 ) -> list[SemanticDataModelWithAssociations]:
     """List semantic data models with optional filtering by agent_id or thread_id."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -727,7 +727,7 @@ async def import_semantic_data_model(
     - is_duplicate: True if an existing SDM was reused
     - warnings: Any non-fatal issues encountered during import
     """
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.semantic_data_models import (
@@ -930,10 +930,10 @@ async def _validate_single_sdm(
     Returns:
         Validation result item with SDM, errors, and warnings
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
     )
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (
@@ -1134,7 +1134,7 @@ async def prepare_verified_query_validation_context(
     Returns:
         VerifiedQueryValidationContext with all prepared validation data
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         LogicalTable,
         VerifiedQueryValidationContext,
     )
@@ -1242,10 +1242,10 @@ async def verify_verified_query(
         # We wrap this in try/except because existing parameters may have validation errors
         # (e.g., invalid data_type). Those errors will be caught by the main validation below.
         if validation_context.dialect and verified_query_dict.get("sql"):
-            from agent_platform.core.data_frames.semantic_data_model_types import (
+            from agent_platform.core.semantic_data_model.types import (
                 QueryParameter,
             )
-            from agent_platform.core.data_frames.semantic_data_model_utils import (
+            from agent_platform.core.semantic_data_model.utils import (
                 extract_missing_parameters,
             )
 

@@ -10,7 +10,7 @@ class TestExtractMissingParameters:
 
     def test_all_parameters_missing(self):
         """Test that all parameters are returned when none are defined."""
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 
@@ -28,10 +28,10 @@ class TestExtractMissingParameters:
 
     def test_some_parameters_already_defined(self):
         """Test that only missing parameters are returned when some are defined."""
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             QueryParameter,
         )
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 
@@ -47,10 +47,10 @@ class TestExtractMissingParameters:
 
     def test_all_parameters_already_defined(self):
         """Test that empty list is returned when all parameters are defined."""
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             QueryParameter,
         )
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 
@@ -65,7 +65,7 @@ class TestExtractMissingParameters:
 
     def test_no_parameters_in_sql(self):
         """Test that empty list is returned when SQL has no parameters."""
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 
@@ -76,7 +76,7 @@ class TestExtractMissingParameters:
 
     def test_invalid_sql_returns_empty_list(self):
         """Test that invalid SQL returns empty list instead of raising."""
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 
@@ -86,7 +86,7 @@ class TestExtractMissingParameters:
 
     def test_empty_existing_parameters_list(self):
         """Test that empty list behaves same as None for existing parameters."""
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_missing_parameters,
         )
 

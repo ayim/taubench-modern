@@ -65,7 +65,7 @@ class _MutableDataFramesChecker:
 
     async def setup_semantic_data_model(self) -> str:
         """Create data connection and semantic data model for the mutable DB."""
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             SemanticDataModel,
         )
 

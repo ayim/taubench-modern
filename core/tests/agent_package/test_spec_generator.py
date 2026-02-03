@@ -23,10 +23,10 @@ from agent_platform.core.agent_package.spec import (
     SpecSelectedTools,
     SpecSemanticDataModel,
 )
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.utils.secret_str import SecretString
 
 

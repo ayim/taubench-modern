@@ -20,7 +20,6 @@ from structlog.stdlib import get_logger
 from agent_platform.core.agent import Agent
 from agent_platform.core.data_connections.data_connections import DataConnection
 from agent_platform.core.data_frames import PlatformDataFrame
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.evals.types import (
     ExecutionState,
@@ -34,6 +33,7 @@ from agent_platform.core.evals.types import (
 )
 from agent_platform.core.integrations import Integration, IntegrationScope
 from agent_platform.core.integrations.observability.integration import ObservabilityIntegration
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.thread import ThreadMessage
 from agent_platform.server.storage.abstract import AbstractStorage
 from agent_platform.server.storage.common import CommonMixin
@@ -50,7 +50,6 @@ from agent_platform.server.storage.errors import (
 if typing.TYPE_CHECKING:
     from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
     from agent_platform.core.evals.types import EvaluationResult
     from agent_platform.core.mcp.mcp_server import (
         MCPServer,
@@ -60,6 +59,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.core.oauth.oauth_models import OAuthConfig
     from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
+    from agent_platform.core.semantic_data_model.types import VerifiedQuery
     from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
     from agent_platform.server.storage.types import StaleThreadsResult
 
@@ -293,7 +293,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         from pydantic import ValidationError
 
-        from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+        from agent_platform.core.semantic_data_model.types import VerifiedQuery
         from agent_platform.server.data_frames.semantic_data_model_validator import (
             create_partial_verified_query_with_errors,
         )

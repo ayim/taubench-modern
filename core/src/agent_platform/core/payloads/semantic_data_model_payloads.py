@@ -5,15 +5,15 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
-    SemanticDataModel,
-    ValidationMessage,
-    VerifiedQuery,
-)
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectRequest,
     DataConnectionsInspectResponse,
+)
+from agent_platform.core.semantic_data_model.types import (
+    SemanticDataModel,
+    ValidationMessage,
+    VerifiedQuery,
 )
 
 

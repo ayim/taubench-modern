@@ -2,8 +2,8 @@
 
 import pytest
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.payloads.semantic_data_model_payloads import TableInfo
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.server.kernel.semantic_data_model_generator import ColumnInfo, DataConnectionInfo
 
 

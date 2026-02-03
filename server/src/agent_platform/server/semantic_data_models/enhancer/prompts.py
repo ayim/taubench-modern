@@ -11,8 +11,8 @@ from agent_platform.core.prompts.prompt import Prompt
 if TYPE_CHECKING:
     from tenacity import RetryCallState
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.semantic_data_models.enhancer.type_defs import EnhancementMode
 
 

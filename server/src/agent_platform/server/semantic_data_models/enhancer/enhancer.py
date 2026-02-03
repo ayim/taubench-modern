@@ -19,12 +19,12 @@ if TYPE_CHECKING:
 
     from tenacity import RetryCallState
 
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.prompts.prompt import Prompt
+    from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.semantic_data_model.types import (
         LogicalTable,
         SemanticDataModel,
     )
-    from agent_platform.core.prompts.prompt import Prompt
-    from agent_platform.core.responses.response import ResponseMessage
     from agent_platform.core.user import User
     from agent_platform.server.api.dependencies import StorageDependency
     from agent_platform.server.semantic_data_models.enhancer.prompts import (
@@ -314,7 +314,7 @@ def _reset_column_names_to_physical(table: LogicalTable) -> None:
     Args:
         table: The logical table dict to process.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+    from agent_platform.core.semantic_data_model.types import CATEGORIES
 
     # Skip metrics since their expr can be complex SQL expressions
     # that are not valid as column names

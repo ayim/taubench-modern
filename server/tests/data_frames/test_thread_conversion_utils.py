@@ -24,7 +24,7 @@ async def test_get_related_to_semantic_data_model_name_returns_sdm_name_for_file
     from agent_platform.core.agent_architectures.thread_conversion_utils import (
         _get_related_to_semantic_data_model_name,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage
@@ -143,7 +143,7 @@ async def test_get_related_to_semantic_data_model_name_returns_none_when_columns
     from agent_platform.core.agent_architectures.thread_conversion_utils import (
         _get_related_to_semantic_data_model_name,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage
@@ -216,7 +216,7 @@ async def test_get_related_to_semantic_data_model_name_with_resolved_file_refere
     from agent_platform.core.agent_architectures.thread_conversion_utils import (
         _get_related_to_semantic_data_model_name,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from agent_platform.core.agent import Agent
     from agent_platform.core.agent_package.diff_utils.types import AgentDiffResult
     from agent_platform.core.agent_package.spec import AgentPackageSpecFileFields, SpecAgent
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 
 def _get_changed_file_categories(diff_result: AgentDiffResult) -> set[AgentPackageSpecFileFields]:

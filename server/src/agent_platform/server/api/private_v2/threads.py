@@ -768,13 +768,13 @@ async def validate_thread_semantic_data_models(
     if not semantic_data_models:
         raise PlatformHTTPError(error_code=ErrorCode.NOT_FOUND, message="No semantic data models found for thread")
 
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
     )
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.data_frames.semantic_data_model_validator import (

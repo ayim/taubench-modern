@@ -9,8 +9,8 @@ from agent_platform.core.agent_package.handler.base import BasePackageHandler, Y
 from agent_platform.core.agent_package.metadata.agent_metadata import AgentPackageMetadata
 from agent_platform.core.agent_package.spec import AgentPackageSpec, SpecAgent
 from agent_platform.core.agent_package.utils import convert_image_bytes_to_base64
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 if TYPE_CHECKING:
     from agent_platform.core.agent_package.handler.action_package import (

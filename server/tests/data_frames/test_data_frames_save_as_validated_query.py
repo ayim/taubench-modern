@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+from agent_platform.core.semantic_data_model.types import ResultType
 
 if typing.TYPE_CHECKING:
     from agent_platform.server.storage.sqlite import SQLiteStorage

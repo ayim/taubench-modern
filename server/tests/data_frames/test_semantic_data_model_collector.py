@@ -1,8 +1,8 @@
 import typing
 from pathlib import Path
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from server.tests.storage_fixtures import *  # noqa
 
 if typing.TYPE_CHECKING:

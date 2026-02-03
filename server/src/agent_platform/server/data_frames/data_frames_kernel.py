@@ -107,7 +107,7 @@ class Dependencies:
             raise PlatformError(message=f"Unsupported input_id_type: {df.input_id_type}")
 
     def _get_backend_from_df_source(self, df_source: "DataFrameSource") -> "SupportedIbisBackends|None":
-        from agent_platform.core.data_frames.semantic_data_model_types import BaseTable
+        from agent_platform.core.semantic_data_model.types import BaseTable
         from agent_platform.server.data_frames.data_node import (
             DUCK_DB_BACKEND,
             make_data_connection_backend,
@@ -723,8 +723,8 @@ class DataFramesKernel:
         import uuid
 
         from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-        from agent_platform.core.data_frames.semantic_data_model_types import BaseTable
         from agent_platform.core.errors.base import PlatformError
+        from agent_platform.core.semantic_data_model.types import BaseTable
 
         if data_source.source_type == "data_frame":
             raise RuntimeError("Must resolve as a data frame, not a data source")

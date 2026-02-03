@@ -5,16 +5,16 @@ from pydantic import BaseModel
 from structlog import get_logger
 
 if typing.TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
+    from agent_platform.core.semantic_data_model.types import (
         FileReference,
         LogicalTable,
         SemanticDataModel,
     )
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         EmptyFileReference,
         References,
     )
-    from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.server.api.private_v2.threads_data_frames import _DataFrameInspectionAPI
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.storage.base import BaseStorage
@@ -290,7 +290,7 @@ class SemanticDataModelCollector:
         Returns:
             A tuple of (semantic_data_model, updated_references)
         """
-        from agent_platform.core.data_frames.semantic_data_model_validation import (
+        from agent_platform.core.semantic_data_model.validation import (
             validate_semantic_model_payload_and_extract_references,
         )
 

@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING
 import structlog
 
 if TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.core.tools.tool_definition import ToolDefinition
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
         EnhancementMode,

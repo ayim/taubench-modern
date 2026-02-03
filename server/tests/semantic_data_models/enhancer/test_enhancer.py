@@ -64,7 +64,7 @@ def mock_storage_with_fk_inspection(monkeypatch):
 
 def test_create_semantic_data_model_for_llm_from_semantic_data_model(data_regression):
     """Test creating a semantic data model for LLM from a semantic data model."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         BaseTable,
         Dimension,
         Filter,

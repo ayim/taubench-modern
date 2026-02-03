@@ -9,11 +9,11 @@ if TYPE_CHECKING:
 
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    from agent_platform.core.data_frames.semantic_data_model_types import LogicalTable
     from agent_platform.core.payloads.data_connection import DataConnection
     from agent_platform.core.payloads.semantic_data_model_payloads import (
         GenerateSemanticDataModelResponse,
     )
+    from agent_platform.core.semantic_data_model.types import LogicalTable
     from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
         ValueForDimension,
     )
@@ -96,7 +96,7 @@ def assert_table_enhanced(table: LogicalTable) -> None:
         AssertionError: If any required field is missing or invalid.
     """
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
         SemanticDataModelIndex,
     )
@@ -1281,7 +1281,7 @@ def test_validation_resolves_file_references_with_thread_context(
 
     import requests
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     client, _ = agent_server_client_with_data_connection
 

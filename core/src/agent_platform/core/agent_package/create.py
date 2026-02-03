@@ -7,7 +7,7 @@ from agent_platform.core.agent_package.handler.action_package import ActionPacka
 from agent_platform.core.agent_package.handler.action_package import ActionPackageMap
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.spec import AgentSpecGenerator
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 logger = structlog.get_logger(__name__)
 

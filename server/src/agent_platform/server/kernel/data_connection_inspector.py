@@ -6,7 +6,7 @@ from typing import Any
 
 from structlog import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
+from agent_platform.core.semantic_data_model.types import ValidationMessage
 from agent_platform.server.kernel.ibis_utils import DataConnectionInspectorError
 
 if typing.TYPE_CHECKING:
@@ -219,7 +219,7 @@ class DataConnectionInspector:
         occurs accessing it. If a table is provided, it will be used instead of
         getting it from the connection.
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )
@@ -269,7 +269,7 @@ class DataConnectionInspector:
         self, table: AsyncIbisTable, column_expression: str
     ) -> ValidationMessage | None:
         """Extracted for testing purposes."""
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )

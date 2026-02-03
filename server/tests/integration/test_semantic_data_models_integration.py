@@ -906,7 +906,7 @@ def test_generate_semantic_data_model_generation_integration(
         # Get the semantic model dict with nulls stripped consistently
         # We need to use model_dump() on the SemanticDataModel directly (not through the parent)
         # to ensure the custom serializer strips nulls properly
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         semantic_model_dict = SemanticDataModel.model_validate(orig_model["semantic_model"]).model_dump()
         expected_thread_sdms = [{semantic_data_model_id: semantic_model_dict}]
@@ -943,7 +943,7 @@ def test_semantic_data_model_with_file_reference_workflow(base_url_agent_server_
     """Create semantic data model from file, upload file, and query with LLM."""
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
@@ -1086,7 +1086,7 @@ def test_semantic_data_model_validation_with_file_reference_resolution(base_url_
     import requests
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     with AgentServerClient(base_url_agent_server) as agent_client:
         # Create agent and thread

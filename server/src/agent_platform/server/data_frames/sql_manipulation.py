@@ -9,7 +9,7 @@ if typing.TYPE_CHECKING:
     from sqlglot import exp
     from sqlglot.expressions import Expression
 
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
 
 DESTRUCTIVE_KEYS = {
     "INSERT",
@@ -660,7 +660,7 @@ def determine_result_type(sql_query: str, dialect: str | None) -> ResultType:
         ResultType.TABLE if the query returns rows (SELECT, or mutation with RETURNING)
         ResultType.ROWS_AFFECTED if the query is a mutation without RETURNING
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
 
     mutation_type = get_mutation_type(sql_query, dialect)
 

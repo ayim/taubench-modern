@@ -1,6 +1,6 @@
-# Agent Platform Mono-repository
+# SPAR Mono-repository
 
-This mono-repository contains the code for both the backend and the frontend of the agent platform.
+This mono-repository contains the code for both the backend and the frontend of SPAR. This repository is called Moonraker.
 
 ## TypeScript & React Guidelines
 
@@ -13,11 +13,11 @@ Primary components:
 
 ## Python Guidelines
 
-**For any Python implementation in the agent-platform codebase, invoke the `python-guidelines` skill.** This skill contains all coding standards, patterns, and review guidelines for the Python code.
+**For any Python implementation in the SPAR codebase, invoke the `python-guidelines` skill.** This skill contains all coding standards, patterns, and review guidelines for the Python code. We also call this agent-platform.
 
 Primary components:
 
-- Agent-server: @server, @core
+- Agent-platform: @server, @core, @architectures
 
 ## Layout
 
@@ -51,7 +51,7 @@ The SPAR docker file (`Dockerfile.spar`) builds both the agent-server and workro
 - **Interactive Python:** Use `uv run --project agent_platform_server python` to launch an interactive Python shell within the project's environment.
 - **Testing instructions:** Run all tests using `make test-unit` or specific tests via `uv run --project agent_platform_server pytest`."
 
-- **IMPORTANT**: Tests MUST always be run from the root of the `agent-platform` monorepo
+- **IMPORTANT**: Tests MUST always be run from the root of the `moonraker` monorepo
 - **IMPORTANT**: NEVER run `uv` or `make` from a subdirectory (running `uv` from `server/` or `core/` is NOT supported and commands will fail).
 
 ### Python imports coding standard

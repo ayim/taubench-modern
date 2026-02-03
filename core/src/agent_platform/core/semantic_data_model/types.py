@@ -975,7 +975,7 @@ class VerifiedQuery(BaseModel):
         - No extra parameters are defined that aren't used in SQL
         - No parameters are defined when SQL has no placeholders
         """
-        from agent_platform.core.data_frames.semantic_data_model_utils import (
+        from agent_platform.core.semantic_data_model.utils import (
             extract_parameters_from_sql,
         )
 

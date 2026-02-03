@@ -6,9 +6,9 @@ from agent_platform.core.actions import ActionPackage
 from agent_platform.core.agent import AgentArchitecture
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.read import read_agent_package
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.payloads import AgentPackagePayload, UpsertAgentPayload
 from agent_platform.core.selected_tools import SelectedTools
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.telemetry.otel_orchestrator import OtelOrchestrator
 from agent_platform.core.utils import SecretString
 from agent_platform.server.api.dependencies import StorageDependency

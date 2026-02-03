@@ -14,8 +14,8 @@ from dataclasses import dataclass, field
 if typing.TYPE_CHECKING:
     from inspect import Parameter
 
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
     from agent_platform.core.kernel import ThreadStateInterface
+    from agent_platform.core.semantic_data_model.types import VerifiedQuery
     from agent_platform.core.tools.tool_definition import ToolDefinition
 
 
@@ -91,7 +91,7 @@ class VerifiedQueryToolBuilder:
         from inspect import Parameter
         from typing import Annotated
 
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             QUERY_PARAMETER_TYPE_TO_PYTHON,
             ResultType,
         )
@@ -165,7 +165,7 @@ class VerifiedQueryToolBuilder:
         Returns:
             Formatted docstring in Python function style
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+        from agent_platform.core.semantic_data_model.types import ResultType
 
         base = f"""{verified_query.nlq}
 This tool may return a status of success or needs_retry.

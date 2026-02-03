@@ -1370,7 +1370,7 @@ def test_has_returning_clause_invalid_sql_returns_false():
 
 def test_determine_result_type_select_returns_table():
     """Test that SELECT queries return ResultType.TABLE."""
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
     from agent_platform.server.data_frames.sql_manipulation import determine_result_type
 
     assert determine_result_type("SELECT * FROM users", "postgres") == ResultType.TABLE
@@ -1380,7 +1380,7 @@ def test_determine_result_type_select_returns_table():
 
 def test_determine_result_type_mutation_with_returning_returns_table():
     """Test that mutations with RETURNING return ResultType.TABLE."""
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
     from agent_platform.server.data_frames.sql_manipulation import determine_result_type
 
     assert determine_result_type("INSERT INTO users VALUES (1) RETURNING *", "postgres") == ResultType.TABLE
@@ -1390,7 +1390,7 @@ def test_determine_result_type_mutation_with_returning_returns_table():
 
 def test_determine_result_type_mutation_without_returning_returns_rows_affected():
     """Test that mutations without RETURNING return ResultType.ROWS_AFFECTED."""
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
     from agent_platform.server.data_frames.sql_manipulation import determine_result_type
 
     assert determine_result_type("INSERT INTO users VALUES (1)", "postgres") == ResultType.ROWS_AFFECTED

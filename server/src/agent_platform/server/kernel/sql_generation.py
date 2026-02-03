@@ -3,12 +3,12 @@ from typing import Annotated, Any, ClassVar, Literal
 
 from structlog import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
+from agent_platform.core.kernel_interfaces.sql_generation import SQLGenerationInterface
+from agent_platform.core.semantic_data_model.types import (
     SemanticDataModel,
     VerifiedQuery,
 )
-from agent_platform.core.kernel_interfaces.kernel_mixin import UsesKernelMixin
-from agent_platform.core.kernel_interfaces.sql_generation import SQLGenerationInterface
 from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.content.sql_generation import SQLGenerationContent
 from agent_platform.core.tools.tool_definition import ToolDefinition
@@ -342,7 +342,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     def _get_available_table_names(self) -> list[str]:
         """Get list of all available table names from semantic data models."""
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         table_names: list[str] = []
         for sdm_and_refs in self._semantic_data_models:
@@ -417,7 +417,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         Returns None if the table is not found.
         """
 
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         for sdm_and_refs in self._semantic_data_models:
             semantic_data_model: SemanticDataModel = sdm_and_refs.semantic_data_model_info["semantic_data_model"]
@@ -428,7 +428,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     def _extract_column_names_from_table(self, table: dict[str, Any]) -> list[str]:
         """Extract all logical column names from a table definition."""
-        from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+        from agent_platform.core.semantic_data_model.types import CATEGORIES
 
         column_names: list[str] = []
         for category in CATEGORIES:

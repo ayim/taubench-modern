@@ -9,7 +9,6 @@ from urllib.parse import urljoin
 import requests
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.payloads.document_intelligence import (
     ExtractDocumentPayload,
@@ -22,6 +21,7 @@ from agent_platform.core.payloads.document_intelligence import (
 from agent_platform.core.payloads.document_intelligence_config import DocumentIntelligenceConfigPayload
 from agent_platform.core.payloads.mcp_server_payloads import MCPServerCreate
 from agent_platform.core.payloads.semantic_data_model_payloads import GenerateSemanticDataModelResponse
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 HEADER_INDEX = 0
 

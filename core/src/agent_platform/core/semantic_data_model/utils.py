@@ -1,4 +1,4 @@
-from agent_platform.core.data_frames.semantic_data_model_types import QueryParameter
+from agent_platform.core.semantic_data_model.types import QueryParameter
 
 
 def extract_parameters_from_sql(

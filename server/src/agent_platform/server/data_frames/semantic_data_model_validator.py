@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, ClassVar, Literal
 
 from structlog import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
 from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectRequest,
     TableToInspect,
 )
+from agent_platform.core.semantic_data_model.types import ValidationMessage
 from agent_platform.server.api.private_v2.threads_data_frames import (
     inspect_file_as_data_frame,
 )
@@ -24,15 +24,15 @@ if TYPE_CHECKING:
     from structlog.stdlib import BoundLogger
 
     from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.files.files import UploadedFile
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
         VerifiedQuery,
     )
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         References,
         _FileReference,
     )
-    from agent_platform.core.files.files import UploadedFile
     from agent_platform.server.api.private_v2.threads_data_frames import (
         _DataFrameInspectionAPI,
     )
@@ -62,7 +62,7 @@ def create_partial_verified_query_with_errors(
         A partial VerifiedQuery model constructed with model_construct() that contains
         the original data plus validation errors attached to the appropriate error fields.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessageKind,
         ValidationMessageLevel,
         VerifiedQuery,
@@ -205,14 +205,14 @@ class ValidationResult:
     @property
     def errors(self) -> list[ValidationMessage]:
         """List of error-level validation messages."""
-        from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageLevel
+        from agent_platform.core.semantic_data_model.types import ValidationMessageLevel
 
         return [m.message for m in self._located_messages if m.message.get("level") == ValidationMessageLevel.ERROR]
 
     @property
     def warnings(self) -> list[ValidationMessage]:
         """List of warning-level validation messages."""
-        from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageLevel
+        from agent_platform.core.semantic_data_model.types import ValidationMessageLevel
 
         return [m.message for m in self._located_messages if m.message.get("level") == ValidationMessageLevel.WARNING]
 
@@ -227,7 +227,7 @@ class ValidationResult:
         The result is cached, so subsequent calls return the same instance.
         If there are no messages, returns the original SDM.
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         if self._sdm_with_errors is not None:
             return self._sdm_with_errors
@@ -366,7 +366,7 @@ class SemanticDataModelValidator:
         )
 
     async def _get_data_connection(self, data_connection_id: str) -> DataConnection | None:
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )
@@ -461,7 +461,7 @@ class SemanticDataModelValidator:
         return tables_to_validate
 
     async def _validate_logical_tables_with_data_connection(self, data_connection_id: str):
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )
@@ -551,7 +551,7 @@ class SemanticDataModelValidator:
         self,
         file_reference: _FileReference,
     ):
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )
@@ -649,7 +649,7 @@ class SemanticDataModelValidator:
         - Lists of errors and warnings
         - A method to get the SDM with errors attached
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessageKind,
             ValidationMessageLevel,
         )

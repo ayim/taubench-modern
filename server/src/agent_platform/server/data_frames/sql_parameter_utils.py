@@ -14,7 +14,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, get_args
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.semantic_data_model.types import (
     Dimension,
     Fact,
     Metric,
@@ -171,7 +171,7 @@ def validate_parameter_definitions(
     Returns:
         ParameterValidationResult with SQL matching validation details
     """
-    from agent_platform.core.data_frames.semantic_data_model_utils import extract_parameters_from_sql
+    from agent_platform.core.semantic_data_model.utils import extract_parameters_from_sql
 
     # Extract parameters from SQL
     sql_param_names = set(extract_parameters_from_sql(sql_query, dialect=dialect))

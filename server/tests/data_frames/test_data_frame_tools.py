@@ -30,9 +30,9 @@ async def test_data_frames_interface(file_regression):
 
     from tests.data_frames.fixtures import KernelStub, StorageStub
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-    from agent_platform.core.data_frames.semantic_data_model_validation import References
     from agent_platform.core.kernel import Kernel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.validation import References
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
@@ -647,8 +647,8 @@ async def test_duplicate_verified_query_names_in_interface():
     """Test that AgentServerDataFramesInterface creates unique tools for duplicate query names."""
     from tests.data_frames.fixtures import KernelStub, StorageStub
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel, VerifiedQuery
     from agent_platform.core.kernel import Kernel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel, VerifiedQuery
     from agent_platform.server.kernel.data_frames import (
         AgentServerDataFramesInterface,
     )

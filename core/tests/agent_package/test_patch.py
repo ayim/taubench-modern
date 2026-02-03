@@ -345,7 +345,7 @@ class TestCreateAgentProjectPatch:
     async def test_includes_sdm_when_sdms_differ(self):
         """Test that SDM files are included when semantic data models differ."""
         from agent_platform.core.agent_package.spec import AgentSpecGenerator
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         agent = create_minimal_agent()
         deployed_sdms = [

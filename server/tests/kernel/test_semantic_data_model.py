@@ -1,7 +1,7 @@
 import pytest
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-from agent_platform.core.data_frames.semantic_data_model_validation import References
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
+from agent_platform.core.semantic_data_model.validation import References
 from agent_platform.server.data_frames.semantic_data_model_collector import (
     SemanticDataModelAndReferences,
 )

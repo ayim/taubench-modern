@@ -5,7 +5,7 @@ import structlog
 from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
 from agent_platform.core.agent_package.spec import SpecAgent
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 

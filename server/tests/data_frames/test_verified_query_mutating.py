@@ -22,7 +22,7 @@ import duckdb
 import pytest
 
 if TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+    from agent_platform.core.semantic_data_model.types import ResultType
 
 from agent_platform.core.kernel import ThreadStateInterface
 
@@ -109,7 +109,7 @@ async def test_verified_query_delete_passes_result_type(duckdb_connection, sql_e
     """
     from sqlglot import exp, parse_one
 
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
         ResultType,
         VerifiedQuery,
@@ -196,7 +196,7 @@ async def test_verified_query_insert_passes_result_type(duckdb_connection, sql_e
     """
     from sqlglot import exp, parse_one
 
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
         ResultType,
         VerifiedQuery,
@@ -300,7 +300,7 @@ async def test_verified_query_update_passes_result_type(duckdb_connection, sql_e
     """
     from sqlglot import exp, parse_one
 
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
         ResultType,
         VerifiedQuery,
@@ -392,7 +392,7 @@ async def test_verified_query_result_type_is_set_for_mutations_without_returning
     """
     Test that result_type is correctly set to ROWS_AFFECTED for mutations without RETURNING.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
         ResultType,
         VerifiedQuery,
@@ -460,7 +460,7 @@ async def test_verified_query_result_type_is_table_for_mutations_with_returning(
     """
     Test that result_type is correctly set to TABLE for mutations with RETURNING.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ResultType,
         VerifiedQuery,
     )
@@ -504,7 +504,7 @@ async def test_verified_query_result_type_is_table_for_select():
     """
     Test that result_type is correctly set to TABLE for SELECT queries.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ResultType,
         VerifiedQuery,
     )

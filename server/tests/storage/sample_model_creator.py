@@ -12,9 +12,9 @@ if typing.TYPE_CHECKING:
         DataFrameSource,
         PlatformDataFrame,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.files import UploadedFile
     from agent_platform.core.payloads.agent_package import AgentPackagePayload
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.core.thread import Thread
     from agent_platform.core.work_items.work_item import WorkItem
     from agent_platform.server.auth.handlers import AuthedUser
@@ -277,7 +277,7 @@ class SampleModelCreator:
         """Create a sample semantic data model for testing."""
 
         if semantic_model is None:
-            from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+            from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
             # Create a simple semantic data model
             semantic_model = SemanticDataModel.model_validate(

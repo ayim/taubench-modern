@@ -183,7 +183,7 @@ async def _get_related_to_semantic_data_model_name(
     """Check if a file is related to a semantic data model.
     Returns the semantic data model name if found, otherwise None."""
     # TODO: This function is in the core module but importing server, needs to be fixed.
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelCollector,
     )

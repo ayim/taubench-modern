@@ -8,8 +8,8 @@ import pytest
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.files.files import UploadedFile
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.semantic_data_model_validator import (
         ValidationResult,
@@ -184,7 +184,7 @@ class _SemanticDataModelValidatorChecker:
         description: str = "Test semantic model",
     ) -> "SemanticDataModel":
         """Build a semantic data model payload."""
-        from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
         return SemanticDataModel.model_validate(
             {
@@ -196,7 +196,7 @@ class _SemanticDataModelValidatorChecker:
 
     def extract_references(self, semantic_model: "SemanticDataModel"):
         """Extract references from a semantic data model."""
-        from agent_platform.core.data_frames.semantic_data_model_validation import (
+        from agent_platform.core.semantic_data_model.validation import (
             validate_semantic_model_payload_and_extract_references,
         )
 
@@ -204,7 +204,7 @@ class _SemanticDataModelValidatorChecker:
 
     async def validate_model(self, semantic_model: "SemanticDataModel") -> "ValidationResult":
         """Run validation and return ValidationResult."""
-        from agent_platform.core.data_frames.semantic_data_model_validation import (
+        from agent_platform.core.semantic_data_model.validation import (
             validate_semantic_model_payload_and_extract_references,
         )
         from agent_platform.server.data_frames.semantic_data_model_validator import (
@@ -238,7 +238,7 @@ async def validator_checker(sqlite_storage, tmpdir):
 
 def test_add_validation_message_at_model_level(validator_checker):
     """Test adding a validation message at model level."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -292,7 +292,7 @@ def test_add_validation_message_at_model_level(validator_checker):
 
 def test_add_validation_message_at_table_level(validator_checker):
     """Test adding a validation message at table level."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -357,7 +357,7 @@ def test_add_validation_message_at_table_level(validator_checker):
 
 def test_add_validation_message_at_column_level(validator_checker):
     """Test adding a validation message at column level."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -426,7 +426,7 @@ def test_add_validation_message_at_column_level(validator_checker):
 
 def test_add_warning_vs_error(validator_checker):
     """Test adding warnings vs errors."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -486,7 +486,7 @@ def test_add_warning_vs_error(validator_checker):
 
 def test_validation_result_errors_and_warnings_properties(validator_checker):
     """Test the errors and warnings properties on ValidationResult."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -570,7 +570,7 @@ def test_validation_result_errors_and_warnings_properties(validator_checker):
 
 def test_add_validation_message_column_without_table_raises_error(validator_checker):
     """Test that adding column error without table name raises ValueError."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         ValidationMessage,
         ValidationMessageKind,
         ValidationMessageLevel,
@@ -611,7 +611,7 @@ def test_add_validation_message_column_without_table_raises_error(validator_chec
 
 def test_validation_result_is_valid_with_no_errors():
     """Test that ValidationResult.is_valid returns True when there are no errors."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
         ValidationMessage,
         ValidationMessageKind,
@@ -652,7 +652,7 @@ def test_validation_result_is_valid_with_no_errors():
 
 def test_validation_result_caches_sdm_with_errors():
     """Test that ValidationResult caches the SDM with errors."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
         ValidationMessage,
         ValidationMessageKind,

@@ -9,11 +9,11 @@ from agent_platform.core.actions.action_package import ActionPackage
 from agent_platform.core.agent import Agent, QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.utils import create_action_package_path
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.mcp.mcp_types import MCPUnionOfVariableTypes, mcp_redacted_variable_from_value
 from agent_platform.core.platforms.legacy import convert_platform_config_to_legacy_model
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 
 def _model_to_yaml(model: BaseModel, *, exclude_none: bool = True) -> str:

@@ -9,8 +9,8 @@ from pydantic import Field
 from pydantic.main import BaseModel
 from structlog.stdlib import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
+from agent_platform.core.semantic_data_model.types import VerifiedQuery
 from agent_platform.server.api.dependencies import (
     StorageDependency,
 )
@@ -1512,7 +1512,7 @@ async def get_data_frame_as_validated_query(
     sdm_name = await get_semantic_data_model_name(data_frame)
 
     # Enrich parameter descriptions from SDM if we have parameters and an SDM
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
     )
 
@@ -1598,8 +1598,8 @@ async def save_data_frame_as_validated_query(
     Returns:
         A dictionary with a success message.
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
     from agent_platform.server.storage.base import BaseStorage

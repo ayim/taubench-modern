@@ -14,10 +14,10 @@ from agent_platform.core.agent.question_group import QuestionGroup
 from agent_platform.core.agent_package.config import AgentPackageConfig
 from agent_platform.core.agent_package.create import create_agent_project_zip
 from agent_platform.core.agent_package.handler.agent_package import AgentPackageHandler
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
 from agent_platform.core.mcp.mcp_server import MCPServer
 from agent_platform.core.runbook.runbook import Runbook
 from agent_platform.core.selected_tools import SelectedToolConfig, SelectedTools
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.utils.secret_str import SecretString
 
 

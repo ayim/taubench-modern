@@ -1,4 +1,4 @@
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 
 # storage.get_agent_semantic_data_models returns SDMs in a form { sdm_id: sdm }, and for Agent Package

@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import (
         DataFrameSource,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         LogicalTable,
     )
     from agent_platform.server.storage.base import BaseStorage
@@ -35,7 +35,7 @@ def extract_column_name_to_expr(table: "LogicalTable") -> dict[str, str]:
         A dict mapping logical column names to their physical SQL expressions.
         Example: {"customer_name": "first_name || ' ' || last_name", "revenue": "amount"}
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+    from agent_platform.core.semantic_data_model.types import CATEGORIES
 
     logical_column_name_to_expr: dict[str, str] = {}
 
@@ -227,7 +227,7 @@ async def _process_tables_and_get_dialect(
     from agent_platform.core.data_frames.data_frames import (
         DataFrameSource,
     )
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         BaseTable,
     )
 

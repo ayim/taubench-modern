@@ -4,7 +4,7 @@ from typing import Required, TypedDict
 
 from structlog.stdlib import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import FileReference
+from agent_platform.core.semantic_data_model.types import FileReference
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame

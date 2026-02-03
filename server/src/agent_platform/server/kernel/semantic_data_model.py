@@ -10,11 +10,11 @@ if typing.TYPE_CHECKING:
 
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         Relationship,
         SemanticDataModel,
     )
-    from agent_platform.core.data_frames.semantic_data_model_validation import References
+    from agent_platform.core.semantic_data_model.validation import References
     from agent_platform.server.data_frames.semantic_data_model_collector import (
         SemanticDataModelAndReferences,
     )
@@ -202,7 +202,7 @@ def get_semantic_data_models_with_engines(
     Returns:
         List of (processed_model, engine) tuples
     """
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     models_and_engines: list[tuple[SemanticDataModel, str]] = []
     if not semantic_data_models:
@@ -251,7 +251,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     """
     from textwrap import indent
 
-    from agent_platform.core.data_frames.semantic_data_model_types import VerifiedQuery
+    from agent_platform.core.semantic_data_model.types import VerifiedQuery
 
     verified_queries: list[VerifiedQuery] = []
     result = []

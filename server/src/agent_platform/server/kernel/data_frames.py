@@ -20,13 +20,13 @@ from agent_platform.server.kernel.verified_queries import (
 
 if typing.TYPE_CHECKING:
     from agent_platform.core.data_frames.data_frames import PlatformDataFrame
-    from agent_platform.core.data_frames.semantic_data_model_types import (
-        ResultType,
-        VerifiedQuery,
-    )
     from agent_platform.core.files.files import UploadedFile
     from agent_platform.core.kernel_interfaces.data_frames import DataFrameArchState
     from agent_platform.core.kernel_interfaces.thread_state import ThreadStateInterface
+    from agent_platform.core.semantic_data_model.types import (
+        ResultType,
+        VerifiedQuery,
+    )
     from agent_platform.server.auth.handlers import AuthedUser
     from agent_platform.server.data_frames.data_frames_kernel import DataFramesKernel
     from agent_platform.server.data_frames.semantic_data_model_collector import (
@@ -483,7 +483,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
         Returns:
             Formatted string section for verified query tools, or empty string if none exist.
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+        from agent_platform.core.semantic_data_model.types import ResultType
 
         ret = "## Verified Query Tools\n\n"
         ret += (
@@ -1415,7 +1415,7 @@ class _DataFrameTools:
         Returns:
             Dict with status, result, and either sample_data/data_frame_name or rows_affected
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import ResultType
+        from agent_platform.core.semantic_data_model.types import ResultType
 
         # Fallback for old VQs that don't have result_type set
         if result_type is None:

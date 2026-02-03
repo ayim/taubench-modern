@@ -6,7 +6,8 @@ import json
 
 import pytest
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.responses.response import ResponseMessage
+from agent_platform.core.semantic_data_model.types import (
     BaseTable,
     Dimension,
     Fact,
@@ -14,7 +15,6 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModel,
     TimeDimension,
 )
-from agent_platform.core.responses.response import ResponseMessage
 
 
 def _create_tool_response_message(tool_input: dict) -> ResponseMessage:
@@ -84,7 +84,7 @@ def example_semantic_model() -> SemanticDataModel:
         "filters": [],
     }
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     return SemanticDataModel.model_validate(
         {

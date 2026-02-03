@@ -4726,7 +4726,7 @@ export interface components {
       /** Data Connection Name */
       data_connection_name?: string | null;
       file_reference?:
-        | components['schemas']['agent_platform__core__data_frames__semantic_data_model_types__FileReference']
+        | components['schemas']['agent_platform__core__semantic_data_model__types__FileReference']
         | null;
     };
     /** BedrockPlatformParameters */
@@ -6027,7 +6027,7 @@ export interface components {
      */
     FileSnapshotMetadata: {
       file_reference:
-        | components['schemas']['agent_platform__core__data_frames__semantic_data_model_types__FileReference']
+        | components['schemas']['agent_platform__core__semantic_data_model__types__FileReference']
         | null;
     };
     /**
@@ -11848,18 +11848,6 @@ export interface components {
       /** Sdms With Warnings */
       sdms_with_warnings: number;
     };
-    /**
-     * FileReference
-     * @description A file reference represents a file reference.
-     */
-    agent_platform__core__data_frames__semantic_data_model_types__FileReference: {
-      /** Thread Id */
-      thread_id?: string;
-      /** File Ref */
-      file_ref?: string;
-      /** Sheet Name */
-      sheet_name?: string | null;
-    };
     /** ColumnInfo */
     agent_platform__core__payloads__data_connection__ColumnInfo: {
       /** Name */
@@ -11937,6 +11925,18 @@ export interface components {
       schema?: string | null;
       /** Description */
       description?: string | null;
+    };
+    /**
+     * FileReference
+     * @description A file reference represents a file reference.
+     */
+    agent_platform__core__semantic_data_model__types__FileReference: {
+      /** Thread Id */
+      thread_id?: string;
+      /** File Ref */
+      file_ref?: string;
+      /** Sheet Name */
+      sheet_name?: string | null;
     };
     /**
      * PlatformModelConfigs

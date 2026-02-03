@@ -3,7 +3,7 @@
 
 def _get_example_semantic_model():
     """Get an example semantic model for testing prompts."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         BaseTable,
         Dimension,
         LogicalTable,
@@ -73,7 +73,7 @@ def _get_example_semantic_model():
 
 def _get_example_semantic_model_with_two_tables():
     """Get an example semantic model with two tables for testing mixed mode prompts."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         BaseTable,
         Dimension,
         LogicalTable,

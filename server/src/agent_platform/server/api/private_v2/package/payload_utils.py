@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from structlog import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.server.api.dependencies import StorageDependency
 
 logger = get_logger(__name__)

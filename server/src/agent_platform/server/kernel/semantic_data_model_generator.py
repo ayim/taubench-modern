@@ -10,7 +10,13 @@ from typing import TYPE_CHECKING, Any
 
 from structlog import get_logger
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.payloads.semantic_data_model_payloads import (
+    ColumnInfo,
+    DataConnectionInfo,
+    FileInfo,
+    TableInfo,
+)
+from agent_platform.core.semantic_data_model.types import (
     BaseTable,
     Dimension,
     Fact,
@@ -22,23 +28,17 @@ from agent_platform.core.data_frames.semantic_data_model_types import (
     SemanticDataModelMetadata,
     TimeDimension,
 )
-from agent_platform.core.payloads.semantic_data_model_payloads import (
-    ColumnInfo,
-    DataConnectionInfo,
-    FileInfo,
-    TableInfo,
-)
 
 if TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import (
-        DataConnectionSnapshotMetadata,
-        FileSnapshotMetadata,
-    )
     from agent_platform.core.payloads.data_connection import (
         ForeignKeyInfo,
     )
     from agent_platform.core.payloads.data_connection import (
         TableInfo as DataConnectionTableInfo,
+    )
+    from agent_platform.core.semantic_data_model.types import (
+        DataConnectionSnapshotMetadata,
+        FileSnapshotMetadata,
     )
     from agent_platform.server.storage import BaseStorage
 
@@ -558,7 +558,7 @@ class SemanticDataModelGenerator:
         Returns:
             List of Relationship objects or None if no relationships detected
         """
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             Relationship,
             RelationshipColumn,
         )

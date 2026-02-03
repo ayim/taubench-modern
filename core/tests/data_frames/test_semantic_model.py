@@ -4,7 +4,7 @@
 import pytest
 from pydantic import ValidationError
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.semantic_data_model.types import (
     BaseTable,
     Dimension,
     Fact,
@@ -135,7 +135,7 @@ semantic_model_example: SemanticDataModel = SemanticDataModel.model_validate(
 
 
 def test_semantic_model_validation(data_regression):
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -144,7 +144,7 @@ def test_semantic_model_validation(data_regression):
 
 
 def test_semantic_model_validation_with_empty_file_reference():
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         EmptyFileReference,
         validate_semantic_model_payload_and_extract_references,
     )
@@ -215,7 +215,7 @@ def test_semantic_model_validation_missing_name():
 
 def test_semantic_model_validation_empty_tables():
     """Test validation when 'tables' is an empty list."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -270,7 +270,7 @@ def test_semantic_model_validation_missing_base_table():
 
 def test_semantic_model_validation_missing_base_table_table():
     """Test validation when base_table is missing 'table' field."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -294,7 +294,7 @@ def test_semantic_model_validation_missing_base_table_table():
 
 def test_semantic_model_validation_duplicate_logical_table_names():
     """Test validation when duplicate logical table names are present."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -324,7 +324,7 @@ def test_semantic_model_validation_duplicate_logical_table_names():
 
 def test_semantic_model_validation_mixed_references():
     """Test validation with mixed data connection and file references."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -368,7 +368,7 @@ def test_semantic_model_validation_mixed_references():
 
 def test_semantic_model_validation_missing_data_connection_and_file_reference():
     """Test validation when base_table has neither data_connection_id nor file_reference."""
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -398,7 +398,7 @@ def test_semantic_model_validation_unresolved_data_connection_name():
     This happens when an SDM is imported from a package but the referenced
     data connection does not exist in the current environment.
     """
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 
@@ -443,7 +443,7 @@ def test_semantic_model_validation_resolved_data_connection_name():
     When the connection is successfully resolved, both fields may be present temporarily
     before data_connection_name is stripped. This should not cause errors.
     """
-    from agent_platform.core.data_frames.semantic_data_model_validation import (
+    from agent_platform.core.semantic_data_model.validation import (
         validate_semantic_model_payload_and_extract_references,
     )
 

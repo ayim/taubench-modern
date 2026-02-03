@@ -1,4 +1,4 @@
-from agent_platform.core.data_frames.semantic_data_model_types import CATEGORIES
+from agent_platform.core.semantic_data_model.types import CATEGORIES
 from agent_platform.server.semantic_data_models.semantic_data_model_manipulation import (
     SemanticDataModelIndex,
     copy_synonyms_and_descriptions_from_existing_semantic_model,
@@ -7,7 +7,7 @@ from agent_platform.server.semantic_data_models.semantic_data_model_manipulation
 
 def test_copy_synonyms_and_descriptions_all_matches():
     """Test copying synonyms and descriptions when all tables and categories match."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Create existing semantic model with synonyms and descriptions
     existing_semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
@@ -190,7 +190,7 @@ def test_copy_synonyms_and_descriptions_all_matches():
 
 def test_copy_synonyms_and_descriptions_no_matches():
     """Test copying synonyms and descriptions when no tables and categories match."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
     )
 
@@ -308,7 +308,7 @@ def test_copy_synonyms_and_descriptions_no_matches():
 def test_copy_synonyms_and_descriptions_with_recategorization():
     """Test copying synonyms and descriptions when a column changes category
     (dimension to metric)."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Create existing semantic model with a dimension
     existing_semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
@@ -368,7 +368,7 @@ def test_copy_synonyms_and_descriptions_with_recategorization():
 
 def test_copy_preserves_table_names():
     """REGRESSION TEST: Verify that table logical names are preserved during copy - Bug fix."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Existing model with enhanced logical table name
     existing_semantic_model: SemanticDataModel = SemanticDataModel.model_validate(
@@ -432,7 +432,7 @@ def test_copy_preserves_table_names():
 
 def test_copy_preserves_column_names():
     """REGRESSION TEST: Verify that column logical names are preserved during copy - Bug fix."""
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Existing model with enhanced logical column names
     existing_semantic_model: SemanticDataModel = SemanticDataModel.model_validate(

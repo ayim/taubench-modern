@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, Field
 
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 if TYPE_CHECKING:
     from agent_platform.core.tools.tool_definition import ToolDefinition

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from agent_platform.core.agent import Agent
     from agent_platform.core.agent.question_group import QuestionGroup
     from agent_platform.core.agent_package.spec import AgentSpecGenerator, SpecAgent
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 logger = structlog.get_logger(__name__)
 

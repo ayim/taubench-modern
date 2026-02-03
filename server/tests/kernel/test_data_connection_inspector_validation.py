@@ -54,11 +54,11 @@ async def test_validate_tables_exist_success():
 async def test_validate_tables_exist_with_missing_table():
     """Test validate_tables_exist when a table is missing."""
     from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
     from agent_platform.core.payloads.data_connection import (
         DataConnectionsInspectRequest,
         TableToInspect,
     )
+    from agent_platform.core.semantic_data_model.types import ValidationMessageKind
     from agent_platform.server.kernel.data_connection_inspector import (
         DataConnectionInspector,
         TableNotFoundError,
@@ -195,7 +195,7 @@ async def test_validate_column_expressions_with_invalid_expression():
 
     # Mock validate_column_expression to fail for invalid_expr
     async def mock_validate_column_expression(table, column_expression):
-        from agent_platform.core.data_frames.semantic_data_model_types import (
+        from agent_platform.core.semantic_data_model.types import (
             ValidationMessage,
             ValidationMessageKind,
             ValidationMessageLevel,
@@ -264,7 +264,7 @@ async def test_validate_column_expressions_with_table_error():
     assert TABLE_VALIDATION_ERROR_KEY in errors["missing_table"]
     assert "not found" in errors["missing_table"][TABLE_VALIDATION_ERROR_KEY]["message"].lower()
     # Verify error kind
-    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
+    from agent_platform.core.semantic_data_model.types import ValidationMessageKind
 
     assert (
         errors["missing_table"][TABLE_VALIDATION_ERROR_KEY]["kind"]
@@ -332,10 +332,10 @@ async def test_validate_column_expressions_no_tables_specified():
 async def test_validate_column_expression_method():
     """Test _validate_column_expression method directly."""
     from agent_platform.core.data_connections.data_connections import DataConnection
-    from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessageKind
     from agent_platform.core.payloads.data_connection import (
         DataConnectionsInspectRequest,
     )
+    from agent_platform.core.semantic_data_model.types import ValidationMessageKind
     from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
 
     data_connection = Mock(spec=DataConnection)

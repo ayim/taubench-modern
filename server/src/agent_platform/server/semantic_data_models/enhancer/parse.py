@@ -12,9 +12,9 @@ from agent_platform.server.semantic_data_models.enhancer.type_defs import (
 )
 
 if TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.responses.content import ResponseToolUseContent
     from agent_platform.core.responses.response import ResponseMessage
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
     from agent_platform.server.semantic_data_models.enhancer.prompts import EnhancementMode
     from agent_platform.server.semantic_data_models.enhancer.type_defs import (
         Category,

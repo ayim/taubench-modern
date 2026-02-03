@@ -3,7 +3,7 @@ import typing
 from dataclasses import dataclass
 from typing import Any
 
-from agent_platform.core.data_frames.semantic_data_model_types import (
+from agent_platform.core.semantic_data_model.types import (
     CATEGORIES,
     BaseTable,
     CategoriesType,

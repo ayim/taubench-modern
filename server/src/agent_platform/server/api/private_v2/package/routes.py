@@ -232,9 +232,9 @@ async def create_agent_project_zip_package(
         The Agent Project Zip File is a zip file containing the agent project as a Folder.
     """
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.errors.base import PlatformHTTPError
     from agent_platform.core.errors.responses import ErrorCode
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Check if the agent exists
     agent = await storage.get_agent(user.user_id, payload.agent_id)
@@ -380,7 +380,7 @@ async def diff_agent_package(
         A StatusResponse containing the AgentDiffResult with all differences found.
     """
 
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     try:
         # Create handler from the uploaded zip file
@@ -464,9 +464,9 @@ async def patch_agent_project(
     import json
 
     from agent_platform.core.agent_package.patch import create_agent_project_patch
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
     from agent_platform.core.errors.base import PlatformHTTPError
     from agent_platform.core.errors.responses import ErrorCode
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
     # Parse action_packages_uris from JSON string
     parsed_action_packages_uris: list[str] = []

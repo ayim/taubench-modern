@@ -3,10 +3,10 @@ import typing
 from dataclasses import dataclass
 from typing import Literal
 
-from agent_platform.core.data_frames.semantic_data_model_types import ValidationMessage
+from agent_platform.core.semantic_data_model.types import ValidationMessage
 
 if typing.TYPE_CHECKING:
-    from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
 
 _ThreadId = str
@@ -71,7 +71,7 @@ def validate_semantic_model_payload_and_extract_references(
     semantic_data_model: "SemanticDataModel",
 ) -> References:
     """Validate the semantic model payload."""
-    from agent_platform.core.data_frames.semantic_data_model_types import (
+    from agent_platform.core.semantic_data_model.types import (
         SemanticDataModel,
         ValidationMessageKind,
         ValidationMessageLevel,

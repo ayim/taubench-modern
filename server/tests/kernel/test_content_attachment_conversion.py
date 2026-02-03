@@ -82,7 +82,7 @@ async def test_thread_attachment_content_as_text_content_with_description(
             owner=owner,
         )
         if scenario == "semantic_data_model_matching":
-            from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
+            from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
             # We need to create a semantic data model with the file reference
             await model_creator.obtain_sample_semantic_data_model(

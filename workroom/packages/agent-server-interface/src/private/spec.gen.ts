@@ -11777,7 +11777,7 @@ export const spec = {
           file_reference: {
             anyOf: [
               {
-                $ref: '#/components/schemas/agent_platform__core__data_frames__semantic_data_model_types__FileReference',
+                $ref: '#/components/schemas/agent_platform__core__semantic_data_model__types__FileReference',
               },
               {
                 type: 'null',
@@ -14951,7 +14951,7 @@ export const spec = {
           file_reference: {
             anyOf: [
               {
-                $ref: '#/components/schemas/agent_platform__core__data_frames__semantic_data_model_types__FileReference',
+                $ref: '#/components/schemas/agent_platform__core__semantic_data_model__types__FileReference',
               },
               {
                 type: 'null',
@@ -27397,33 +27397,6 @@ export const spec = {
         ],
         title: '_ValidateSemanticDataModelResultsSummary',
       },
-      agent_platform__core__data_frames__semantic_data_model_types__FileReference:
-        {
-          properties: {
-            thread_id: {
-              type: 'string',
-              title: 'Thread Id',
-            },
-            file_ref: {
-              type: 'string',
-              title: 'File Ref',
-            },
-            sheet_name: {
-              anyOf: [
-                {
-                  type: 'string',
-                },
-                {
-                  type: 'null',
-                },
-              ],
-              title: 'Sheet Name',
-            },
-          },
-          type: 'object',
-          title: 'FileReference',
-          description: 'A file reference represents a file reference.',
-        },
       agent_platform__core__payloads__data_connection__ColumnInfo: {
         properties: {
           name: {
@@ -27705,6 +27678,32 @@ export const spec = {
         required: ['name', 'columns'],
         title: 'TableInfo',
         description: 'Information about a table.',
+      },
+      agent_platform__core__semantic_data_model__types__FileReference: {
+        properties: {
+          thread_id: {
+            type: 'string',
+            title: 'Thread Id',
+          },
+          file_ref: {
+            type: 'string',
+            title: 'File Ref',
+          },
+          sheet_name: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Sheet Name',
+          },
+        },
+        type: 'object',
+        title: 'FileReference',
+        description: 'A file reference represents a file reference.',
       },
       PlatformModelConfigs: {
         properties: {

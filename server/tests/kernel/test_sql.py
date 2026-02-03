@@ -11,14 +11,14 @@ from fastapi import UploadFile
 from starlette.datastructures import Headers
 
 from agent_platform.core.agent import Agent, AgentArchitecture
-from agent_platform.core.data_frames.semantic_data_model_types import SemanticDataModel
-from agent_platform.core.data_frames.semantic_data_model_validation import (
-    References,
-    _FileReference,
-)
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.payloads import UploadFilePayload
 from agent_platform.core.runbook import Runbook
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
+from agent_platform.core.semantic_data_model.validation import (
+    References,
+    _FileReference,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.server.file_manager.option import FileManagerService
 from agent_platform.server.kernel.sql import (
