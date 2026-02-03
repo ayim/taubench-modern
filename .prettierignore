@@ -32,5 +32,8 @@ workroom/**/node_modules/
 workroom/**/dist/
 workroom/**/build/
 
+# Helm templates (contain Go templating syntax)
+infra/replicated/templates/**
+
 # Local Claude settings
 .claude/**
