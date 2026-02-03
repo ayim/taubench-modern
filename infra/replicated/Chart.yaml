@@ -1,0 +1,10 @@
+apiVersion: v2
+name: spar
+description: A Helm chart for Kubernetes
+type: application
+version: 'PLACEHOLDER'
+appVersion: 'PLACEHOLDER'
+dependencies:
+  - name: replicated
+    repository: oci://registry.replicated.com/library
+    version: 1.12.2

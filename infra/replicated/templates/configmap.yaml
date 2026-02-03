@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spar.fullname" . }}-config
+  labels:
+    {{- include "spar.labels" . | nindent 4 }}
+data:
+  # Agent Server Configuration
+  AGENT_SERVER_PORT: {{ .Values.config.agentServer.port | quote }}
+  LOG_LEVEL: {{ .Values.config.agentServer.logLevel | quote }}
+  SEMA4AI_AGENT_SERVER_DB_TYPE: {{ .Values.config.agentServer.dbType | quote }}
+  SEMA4AI_AGENT_SERVER_OTEL_ENABLED: {{ .Values.config.agentServer.otelEnabled | quote }}
+
+  # Workroom Configuration
+  SEMA4AI_WORKROOM_PORT: {{ .Values.config.workroom.port | quote }}
+  SEMA4AI_WORKROOM_PORT_INTERNAL: {{ .Values.config.workroom.portInternal | quote }}
+  SEMA4AI_WORKROOM_AUTH_MODE: {{ .Values.config.workroom.authMode | quote }}
+  SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: {{ .Values.config.workroom.allowInsecureRequests | quote }}
+  SEMA4AI_WORKROOM_DISABLE_POSTGRES_SSL: {{ .Values.config.workroom.disablePostgresSsl | quote }}
+  SEMA4AI_WORKROOM_TENANT_ID: {{ .Values.config.workroom.tenantId | quote }}
+  SEMA4AI_ENABLE_SPAR_ONLY_FEATURES: {{ .Values.config.workroom.enableSparOnlyFeatures | quote }}
+  SEMA4AI_WORKROOM_AGENT_SERVER_URL: "http://localhost:{{ .Values.config.agentServer.port }}"
+
+  # PostgreSQL Configuration
+  POSTGRES_HOST: {{ .Values.config.postgres.host | quote }}
+  POSTGRES_PORT: {{ .Values.config.postgres.port | quote }}
+  POSTGRES_DB: {{ .Values.config.postgres.database | quote }}
+  POSTGRES_USER: {{ .Values.config.postgres.user | quote }}
+
+  {{- if .Values.config.otel.enabled }}
+  # OpenTelemetry Configuration
+  OTEL_COLLECTOR_URL: {{ .Values.config.otel.collectorUrl | quote }}
+  OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE: "delta"
+  {{- end }}
+
+  {{- if .Values.config.mcpRuntime.enabled }}
+  # MCP Runtime Configuration
+  SEMA4AI_AGENT_SERVER_MCP_RUNTIME_API_URL: {{ .Values.config.mcpRuntime.apiUrl | quote }}
+  {{- end }}

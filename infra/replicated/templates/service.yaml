@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "spar.fullname" . }}
+  labels:
+    {{- include "spar.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.ports.agentServer }}
+      targetPort: agent-server
+      protocol: TCP
+      name: agent-server
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.agentServer }}
+      nodePort: {{ .Values.service.nodePorts.agentServer }}
+      {{- end }}
+    - port: {{ .Values.service.ports.workroom }}
+      targetPort: workroom
+      protocol: TCP
+      name: workroom
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.workroom }}
+      nodePort: {{ .Values.service.nodePorts.workroom }}
+      {{- end }}
+    - port: {{ .Values.service.ports.workroomInternal }}
+      targetPort: workroom-int
+      protocol: TCP
+      name: workroom-internal
+      {{- if and (eq .Values.service.type "NodePort") .Values.service.nodePorts.workroomInternal }}
+      nodePort: {{ .Values.service.nodePorts.workroomInternal }}
+      {{- end }}
+  selector:
+    {{- include "spar.selectorLabels" . | nindent 4 }}

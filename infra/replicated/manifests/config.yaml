@@ -1,0 +1,42 @@
+apiVersion: kots.io/v1beta1
+kind: Config
+metadata:
+  name: spar-config
+spec:
+  groups:
+    - name: database
+      title: Database Configuration
+      description: PostgreSQL connection settings for SPAR
+      items:
+        - name: postgres_host
+          title: PostgreSQL Host
+          type: text
+          required: true
+          help_text: The hostname or IP address of your PostgreSQL server
+
+        - name: postgres_port
+          title: PostgreSQL Port
+          type: text
+          required: true
+          default: "5432"
+          help_text: PostgreSQL server port (default is 5432)
+
+        - name: postgres_database
+          title: Database Name
+          type: text
+          required: true
+          default: "agents"
+          help_text: The name of the PostgreSQL database
+
+        - name: postgres_user
+          title: PostgreSQL User
+          type: text
+          required: true
+          default: "agents"
+          help_text: PostgreSQL username for authentication
+
+        - name: postgres_password
+          title: PostgreSQL Password
+          type: password
+          required: true
+          help_text: Password for the PostgreSQL user (encrypted at rest)

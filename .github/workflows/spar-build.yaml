@@ -83,6 +83,7 @@ jobs:
     name: Build SPAR
     runs-on: linux-x64-latest-32core
     outputs:
+      version: ${{ steps.fetch-version.outputs.version }}
       tag: ${{ steps.build-metadata.outputs.tag }}
       image-uri: ${{ steps.print-image-uri.outputs.image-uri }}
     steps:
@@ -247,3 +248,23 @@ jobs:
           project-name: moonraker-dev-deployer-moonraker
           env-vars-for-codebuild: BRANCH_NAME,SPAR_IMAGE_REF,OPERATION
           source-version-override: ${{ github.head_ref }}
+
+  publish-to-replicated:
+    name: Publish to Replicated
+    needs: [build]
+    runs-on: linux-x64-latest-32core
+    if: always() && github.event_name == 'push' && github.ref_name == 'main' && needs.build.result == 'success'
+    env:
+      REPLICATED_API_TOKEN: ${{ secrets.REPLICATED_API_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Publish to Replicated
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: ./infra/replicated/publish-to-replicated.sh

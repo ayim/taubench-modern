@@ -257,3 +257,6 @@ terraform.rc
 
 # Logs, artifacts from agent-browser...
 tmp
+
+# Helm chart dependencies (fetched via helm dependency update)
+infra/replicated/charts/

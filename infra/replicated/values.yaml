@@ -1,0 +1,114 @@
+# SPAR Helm Chart Values
+# This chart deploys SPAR using Replicated's proxy registry
+
+replicaCount: 1
+
+image:
+  # Replicated proxy registry for SPAR image
+  # Note: repository and tag are set by the HelmChart CR in manifests/spar.yaml
+  repository: proxy.replicated.com/proxy/spar/024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ''
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 999
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 999
+  runAsGroup: 999
+
+service:
+  type: NodePort
+  ports:
+    agentServer: 8000
+    workroom: 8001
+    workroomInternal: 8002
+  nodePorts:
+    agentServer: 30080
+    workroom: 30081
+    workroomInternal: 30082
+
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  hosts:
+    - host: spar.local
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 8001
+  tls: []
+
+resources:
+  requests:
+    cpu: '500m'
+    memory: '1Gi'
+  limits:
+    cpu: '2000m'
+    memory: '4Gi'
+
+# Rolling update strategy for zero-downtime deployments
+rollingUpdate:
+  maxUnavailable: 0
+  maxSurge: 1
+
+# Graceful shutdown configuration
+gracefulShutdown:
+  terminationGracePeriodSeconds: 300
+  drainTimeoutSeconds: 300
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# SPAR Configuration
+config:
+  # Agent Server settings
+  agentServer:
+    port: '8000'
+    logLevel: 'INFO'
+    dbType: 'postgres'
+    otelEnabled: 'false'
+
+  # Workroom settings
+  workroom:
+    port: '8001'
+    portInternal: '8002'
+    authMode: 'none'
+    allowInsecureRequests: 'true'
+    disablePostgresSsl: 'false'
+    tenantId: 'spar'
+    enableSparOnlyFeatures: 'true'
+
+  # PostgreSQL connection
+  # Note: When deployed via Replicated, these values are overridden by Config options
+  postgres:
+    host: 'localhost'
+    port: '5432'
+    database: 'agents'
+    user: 'agents'
+    password: ''
+
+  # OpenTelemetry (optional)
+  otel:
+    enabled: false
+    collectorUrl: ''
+
+  # MCP Runtime (optional)
+  mcpRuntime:
+    enabled: false
+    apiUrl: ''

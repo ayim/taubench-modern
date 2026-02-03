@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "spar.fullname" . }}
+  labels:
+    {{- include "spar.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.rollingUpdate.maxSurge }}
+  selector:
+    matchLabels:
+      {{- include "spar.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "spar.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "spar.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.gracefulShutdown.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: agent-server
+              containerPort: {{ .Values.service.ports.agentServer }}
+              protocol: TCP
+            - name: workroom
+              containerPort: {{ .Values.service.ports.workroom }}
+              protocol: TCP
+            - name: workroom-int
+              containerPort: {{ .Values.service.ports.workroomInternal }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "spar.fullname" . }}-config
+          env:
+            {{- if .Values.config.postgres.existingSecret }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.config.postgres.existingSecret }}
+                  key: {{ .Values.config.postgres.existingSecretKey }}
+            {{- else if .Values.config.postgres.password }}
+            - name: POSTGRES_PASSWORD
+              value: {{ .Values.config.postgres.password | quote }}
+            {{- end }}
+            - name: DRAIN_TIMEOUT_SECONDS
+              value: {{ .Values.gracefulShutdown.drainTimeoutSeconds | quote }}
+          livenessProbe:
+            httpGet:
+              path: /api/v2/health
+              port: agent-server
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v2/ready
+              port: agent-server
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

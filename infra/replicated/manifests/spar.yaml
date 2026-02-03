@@ -1,0 +1,29 @@
+# HelmChart custom resource
+apiVersion: kots.io/v1beta2
+kind: HelmChart
+metadata:
+  name: spar
+spec:
+  chart:
+    name: spar
+    chartVersion: PLACEHOLDER
+  # Tell Replicated which images to proxy
+  images:
+    spar:
+      # This maps to .Values.image.repository and .Values.image.tag in your Helm chart
+      registry: proxy.replicated.com
+      repository: proxy/spar/024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar
+      tag: PLACEHOLDER
+  values:
+    # Match the Helm chart's expected structure (top-level imagePullSecrets)
+    imagePullSecrets:
+      - name: '{{repl ImagePullSecretName }}'
+
+    # PostgreSQL configuration from user input
+    config:
+      postgres:
+        host: 'repl{{ ConfigOption "postgres_host" }}'
+        port: 'repl{{ ConfigOption "postgres_port" }}'
+        database: 'repl{{ ConfigOption "postgres_database" }}'
+        user: 'repl{{ ConfigOption "postgres_user" }}'
+        password: 'repl{{ ConfigOption "postgres_password" }}'
