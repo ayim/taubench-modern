@@ -1,0 +1,213 @@
+[
+  {
+    "label": "Debug Agent Server",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "agent_platform.server",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "env": {
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+    }
+  },
+  {
+    "label": "Debug Agent Server (JWT Local w/ Postgres)",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "agent_platform.server",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "env": {
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
+      "AUTH_TYPE": "jwt_local",
+      "JWT_ISS": "ace",
+      "JWT_AUD": "agent_server",
+      "JWT_ALG": "HS256",
+      "JWT_DECODE_KEY_B64": "dmVyeV9zZWNyZXRfa2V5",
+      "POSTGRES_DB": "agent_server_db",
+      "POSTGRES_HOST": "localhost",
+      "POSTGRES_PORT": "5432",
+      "POSTGRES_USER": "admin",
+      "POSTGRES_PASSWORD": "password",
+      "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres"
+    }
+  },
+  {
+    "label": "Debug Agent Server with Args",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "agent_platform.server",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    // manually set env vars before launching
+    "args": [],
+    "env": {
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+    }
+  },
+  {
+    "label": "Debug Agent Server with env File",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "agent_platform.server",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "envFile": "${workspaceFolder}/.env",
+    "env": {
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+    }
+  },
+  {
+    "label": "Debug Agent Server with Hot Reload (PostgreSQL)",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "uvicorn",
+    "args": [
+      "agent_platform.server.dev:create_dev_app",
+      "--factory",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8000",
+      "--reload",
+      "--reload-dir",
+      "server/src",
+      "--reload-dir",
+      "core/src",
+      "--reload-dir",
+      "architectures/"
+    ],
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "env": {
+      "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres",
+      "LOG_LEVEL": "DEBUG",
+      "POSTGRES_HOST": "localhost",
+      "POSTGRES_DB": "agents",
+      "POSTGRES_USER": "agents",
+      "POSTGRES_PASSWORD": "agents",
+      "POSTGRES_PORT": "5432",
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
+      "SQL_AGENT_VISIBILITY": "NOT_HIDDEN",
+      "SEMA4AI_AGENT_SERVER_OTEL_ENABLED": "true",
+      "SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL": "http://localhost:4318"
+    }
+  },
+  {
+    "label": "Debug Agent Server with Hot Reload (SQLite)",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "uvicorn",
+    "args": [
+      "agent_platform.server.dev:create_dev_app",
+      "--factory",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8000",
+      "--reload",
+      "--reload-dir",
+      "server/src",
+      "--reload-dir",
+      "core/src",
+      "--reload-dir",
+      "architectures/"
+    ],
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "env": {
+      "AGENT_SERVER_DATA_DIR": ".",
+      "LOG_LEVEL": "DEBUG",
+      "SQL_AGENT_VISIBILITY": "NOT_HIDDEN",
+      "SEMA4AI_AGENT_SERVER_OTEL_ENABLED": "true",
+      "SEMA4AI_AGENT_SERVER_OTEL_COLLECTOR_URL": "http://localhost:4318"
+    }
+  },
+  {
+    "label": "Debug Agent Server with Hot Reload (Custom)",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "uvicorn",
+    "args": [
+      "agent_platform.server.dev:create_dev_app",
+      "--factory",
+      "--reload",
+      "--reload-include",
+      "server/src/**/*.py",
+      "--reload-include",
+      "core/src/**/*.py",
+      "--reload-include",
+      "architectures/*/src/**/*.py",
+      "--port",
+      "8000"
+    ],
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "env": {
+      "SEMA4AI_AGENT_SERVER_DB_TYPE": "postgres",
+      "LOG_LEVEL": "DEBUG",
+      "POSTGRES_HOST": "localhost",
+      "POSTGRES_DB": "agents",
+      "POSTGRES_USER": "agents",
+      "POSTGRES_PASSWORD": "agents",
+      "POSTGRES_PORT": "5432",
+      "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
+      "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG"
+    }
+  },
+  {
+    "label": "Debug pytest run",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "pytest",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "args": []
+  },
+  {
+    "label": "Debug Changes Script",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "program": "${workspaceFolder}/scripts/changes.py",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "args": []
+  },
+  {
+    "label": "Debug Quality CLI",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "module": "agent_platform.quality.cli",
+    "justMyCode": false,
+    "console": "integratedTerminal",
+    "args": []
+  },
+  {
+    "label": "PyDev Test Template",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "python": ".venv/bin/python3",
+    "args": [
+      "--capture=no",
+      "--force-regen",
+      "--tb=short",
+      "-m",
+      "not postgresql"
+    ]
+  }
+]
