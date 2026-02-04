@@ -23,7 +23,8 @@
     "format:check": {},
     "format:fix": {},
     "@sema4ai/workroom-backend#dev": {
-      "dependsOn": ["@sema4ai/workroom-frontend#dev"]
+      "dependsOn": ["@sema4ai/workroom-frontend#dev"],
+      "cache": false
     },
     "@sema4ai/workroom-frontend#test": {},
     "@sema4ai/workroom-backend#test": {
