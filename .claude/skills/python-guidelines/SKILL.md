@@ -183,7 +183,7 @@ class User:
 
 **Principle:** Use Python's type system to **enforce logic**, not just for hints.
 
-**The "No TypedDict" Rule:** **Never** use `TypedDict` or raw dictionaries for internal domain logic. Use **Pydantic** `BaseModel` or `@dataclass`.
+**The "No TypedDict" Rule:** **Never** use `TypedDict` or raw dictionaries for user-facing domain logic. Use **Pydantic** `BaseModel` or `@dataclass`.
 This includes nested request/response payloads, configuration objects, and intermediate pipeline structures.
 
 ```python
@@ -273,6 +273,11 @@ async def upsert_agent_from_package(package: AgentPackage) -> Agent:
         logger.error("Failed to upsert agent", exc_info=True)
         raise
 ```
+
+**Rule: Do not disable the type checker** If you have to disable the type checker (`# type: ignore`), the author is being lazy or the design is flawed/over-complicated.
+
+`# type: ignore` should never appear in production code without very good reasons that the author justifies. Test code should generally not
+rely on it either unless omitting the type check would make the test significantly more complex.
 
 ---
 
@@ -684,16 +689,20 @@ from pydantic import BaseModel
 from agent_platform.core.user import User
 from agent_platform.server.storage import BaseStorage
 ````
+**Circular Dependencies:**
 
-**Circular Dependencies:** Use `if typing.TYPE_CHECKING:` for type-only imports.
+Use `if typing.TYPE_CHECKING:` for type-only imports and `from __future__ import annotations` to automatically convert
+type hints to strings. The combination of these two techniques prevents most circular import issues.
 
 ```python
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from agent_platform.server.storage.base import BaseStorage
 
-def process_data(storage: "BaseStorage") -> None:
+def process_data(storage: BaseStorage) -> None:
     ...
 ```
 

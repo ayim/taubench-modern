@@ -4,6 +4,9 @@ from agent_platform.server.semantic_data_models.errors import (
     SemanticDataModelError,
     SemanticDataModelWithNameAlreadyExistsError,
 )
+from agent_platform.server.semantic_data_models.schemas import (
+    validate_sdm,
+)
 from agent_platform.server.semantic_data_models.utils import (
     check_semantic_data_model_name_exists,
     make_semantic_data_model_name_unique,
@@ -15,5 +18,6 @@ __all__ = [
     "SemanticDataModelWithNameAlreadyExistsError",
     "check_semantic_data_model_name_exists",
     "make_semantic_data_model_name_unique",
+    "validate_sdm",
     "validate_semantic_data_model_name_is_unique",
 ]

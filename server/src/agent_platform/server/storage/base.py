@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import dataclasses
 import json
@@ -59,6 +61,7 @@ if typing.TYPE_CHECKING:
     )
     from agent_platform.core.oauth.oauth_models import OAuthConfig
     from agent_platform.core.payloads.mcp_server_payloads import MCPServerUpdate
+    from agent_platform.core.semantic_data_model.schemas import Schema
     from agent_platform.core.semantic_data_model.types import VerifiedQuery
     from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
     from agent_platform.server.storage.types import StaleThreadsResult
@@ -71,7 +74,7 @@ logger = get_logger(__name__)
 class AsyncLockLike(Protocol):
     """API for an async-io lock which can only be used as a context manager."""
 
-    async def __aenter__(self) -> "AsyncLockLike": ...
+    async def __aenter__(self) -> AsyncLockLike: ...
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
@@ -274,7 +277,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     def _convert_verified_queries_dicts_to_models(
         self, verified_queries: list | None, semantic_data_model_id: str
-    ) -> list["VerifiedQuery"]:
+    ) -> list[VerifiedQuery]:
         """Convert verified_queries dicts to Pydantic models.
 
         This helper method handles conversion of verified queries from dict format
@@ -350,7 +353,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Methods for Data Frames
     # -------------------------------------------------------------------------
-    async def save_data_frame(self, data_frame: "PlatformDataFrame") -> None:
+    async def save_data_frame(self, data_frame: PlatformDataFrame) -> None:
         """Save a new data frame."""
         data_frames = self._get_table("data_frames")
 
@@ -365,7 +368,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def get_data_frame(
         self, thread_id: str, data_frame_id: str | None = None, data_frame_name: str | None = None
-    ) -> "PlatformDataFrame":
+    ) -> PlatformDataFrame:
         """Get a data frame by ID."""
         from agent_platform.core.errors.base import PlatformHTTPError
         from agent_platform.core.errors.responses import ErrorCode
@@ -421,7 +424,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 raise ValueError("Either data_frame_id or data_frame_name must be provided")
         return self._build_data_frame(row)
 
-    def _build_data_frame(self, row_mapping: sa.RowMapping) -> "PlatformDataFrame":
+    def _build_data_frame(self, row_mapping: sa.RowMapping) -> PlatformDataFrame:
         # SQLAlchemy may return UUIDs as UUID objects, so we need to convert them to strings, which
         # is what we expect in the dataframe.
         row = dict(row_mapping)
@@ -433,7 +436,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         # Convert row to PlatformDataFrame object using model_validate for proper deserialization
         return PlatformDataFrame.model_validate(row)
 
-    async def list_data_frames(self, thread_id: str) -> list["PlatformDataFrame"]:
+    async def list_data_frames(self, thread_id: str) -> list[PlatformDataFrame]:
         """List all data frames for a given user and thread."""
         data_frames = self._get_table("data_frames")
 
@@ -499,7 +502,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if result.rowcount == 0:
                 raise ValueError(f"Data frame {data_frame_name} not found in thread {thread_id}")
 
-    async def update_data_frame(self, data_frame: "PlatformDataFrame") -> None:
+    async def update_data_frame(self, data_frame: PlatformDataFrame) -> None:
         """Update a data frame."""
         from agent_platform.core.errors.base import PlatformHTTPError
         from agent_platform.core.errors.responses import ErrorCode
@@ -613,8 +616,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def create_mcp_server(
         self,
-        mcp_server: "MCPServer | MCPServerWithOAuthConfig",
-        source: "MCPServerSource",
+        mcp_server: MCPServer | MCPServerWithOAuthConfig,
+        source: MCPServerSource,
     ) -> str:
         """Create a new MCP server. Returns the generated MCP server ID.
 
@@ -625,7 +628,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         import uuid
 
         from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
-        from agent_platform.core.oauth.oauth_models import AuthenticationType, OAuthConfig
+        from agent_platform.core.oauth.oauth_models import AuthenticationType
         from agent_platform.server.storage.errors import MCPServerWithNameAlreadyExistsError, RecordAlreadyExistsError
 
         oauth_config: OAuthConfig | None = None
@@ -706,7 +709,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return mcp_server_id
 
-    async def get_mcp_server(self, mcp_server_id: str) -> "MCPServer":
+    async def get_mcp_server(self, mcp_server_id: str) -> MCPServer:
         """Get an MCP server by ID."""
         from agent_platform.core.mcp.mcp_server import MCPServer
         from agent_platform.server.storage.errors import ConfigDecryptionError, MCPServerNotFoundError
@@ -737,7 +740,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         except Exception as e:
             raise ConfigDecryptionError(f"Failed to decrypt MCP server configuration for {mcp_server_id}") from e
 
-    def _build_oauth_config_from_row(self, row, server_id: str) -> "OAuthConfig | None":
+    def _build_oauth_config_from_row(self, row, server_id: str) -> OAuthConfig | None:
         """Build OAuthConfig from database row fields.
 
         Args:
@@ -774,7 +777,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             authentication_metadata=authentication_metadata,
         )
 
-    def _build_mcp_server_with_oauth_from_row(self, row, server_id: str) -> "MCPServerWithOAuthConfig":
+    def _build_mcp_server_with_oauth_from_row(self, row, server_id: str) -> MCPServerWithOAuthConfig:
         """Build MCPServerWithOAuthConfig from database row.
 
         Args:
@@ -820,7 +823,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             oauth_config=oauth_config,
         )
 
-    def _build_mcp_server_with_metadata_from_row(self, row, server_id: str) -> "MCPServerWithMetadata":
+    def _build_mcp_server_with_metadata_from_row(self, row, server_id: str) -> MCPServerWithMetadata:
         """Build MCPServerWithMetadata from database row.
 
         Args:
@@ -845,7 +848,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             source=source,
         )
 
-    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> "MCPServerWithMetadata":
+    async def get_mcp_server_with_metadata(self, mcp_server_id: str) -> MCPServerWithMetadata:
         """Get an MCP server by ID with its source and deployment info."""
         from agent_platform.server.storage.errors import MCPServerNotFoundError
 
@@ -874,9 +877,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def list_mcp_servers_with_metadata(
         self,
-    ) -> dict[str, "MCPServerWithMetadata"]:
+    ) -> dict[str, MCPServerWithMetadata]:
         """List all MCP servers with their source and deployment info."""
-        from agent_platform.core.mcp.mcp_server import MCPServerWithMetadata
 
         # 1. Get all MCP servers
         mcp_server_table = self._get_table("mcp_server")
@@ -910,9 +912,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
     async def get_mcp_servers_and_oauth_info_by_ids(
         self, mcp_server_ids: list[str]
-    ) -> dict[str, "MCPServerWithOAuthConfig"]:
+    ) -> dict[str, MCPServerWithOAuthConfig]:
         """Get multiple MCP servers by their IDs with OAuth configuration."""
-        from agent_platform.core.mcp.mcp_server import MCPServerWithOAuthConfig
 
         if not mcp_server_ids:
             return {}
@@ -943,8 +944,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
     async def update_mcp_server(
         self,
         mcp_server_id: str,
-        mcp_server_update: "MCPServerUpdate",
-        mcp_server_source: "MCPServerSource",
+        mcp_server_update: MCPServerUpdate,
+        mcp_server_source: MCPServerSource,
     ) -> None:
         """Update an MCP server. Only updates fields that are provided (not None) in mcp_server_update."""
         from agent_platform.core.oauth.oauth_models import AuthenticationType
@@ -1106,7 +1107,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 insert_stmt = sa.insert(agent_data_connections).values(insert_data)
                 await conn.execute(insert_stmt)
 
-    async def get_agent_data_connections(self, agent_id: str) -> list["DataConnection"]:
+    async def get_agent_data_connections(self, agent_id: str) -> list[DataConnection]:
         """Get data connections associated with an agent."""
         # Get the data connection IDs first
         data_connection_ids = await self.get_agent_data_connection_ids(agent_id)
@@ -1150,7 +1151,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             delete_stmt = sa.delete(dids_connection_details)
             await conn.execute(delete_stmt)
 
-    async def clean_up_stale_threads(self, default_retention_period: timedelta) -> "list[StaleThreadsResult]":
+    async def clean_up_stale_threads(self, default_retention_period: timedelta) -> list[StaleThreadsResult]:
         """
         Returns:
             list[StaleThreadsResult]: A list of thread_ids that were cleaned up.
@@ -2056,7 +2057,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             if status_value == TrialStatus.CANCELED:
                 raise TrialAlreadyCanceledError(f"Trial {trial_id!r} is already canceled")
 
-    async def update_trial_evaluation_results(self, trial_id: str, evaluations: "Sequence[EvaluationResult]"):
+    async def update_trial_evaluation_results(self, trial_id: str, evaluations: Sequence[EvaluationResult]):
         trials = self._get_table("trials")
         now = datetime.now(UTC)
 
@@ -2149,7 +2150,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Data Connections getter and setter
     # -------------------------------------------------------------------------
-    async def get_data_connections(self, data_connection_ids: list[str] | None = None) -> list["DataConnection"]:
+    async def get_data_connections(self, data_connection_ids: list[str] | None = None) -> list[DataConnection]:
         """Get all data connections."""
         data_connections = self._get_table("data_connection")
 
@@ -3081,6 +3082,46 @@ class BaseStorage(AbstractStorage, CommonMixin):
             results = list(models_by_id.values())
             return results
 
+    async def iter_sdm_schemas(
+        self,
+    ) -> AsyncIterator[tuple[str, list[Schema] | None]]:
+        """Iterate over (sdm_id, schemas) tuples without loading all SDMs into memory.
+
+        This is a lightweight method for schema validation that avoids the full
+        list_semantic_data_models() query with its joins and full model parsing.
+
+        Yields:
+            Tuples of (sdm_id, schemas) where schemas is the list of Schema objects
+            or None if the SDM has no schemas.
+        """
+        from agent_platform.core.semantic_data_model.schemas import Schema
+
+        semantic_data_models = self._get_table("semantic_data_model")
+
+        query = sa.select(
+            semantic_data_models.c.id,
+            semantic_data_models.c.semantic_model,
+        )
+
+        async with self._read_connection() as conn:
+            result = await conn.stream(query)
+            async for row in result:
+                sdm_id = str(row.id)
+                semantic_model = row.semantic_model
+
+                # Parse JSON if needed (SQLite returns string, Postgres returns dict)
+                if isinstance(semantic_model, str):
+                    semantic_model = json.loads(semantic_model)
+
+                # Extract just the schemas, don't parse the full SDM
+                schemas_data = semantic_model.get("schemas")
+                if schemas_data:
+                    schemas = [Schema.model_validate(s) for s in schemas_data]
+                else:
+                    schemas = None
+
+                yield (sdm_id, schemas)
+
     # -------------------------------------------------------------------------
     # Methods for Data Frames Cache
     # -------------------------------------------------------------------------
@@ -3287,7 +3328,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # Methods for OAuth Token Storage
     # -------------------------------------------------------------------------
 
-    async def _load_mcp_oauth_token_from_row(self, row: RowMapping, *, decrypt: bool = False) -> "OAuthToken":
+    async def _load_mcp_oauth_token_from_row(self, row: RowMapping, *, decrypt: bool = False) -> OAuthToken:
         from mcp.shared.auth import OAuthToken
 
         from agent_platform.core.oauth.oauth_constants import TIMEOUT_TO_CONSIDER_OAUTH_TOKEN_EXPIRED
@@ -3332,7 +3373,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
             refresh_token=refresh_token,
         )
 
-    async def get_mcp_server_to_oauth_token(self, user_id: str, *, decrypt: bool = False) -> dict[str, "OAuthToken"]:
+    async def get_mcp_server_to_oauth_token(self, user_id: str, *, decrypt: bool = False) -> dict[str, OAuthToken]:
         """
         Get a dictionary of MCP server URLs to OAuth tokens for a user.
         Should be used for getting the status of all MCP servers that the user has access to.
@@ -3343,7 +3384,6 @@ class BaseStorage(AbstractStorage, CommonMixin):
         Returns:
             A dictionary of MCP server URLs to OAuth tokens
         """
-        from mcp.shared.auth import OAuthToken
 
         token_table = self._get_table("oauth_token")
 
@@ -3363,7 +3403,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
 
         return result_dict
 
-    async def get_mcp_oauth_token(self, user_id: str, mcp_url: str, *, decrypt: bool = False) -> "OAuthToken | None":
+    async def get_mcp_oauth_token(self, user_id: str, mcp_url: str, *, decrypt: bool = False) -> OAuthToken | None:
         """Get OAuth token for a user and MCP server. May return None if no token is found."""
 
         token_table = self._get_table("oauth_token")
@@ -3382,7 +3422,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         self,
         user_id: str,
         mcp_url: str,
-        token: "OAuthToken",
+        token: OAuthToken,
     ) -> None:
         """Set OAuth token for a user and MCP server."""
         token_table = self._get_table("oauth_token")
@@ -3445,7 +3485,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     async def get_mcp_oauth_client_info(
         self, user_id: str, mcp_url: str, *, decrypt: bool = False
-    ) -> "OAuthClientInformationFull | None":
+    ) -> OAuthClientInformationFull | None:
         """Get OAuth client information for a user and MCP server."""
         from mcp.shared.auth import OAuthClientInformationFull
 
@@ -3487,7 +3527,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
         self,
         user_id: str,
         mcp_url: str,
-        client_info: "OAuthClientInformationFull",
+        client_info: OAuthClientInformationFull,
     ) -> None:
         """Set OAuth client information for a user and MCP server."""
         from agent_platform.server.data_frames.data_node import convert_to_valid_json_types
@@ -3569,7 +3609,7 @@ class BaseStorage(AbstractStorage, CommonMixin):
     # -------------------------------------------------------------------------
     # Methods for OAuth Callback Result Storage
     # -------------------------------------------------------------------------
-    async def get_mcp_oauth_callback_result(self, callback_id: str) -> "OAuthCallbackResult | None":
+    async def get_mcp_oauth_callback_result(self, callback_id: str) -> OAuthCallbackResult | None:
         """Get OAuth callback result by callback_id."""
         from agent_platform.server.oauth.oauth_provider import OAuthCallbackResult
 

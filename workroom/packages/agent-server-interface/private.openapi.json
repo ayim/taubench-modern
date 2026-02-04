@@ -14005,6 +14005,39 @@
         "title": "Dimension",
         "description": "A dimension describes categorical values such as state, user_type, platform, etc.\n\nUse when it's categorical/descriptive context you'll group or filter by\n(e.g., product_name, customer_id, region).\nDimensions answer who/what/where/how and provide labels for facts."
       },
+      "DocumentExtraction": {
+        "properties": {
+          "system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt",
+            "description": "Optional system prompt to guide the extraction model."
+          },
+          "configuration": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Configuration",
+            "description": "Opaque configuration dict for the extraction engine."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DocumentExtraction",
+        "description": "Configuration for extracting data from documents into a Schema's shape.\n\nWhen present on a Schema, indicates the schema can be populated via\ndocument extraction. The Schema defines \"what shape\" - these hints\ndescribe \"how to get it\" from documents."
+      },
       "DocumentIntelligenceConfigPayload": {
         "properties": {
           "data_server": {
@@ -22040,6 +22073,60 @@
         "required": ["name", "description"],
         "title": "ScenarioSuggestion"
       },
+      "Schema": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "description": "A unique name for this schema. Must be unique across all schemas in all SDMs."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description",
+            "description": "A description of what this schema validates and its purpose."
+          },
+          "json_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Json Schema",
+            "description": "A valid JSON Schema that defines the structure of data to validate."
+          },
+          "validations": {
+            "items": {
+              "$ref": "#/components/schemas/Validation"
+            },
+            "type": "array",
+            "title": "Validations",
+            "description": "Custom validation rules to apply beyond JSON Schema validation."
+          },
+          "transformations": {
+            "items": {
+              "$ref": "#/components/schemas/Transformation"
+            },
+            "type": "array",
+            "title": "Transformations",
+            "description": "Rules to convert JSON data to another Schema."
+          },
+          "document_extraction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentExtraction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If present, this schema can be populated via document extraction."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["name", "description", "json_schema"],
+        "title": "Schema",
+        "description": "A schema defines the structure and validation rules for data.\n\nSchemas use JSON Schema format to define the expected structure of data,\nalong with optional validation rules and translations for internationalization."
+      },
       "SecretString": {
         "properties": {
           "value": {
@@ -22325,6 +22412,21 @@
               }
             ],
             "description": "Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables."
+          },
+          "schemas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Schema"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schemas",
+            "description": "A list of schemas defining data structures and validation rules."
           }
         },
         "additionalProperties": false,
@@ -24960,6 +25062,27 @@
         "required": ["name", "description", "input_schema"],
         "title": "ToolDefinitionPayload"
       },
+      "Transformation": {
+        "properties": {
+          "target_schema_name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Target Schema Name",
+            "description": "The name of the target schema to which data will be translated."
+          },
+          "jq_expression": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Jq Expression",
+            "description": "A JQ expression that transforms data to conform to the target schema."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["target_schema_name", "jq_expression"],
+        "title": "Transformation",
+        "description": "A set of rules that converts an object of one Schema to another Schema.\n\nA Transformationf expresses computation that transforms data from one Schema\nto another Schema. This logic verifies that resulting data adheres to the\ntarget Schema."
+      },
       "Trial": {
         "properties": {
           "trial_id": {
@@ -25808,6 +25931,33 @@
         "type": "object",
         "required": ["semantic_data_model_id", "semantic_data_model"],
         "title": "ValidateSemanticDataModelResultItem"
+      },
+      "Validation": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Name",
+            "description": "A unique name for this validation rule within a schema."
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Description",
+            "description": "A description of what this validation rule checks."
+          },
+          "jq_expression": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Jq Expression",
+            "description": "A JQ expression that evaluates to true if the data is valid."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["name", "description", "jq_expression"],
+        "title": "Validation",
+        "description": "A validation rule for the values of an object created by a Schema.\n\nA Schema asserts that some JSON adheres to some given structure. A Validation\napplies a more \"semantic\" validation that the object is sane.\n\nFor example: a 'name' field is a non-empty string. A sum over a list of\nnumbers is equal to a 'total' field."
       },
       "ValidationMessage": {
         "properties": {

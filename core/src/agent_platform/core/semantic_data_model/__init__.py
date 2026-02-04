@@ -5,6 +5,27 @@ semantic data models, which describe collections of database tables
 with their relationships and metadata.
 """
 
+from agent_platform.core.semantic_data_model.schemas import (
+    DocumentExtraction,
+    ExtractionEvent,
+    JsonData,
+    LineageEvent,
+    Schema,
+    SchemaData,
+    Transformation,
+    TransformationEvent,
+    Validation,
+    ValidationEvent,
+    ValidationResult,
+    normalize_schema_name,
+)
+from agent_platform.core.semantic_data_model.service import (
+    DocumentService,
+    DocumentServiceProtocol,
+    ExtractJob,
+    SchemaService,
+    SchemaServiceProtocol,
+)
 from agent_platform.core.semantic_data_model.types import (
     # Enums
     CATEGORIES,
@@ -60,24 +81,29 @@ from agent_platform.core.semantic_data_model.validation import (
 )
 
 __all__ = [
-    # Types module exports
     "CATEGORIES",
     "QUERY_PARAMETER_TYPE_TO_PYTHON",
     "BaseTable",
     "CategoriesType",
     "CortexSearchService",
-    # Validation module exports
     "DataConnectionInfo",
     "DataConnectionSnapshotMetadata",
     "DataFrameConnectionInfo",
     "Dimension",
+    "DocumentExtraction",
+    "DocumentService",
+    "DocumentServiceProtocol",
     "EmptyFileReference",
+    "ExtractJob",
+    "ExtractionEvent",
     "Fact",
     "FileConnectionInfo",
     "FileReference",
     "FileSnapshotMetadata",
     "Filter",
     "InputDataConnectionSnapshot",
+    "JsonData",
+    "LineageEvent",
     "LogicalTable",
     "Metric",
     "PrimaryKey",
@@ -87,12 +113,21 @@ __all__ = [
     "Relationship",
     "RelationshipColumn",
     "SampleValue",
+    "Schema",
+    "SchemaData",
+    "SchemaService",
+    "SchemaServiceProtocol",
     "SemanticDataModel",
     "SemanticDataModelMetadata",
     "TimeDimension",
+    "Transformation",
+    "TransformationEvent",
+    "Validation",
+    "ValidationEvent",
     "ValidationMessage",
     "ValidationMessageKind",
     "ValidationMessageLevel",
+    "ValidationResult",
     "VerifiedQuery",
     "VerifiedQueryNLQError",
     "VerifiedQueryNameError",
@@ -100,8 +135,8 @@ __all__ = [
     "VerifiedQuerySQLError",
     "VerifiedQueryValidationContext",
     "VerifiedQueryValidationError",
-    # Utils module exports
     "extract_missing_parameters",
     "extract_parameters_from_sql",
+    "normalize_schema_name",
     "validate_semantic_model_payload_and_extract_references",
 ]

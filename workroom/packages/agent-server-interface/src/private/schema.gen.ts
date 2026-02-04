@@ -5678,6 +5678,28 @@ export interface components {
       /** Errors */
       errors?: components['schemas']['ValidationMessage'][] | null;
     };
+    /**
+     * DocumentExtraction
+     * @description Configuration for extracting data from documents into a Schema's shape.
+     *
+     *     When present on a Schema, indicates the schema can be populated via
+     *     document extraction. The Schema defines "what shape" - these hints
+     *     describe "how to get it" from documents.
+     */
+    DocumentExtraction: {
+      /**
+       * System Prompt
+       * @description Optional system prompt to guide the extraction model.
+       */
+      system_prompt?: string | null;
+      /**
+       * Configuration
+       * @description Opaque configuration dict for the extraction engine.
+       */
+      configuration?: {
+        [key: string]: unknown;
+      } | null;
+    };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
       data_server: components['schemas']['DataServerConfig'];
@@ -9413,6 +9435,44 @@ export interface components {
        */
       response_accuracy_expectation: string;
     };
+    /**
+     * Schema
+     * @description A schema defines the structure and validation rules for data.
+     *
+     *     Schemas use JSON Schema format to define the expected structure of data,
+     *     along with optional validation rules and translations for internationalization.
+     */
+    Schema: {
+      /**
+       * Name
+       * @description A unique name for this schema. Must be unique across all schemas in all SDMs.
+       */
+      name: string;
+      /**
+       * Description
+       * @description A description of what this schema validates and its purpose.
+       */
+      description: string;
+      /**
+       * Json Schema
+       * @description A valid JSON Schema that defines the structure of data to validate.
+       */
+      json_schema: {
+        [key: string]: unknown;
+      };
+      /**
+       * Validations
+       * @description Custom validation rules to apply beyond JSON Schema validation.
+       */
+      validations?: components['schemas']['Validation'][];
+      /**
+       * Transformations
+       * @description Rules to convert JSON data to another Schema.
+       */
+      transformations?: components['schemas']['Transformation'][];
+      /** @description If present, this schema can be populated via document extraction. */
+      document_extraction?: components['schemas']['DocumentExtraction'] | null;
+    };
     /** SecretString */
     SecretString: {
       /**
@@ -9523,6 +9583,11 @@ export interface components {
       verified_queries?: components['schemas']['VerifiedQuery'][] | null;
       /** @description Metadata container for inspection snapshots, schemas, and other metadata. Stores data directly within the SDM JSON payload without extra storage tables. */
       metadata?: components['schemas']['SemanticDataModelMetadata'] | null;
+      /**
+       * Schemas
+       * @description A list of schemas defining data structures and validation rules.
+       */
+      schemas?: components['schemas']['Schema'][] | null;
     };
     /**
      * SemanticDataModelMetadata
@@ -10814,6 +10879,26 @@ export interface components {
         | 'client-exec-tool'
         | 'client-info-tool';
     };
+    /**
+     * Transformation
+     * @description A set of rules that converts an object of one Schema to another Schema.
+     *
+     *     A Transformationf expresses computation that transforms data from one Schema
+     *     to another Schema. This logic verifies that resulting data adheres to the
+     *     target Schema.
+     */
+    Transformation: {
+      /**
+       * Target Schema Name
+       * @description The name of the target schema to which data will be translated.
+       */
+      target_schema_name: string;
+      /**
+       * Jq Expression
+       * @description A JQ expression that transforms data to conform to the target schema.
+       */
+      jq_expression: string;
+    };
     /** Trial */
     Trial: {
       /** Trial Id */
@@ -11216,6 +11301,33 @@ export interface components {
       errors?: components['schemas']['ValidationMessage'][];
       /** Warnings */
       warnings?: components['schemas']['ValidationMessage'][];
+    };
+    /**
+     * Validation
+     * @description A validation rule for the values of an object created by a Schema.
+     *
+     *     A Schema asserts that some JSON adheres to some given structure. A Validation
+     *     applies a more "semantic" validation that the object is sane.
+     *
+     *     For example: a 'name' field is a non-empty string. A sum over a list of
+     *     numbers is equal to a 'total' field.
+     */
+    Validation: {
+      /**
+       * Name
+       * @description A unique name for this validation rule within a schema.
+       */
+      name: string;
+      /**
+       * Description
+       * @description A description of what this validation rule checks.
+       */
+      description: string;
+      /**
+       * Jq Expression
+       * @description A JQ expression that evaluates to true if the data is valid.
+       */
+      jq_expression: string;
     };
     /**
      * ValidationMessage

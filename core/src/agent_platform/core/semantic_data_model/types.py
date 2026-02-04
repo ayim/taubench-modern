@@ -31,11 +31,15 @@ from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectResponse,
 )
 
+# Import Schema early to avoid having to rebuild the SDM pydantic model later.
+from agent_platform.core.semantic_data_model.schemas import Schema
+
 # Type alias for sample values used in Dimension, TimeDimension, Fact, and Metric
 SampleValue = str | int | float | bool | date | datetime | None
 
 if typing.TYPE_CHECKING:
     from pydantic.main import IncEx
+
 
 # ============================================================================
 # Validation Enums
@@ -1158,6 +1162,10 @@ class SemanticDataModel(BaseModel):
             "Stores data directly within the SDM JSON payload without extra storage tables."
         ),
     )
+    schemas: list[Schema] | None = Field(
+        default=None,
+        description="A list of schemas defining data structures and validation rules.",
+    )
 
     @field_validator("name", mode="before")
     @classmethod
@@ -1180,6 +1188,40 @@ class SemanticDataModel(BaseModel):
             else:
                 result.append(item)
         return result
+
+    @field_validator("schemas", mode="before")
+    @classmethod
+    def convert_schemas(cls, v: list | None) -> list[Schema] | None:
+        """Convert schema dicts to Schema models."""
+        if v is None:
+            return None
+
+        result = []
+        for item in v:
+            if isinstance(item, dict):
+                result.append(Schema.model_validate(item))
+            else:
+                result.append(item)
+        return result
+
+    @model_validator(mode="after")
+    def validate_schema_names_unique(self) -> SemanticDataModel:
+        """Validate that all schema names within this SDM are unique."""
+        from agent_platform.core.semantic_data_model.schemas import normalize_schema_name
+
+        if not self.schemas:
+            return self
+
+        seen_names: set[str] = set()
+        for schema in self.schemas:
+            normalized = normalize_schema_name(schema.name)
+            if normalized in seen_names:
+                raise ValueError(
+                    f"Duplicate schema name '{schema.name}' within semantic data model. "
+                    "Schema names must be unique within each semantic data model."
+                )
+            seen_names.add(normalized)
+        return self
 
     def model_dump(
         self,
