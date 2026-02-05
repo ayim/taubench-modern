@@ -5,8 +5,9 @@ replicaCount: 1
 
 image:
   # Replicated proxy registry for SPAR image
-  # Note: repository and tag are set by the HelmChart CR in manifests/spar.yaml
+  # Note: tag is overridden by the HelmChart CR in manifests/spar.yaml
   repository: proxy.replicated.com/proxy/spar/024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar
+  tag: PLACEHOLDER
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -65,9 +66,24 @@ rollingUpdate:
   maxSurge: 1
 
 # Graceful shutdown configuration
+# IMPORTANT: terminationGracePeriodSeconds must be > drainTimeoutSeconds + 10s buffer
 gracefulShutdown:
-  terminationGracePeriodSeconds: 300
+  terminationGracePeriodSeconds: 330
   drainTimeoutSeconds: 300
+
+# Probe configuration - adjust these if pods are being killed during long-running requests
+probes:
+  liveness:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 6
+  readiness:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    successThreshold: 1
+    failureThreshold: 3
 
 nodeSelector: {}
 

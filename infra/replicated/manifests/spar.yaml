@@ -15,6 +15,10 @@ spec:
       repository: proxy/spar/024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/moonraker/spar
       tag: PLACEHOLDER
   values:
+    # Image configuration - tag must be passed here for the Helm chart to use
+    image:
+      tag: PLACEHOLDER
+
     # Match the Helm chart's expected structure (top-level imagePullSecrets)
     imagePullSecrets:
       - name: '{{repl ImagePullSecretName }}'
