@@ -202,12 +202,6 @@
     "adapter": "Debugpy",
     "request": "launch",
     "python": ".venv/bin/python3",
-    "args": [
-      "--capture=no",
-      "--force-regen",
-      "--tb=short",
-      "-m",
-      "not postgresql"
-    ]
+    "args": ["--capture=no", "--force-regen", "--tb=short", "-m", "not postgresql"]
   }
 ]
