@@ -511,6 +511,45 @@ def test_user_is_admin():
     assert regular.is_admin() is False
 ```
 
+**Write tests in terms of domain objects**
+
+As a general rule, we should be re-using our Pydantic Models or Dataclasses (domain objects) to write our unit tests.
+We should not be operating in terms of untyped dictionaries or lists.
+
+Specifically, our application uses domain objects to represent the data flowing into or out of our REST API.
+Tests should create HTTP request payloads by instantiating the domain objects and serializing the object to JSON. Similarly,
+the HTTP responses should be marshaled from JSON data into the domain object. Tests should write asserts using domain objects
+not against raw dicts/json data.
+
+```python
+# ❌ BAD: Creating a payload as a dictionary
+payload = {
+    "data_frame_name": data_frame_name,
+}
+response = requests.post(url, json=payload)
+
+# ✅ GOOD: Using a domain object
+request = MyRequest(
+    data_frame_name=data_frame_name,
+)
+response = requests.post(url, json=request.model_dump(mode="json"))
+```
+
+```python
+# ❌ BAD: Writing asserts over raw HTTP responses
+response = requests.post(url, json=payload)
+assert response.ok(), f"request to {url} failed with {response.status_code}"
+resp_data = response.json()
+assert "data_frame_name" in resp_data
+assert resp_data["data_frame_name"] == "my data frame"
+
+# ✅ GOOD: Marshaling HTTP responses into domain object
+response = requests.post(url, json=payload)
+assert response.ok(), f"request to {url} failed with {response.status_code}"
+resp_obj = MyResponse.model_validate(response.json())
+assert resp_obj.data_fram_name == "my data_frame"
+```
+
 **Use Explicit Assertions Instead of Type Casts**
 
 **Principle:** Tests should validate behavior, not work around type checking. Explicit assertions catch bugs and provide better error messages.
