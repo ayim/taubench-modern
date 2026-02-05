@@ -131,6 +131,7 @@ services:
             timeout: 5s
             retries: 5
             start_period: 10s
+
     jaeger:
         image: jaegertracing/all-in-one:latest
         environment:
@@ -145,6 +146,31 @@ services:
             timeout: 5s
             retries: 5
             start_period: 10s
+
+    # Grafana for unified observability UI (traces, metrics, dashboards)
+    grafana:
+        image: grafana/grafana:latest
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+            - GF_AUTH_DISABLE_LOGIN_FORM=true
+        volumes:
+            - ./observability/dev/grafana/provisioning:/etc/grafana/provisioning
+            - grafana-data:/var/lib/grafana
+        ports:
+            - 3000:3000  # Grafana UI
+        expose:
+            - "3000"
+        depends_on:
+            jaeger:
+                condition: service_healthy
+        healthcheck:
+            test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+
     otel-collector:
         image: otel/opentelemetry-collector-contrib:0.130.0
         platform: linux/amd64
@@ -163,6 +189,8 @@ services:
             influx-db:
                 condition: service_healthy
             jaeger:
+                condition: service_healthy
+            grafana:
                 condition: service_healthy
 #endregion
 
@@ -211,6 +239,7 @@ volumes:
     postgres_data:
     influx-data:
     influx-config:
+    grafana-data:
 
 secrets:
     npmrc:
