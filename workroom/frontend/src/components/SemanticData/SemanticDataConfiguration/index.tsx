@@ -41,7 +41,7 @@ type Props = {
 
 export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initialModelId, initialStep }) => {
   const [modelId, setModelId] = useState<string | undefined>(initialModelId);
-  const { agentId = '' } = useParams({ strict: false });
+  const { agentId = '', threadId = '' } = useParams({ strict: false });
   const confirmCloseAction = useConfirmAction(
     {
       title: 'Are you sure?',
@@ -107,6 +107,11 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
 
   const onSubmit = formMethods.handleSubmit(
     async (values) => {
+      if (!threadId) {
+        addSnackbar({ message: 'Unable to update data model without an active thread.', variant: 'danger' });
+        return;
+      }
+
       if (modelId) {
         const shouldRegenerateModel = forceModelRegeneration || hasDataSelectionChanged(values);
 
@@ -115,7 +120,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         }
 
         updateSemanticData(
-          { ...values, modelId, agentId, shouldRegenerateModel },
+          { ...values, modelId, agentId, threadId, shouldRegenerateModel },
           {
             onSuccess: () => {
               addSnackbar({ message: 'Data model updated successfully', variant: 'success' });
@@ -130,7 +135,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       } else if (dataSourceType === DataSourceType.Import) {
         setActiveStep(ConfigurationStep.Processing);
         await importSemanticDataModel(
-          { ...values, agentId },
+          { ...values, agentId, threadId },
           {
             onSuccess: (result) => {
               if (result.withErrors) {
@@ -150,7 +155,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
       } else {
         setActiveStep(ConfigurationStep.Processing);
         createSemanticData(
-          { ...values, agentId, inspectionResult: databaseInspectionState.inspectionResult },
+          { ...values, agentId, threadId, inspectionResult: databaseInspectionState.inspectionResult },
           {
             onSuccess: (result) => {
               setActiveStep(ConfigurationStep.SuccessCreation);

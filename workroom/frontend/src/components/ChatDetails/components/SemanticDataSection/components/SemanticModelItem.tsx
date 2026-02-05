@@ -50,6 +50,7 @@ const Item = styled(Box)`
 
 export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { agentId = '', threadId = '' } = useParams({ strict: false });
+  const renameThreadId = threadId || undefined;
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const { mutate: deleteSemanticDataModel } = useDeleteSemanticDataModelMutation({});
@@ -116,10 +117,15 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
 
   const onModelRename = (newName: string) => {
     setIsRenameDialogOpen(false);
+    if (!renameThreadId) {
+      addSnackbar({ message: 'Unable to rename data model without an active thread.', variant: 'danger' });
+      return;
+    }
 
     updateSemanticDataModel(
       {
         agentId,
+        threadId: renameThreadId,
         ...model,
         name: newName,
         modelId: model.id,
@@ -129,6 +135,9 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       {
         onSuccess: () => {
           addSnackbar({ message: 'Semantic Data Model renamed successfully', variant: 'success' });
+        },
+        onError: (error) => {
+          addSnackbar({ message: error.message, variant: 'danger' });
         },
       },
     );

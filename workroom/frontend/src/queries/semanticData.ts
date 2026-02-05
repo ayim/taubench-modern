@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DataConnection } from '@sema4ai/data-interface';
 
 import { createSparMutation, createSparQuery, createSparQueryOptions, QueryError, ResourceType } from './shared';
+import { threadMessagesQueryKey } from './threads';
 import { DataConnectionFormSchema } from '../components/SemanticData/SemanticDataConfiguration/components/types';
 import { InspectedTableInfo } from './dataConnections';
 
@@ -282,6 +283,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
   object,
   DataConnectionFormSchema & {
     agentId: string;
+    threadId: string;
     inspectionResult?: InspectedTableInfo;
   }
 >()(({ agentAPIClient, queryClient }) => ({
@@ -300,7 +302,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
           data_connections_info: [],
           files_info: [
             {
-              thread_id: '',
+              thread_id: payload.threadId,
               file_ref: '',
               tables_info: payload.dataSelection,
               inspection_result: payload.inspectionResult,
@@ -313,6 +315,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
         name: payload.name || 'Semantic Data Model',
         description: payload.description || '',
         agent_id: payload.agentId,
+        thread_id: payload.threadId,
         ...tableData,
       },
     });
@@ -325,7 +328,10 @@ export const useCreateSemanticDataMutation = createSparMutation<
     }
 
     const createResponse = await agentAPIClient.agentFetch('post', '/api/v2/semantic-data-models/', {
-      body: generateResponse.data,
+      body: {
+        ...generateResponse.data,
+        thread_id: payload.threadId,
+      },
     });
 
     if (!createResponse.success) {
@@ -366,9 +372,10 @@ export const useCreateSemanticDataMutation = createSparMutation<
 
     return createResponse.data;
   },
-  onSuccess: (_, { agentId }) => {
+  onSuccess: (_, { agentId, threadId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: threadMessagesQueryKey(threadId) });
   },
 }));
 
@@ -377,7 +384,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
  */
 export const useUpdateSemanticDataModelMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { modelId: string; agentId: string; shouldRegenerateModel: boolean }
+  DataConnectionFormSchema & { modelId: string; agentId: string; shouldRegenerateModel: boolean; threadId: string }
 >()(({ agentAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
     let { tables } = payload;
@@ -397,7 +404,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
             data_connections_info: [],
             files_info: [
               {
-                thread_id: '',
+                thread_id: payload.threadId,
                 file_ref: '',
                 tables_info: payload.dataSelection,
               },
@@ -409,6 +416,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
           name: payload.name || '',
           description: payload.description || '',
           agent_id: payload.agentId,
+          thread_id: payload.threadId,
           ...tableData,
           existing_semantic_data_model: {
             name: payload.name,
@@ -441,9 +449,10 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
     const response = await agentAPIClient.agentFetch('put', '/api/v2/semantic-data-models/{semantic_data_model_id}', {
       params: { path: { semantic_data_model_id: payload.modelId } },
       body: {
+        thread_id: payload.threadId,
         semantic_model: {
-          name: payload.name,
-          description: payload.description,
+          name: payload.name || '',
+          description: payload.description || '',
           tables,
           relationships: payload.relationships,
           verified_queries: payload.verifiedQueries,
@@ -534,15 +543,15 @@ export const useExportSemanticDataModelQuery = createSparMutation<object, { mode
 
 export const useImportSemanticDataModelMutation = createSparMutation<
   object,
-  DataConnectionFormSchema & { agentId: string }
+  DataConnectionFormSchema & { agentId: string; threadId: string }
 >()(({ agentAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
     const response = await agentAPIClient.agentFetch('post', '/api/v2/semantic-data-models/import', {
       params: {},
       body: {
         semantic_model: {
-          name: payload.name,
-          description: payload.description,
+          name: payload.name || '',
+          description: payload.description || '',
           tables:
             payload.tables?.map((table) => ({
               ...table,
@@ -555,6 +564,7 @@ export const useImportSemanticDataModelMutation = createSparMutation<
           verified_queries: payload.verifiedQueries,
         },
         agent_id: payload.agentId,
+        thread_id: payload.threadId,
       },
     });
 
@@ -587,9 +597,10 @@ export const useImportSemanticDataModelMutation = createSparMutation<
       withErrors,
     };
   },
-  onSuccess: (_, { agentId }) => {
+  onSuccess: (_, { agentId, threadId }) => {
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataQueryKey(agentId) });
     queryClient.invalidateQueries({ queryKey: getAgentSemanticDataValidationQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: threadMessagesQueryKey(threadId) });
   },
 }));
 
