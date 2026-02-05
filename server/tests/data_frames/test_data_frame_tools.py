@@ -291,11 +291,12 @@ def _upload_file(storage_stub, tmp_path: Path):
 async def test_data_frames_create_from_file(sqlite_storage: "SQLiteStorage", tmp_path: Path):
     import json
 
+    from tests.storage.sample_model_creator import SampleModelCreator
+
     from agent_platform.server.kernel.data_frames import (
         DF_CREATE_FROM_FILE_TOOL_NAME,
         AgentServerDataFramesInterface,
     )
-    from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage
 
@@ -348,8 +349,9 @@ async def test_create_data_frame_with_complex_values(sqlite_storage: "SQLiteStor
     3. NaN values are converted to None
     """
 
+    from tests.storage.sample_model_creator import SampleModelCreator
+
     from agent_platform.server.kernel.data_frames import create_data_frame_from_columns_and_rows
-    from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage
 
@@ -418,8 +420,9 @@ async def test_create_data_frame_with_complex_values(sqlite_storage: "SQLiteStor
 
 @pytest.mark.asyncio
 async def test_data_frame_tools(sqlite_storage: "SQLiteStorage", tmp_path: Path):
+    from tests.storage.sample_model_creator import SampleModelCreator
+
     from agent_platform.server.kernel.data_frames import _DataFrameTools
-    from server.tests.storage.sample_model_creator import SampleModelCreator
 
     storage = sqlite_storage
 
@@ -485,6 +488,8 @@ async def test_semantic_data_models_engine_in_summary(sqlite_storage, resources_
     assert db_file.exists()
 
     # Imports inside method per project standard
+    from tests.storage.sample_model_creator import SampleModelCreator
+
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.kernel import Kernel
     from agent_platform.core.payloads.data_connection import (
@@ -493,7 +498,6 @@ async def test_semantic_data_models_engine_in_summary(sqlite_storage, resources_
     from agent_platform.server.kernel.data_frames import (
         AgentServerDataFramesInterface,
     )
-    from server.tests.storage.sample_model_creator import SampleModelCreator
 
     # Create sample agent/thread and seed storage
     model_creator = SampleModelCreator(sqlite_storage, tmp_path)

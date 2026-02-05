@@ -4,16 +4,6 @@
     "basedpyright": {
       "initialization_options": {
         "disablePullDiagnostics": true
-      },
-      "settings": {
-        "python.analysis.extraPaths": [
-          "server/src",
-          "core/src",
-          ".",
-          "architectures/default/src",
-          "architectures/experimental/src",
-          "quality/src"
-        ]
       }
     }
   },

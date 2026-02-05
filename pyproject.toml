@@ -195,6 +195,15 @@ banned-module-level-imports = [
 ]
 
 [tool.pyright]
+extraPaths = [
+    ".",
+    "server/src",
+    "server/tests",
+    "core/src",
+    "architectures/default/src",
+    "architectures/experimental/src",
+    "quality/src",
+]
 exclude = [
     "**/dist",
     "**/build",
