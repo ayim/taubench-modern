@@ -132,6 +132,7 @@ def mysql_json_semantic_model(
     )
 
     # Generate semantic data model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="mysql_json_test_model",
         description="MySQL semantic data model with JSON columns",
@@ -143,6 +144,7 @@ def mysql_json_semantic_model(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     return client.generate_semantic_data_model(payload.model_dump())

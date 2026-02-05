@@ -1,9 +1,57 @@
 """Integration tests for semantic data model API endpoints."""
 
+import json
+import os
+
 import pytest
 from structlog import get_logger
 
 logger = get_logger(__name__)
+
+
+def assert_sdm_quick_options(messages: list[dict]) -> None:
+    """Assert that SDM post-create quick options are present with 3 questions."""
+
+    def _extract_quick_options_payload(text: str) -> dict | None:
+        fence = "```sema4-json"
+        if fence not in text:
+            return None
+        start = text.index(fence) + len(fence)
+        end = text.index("```", start)
+        payload_text = text[start:end].strip()
+        return json.loads(payload_text)
+
+    payload = None
+    agent_text = None
+    for msg in messages:
+        if msg.get("role") != "agent":
+            continue
+        for content in msg.get("content", []):
+            if content.get("kind") != "text":
+                continue
+            agent_text = content.get("text", "")
+            payload = _extract_quick_options_payload(agent_text)
+            if payload:
+                break
+        if payload:
+            break
+
+    if agent_text:
+        logger.debug("SDM post-create agent message", agent_text=agent_text)
+
+    if payload is None:
+        if os.environ.get("OPENAI_API_KEY"):
+            raise AssertionError(
+                f"Quick options payload not found. Messages: {len(messages)}, agent_text: {agent_text!r}"
+            )
+        pytest.skip(
+            f"Quick options payload not found (OPENAI_API_KEY not set). "
+            f"Messages: {len(messages)}, agent_text: {agent_text!r}"
+        )
+    assert payload.get("type") == "quick-options", f"Unexpected payload: {payload}"
+    questions = payload.get("data", [])
+    assert len(questions) == 3, f"Expected 3 questions, got {questions}"
+    assert all(item.get("message") for item in questions), f"Missing message in {questions}"
 
 
 @pytest.mark.integration
@@ -158,7 +206,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Create the semantic data model
         created_model_id_and_references = agent_client.create_semantic_data_model(
-            dict(semantic_model=semantic_model.model_dump()),
+            dict(semantic_model=semantic_model.model_dump(), thread_id=thread_id),
         )
         assert semantic_model == agent_client.get_semantic_data_model(
             created_model_id_and_references["semantic_data_model_id"]
@@ -176,7 +224,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         )
         created_model_with_id = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=semantic_model_with_specific_id.model_dump()),
+            semantic_model=dict(semantic_model=semantic_model_with_specific_id.model_dump(), thread_id=thread_id),
         )
         assert created_model_with_id["semantic_data_model_id"] == model_id
         assert created_model_with_id["data_connection_ids"] == [data_connection_1["id"]]
@@ -248,7 +296,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         # Test updating the semantic data model (leave just the file reference, not the connection)
         updated_model_id_and_references = agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=updated_semantic_model.model_dump()),
+            semantic_model=dict(semantic_model=updated_semantic_model.model_dump(), thread_id=thread_id),
         )
         assert updated_model_id_and_references["data_connection_ids"] == []
         assert updated_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
@@ -280,6 +328,18 @@ def test_cannot_create_semantic_data_model_with_duplicate_name(base_url_agent_se
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create data connection
         db_file = resources_dir / "data_frames" / "combined_data.sqlite"
         data_connection = agent_client.create_data_connection(
@@ -316,7 +376,9 @@ def test_cannot_create_semantic_data_model_with_duplicate_name(base_url_agent_se
             ],
         }
 
-        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_1))
+        created_model = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model_1, thread_id=thread_id)
+        )
         assert created_model["semantic_data_model_id"] is not None
 
         # Try to create another model with the exact same name - should fail with 409 CONFLICT
@@ -327,7 +389,7 @@ def test_cannot_create_semantic_data_model_with_duplicate_name(base_url_agent_se
         }
 
         with pytest.raises(Exception, match=r"409|conflict|already exists") as exc_info:
-            agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_duplicate))
+            agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_duplicate, thread_id=thread_id))
         error_msg = str(exc_info.value).lower()
         assert "sales analysis model" in error_msg or "unique" in error_msg or "case-insensitive" in error_msg, (
             f"Expected error message about duplicate name, got: {exc_info.value}"
@@ -342,6 +404,18 @@ def test_cannot_create_semantic_data_model_with_case_insensitive_duplicate(
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create data connection
         db_file = resources_dir / "data_frames" / "combined_data.sqlite"
         data_connection = agent_client.create_data_connection(
@@ -378,7 +452,9 @@ def test_cannot_create_semantic_data_model_with_case_insensitive_duplicate(
             ],
         }
 
-        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        created_model = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model, thread_id=thread_id)
+        )
         assert created_model["semantic_data_model_id"] is not None
 
         # Try to create with different case - should fail (case-insensitive check)
@@ -389,7 +465,198 @@ def test_cannot_create_semantic_data_model_with_case_insensitive_duplicate(
         }
 
         with pytest.raises(Exception, match=r"409|conflict|already exists"):
-            agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_different_case))
+            agent_client.create_semantic_data_model(
+                dict(semantic_model=semantic_model_different_case, thread_id=thread_id)
+            )
+
+
+@pytest.mark.integration
+def test_semantic_data_model_with_ai_training_csv(
+    base_url_agent_server_session,
+    openai_api_key: str,
+    resources_dir,
+):
+    """Test creating a semantic data model from the AI training datapoints CSV file."""
+    from urllib.parse import urljoin
+    from uuid import uuid4
+
+    import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    from agent_platform.core.payloads.semantic_data_model_payloads import SemanticDataModel
+
+    unique_suffix = str(uuid4())[:8]
+    model_name = f"test_sdm_ai_training_csv_{unique_suffix}"
+    file_name = "artificial-intelligence-number-training-datapoints.csv"
+    file_path = resources_dir / "data_frames" / file_name
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        agent_client.upload_file_to_thread(
+            thread_id,
+            file_name,
+            embedded=False,
+            content=file_path.read_bytes(),
+        )
+
+        semantic_model = SemanticDataModel.model_validate(
+            {
+                "name": model_name,
+                "description": "SDM created from AI training datapoints CSV",
+                "tables": [
+                    {
+                        "name": "ai_training_datapoints",
+                        "base_table": {
+                            "table": "data_frame_artificial_intelligence_number_training_datapoints",
+                            "file_reference": {
+                                "thread_id": thread_id,
+                                "file_ref": file_name,
+                                "sheet_name": "",
+                            },
+                        },
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the training datapoint",
+                            },
+                            {
+                                "name": "Code",
+                                "expr": "Code",
+                                "data_type": "TEXT",
+                                "description": "The code of the training datapoint",
+                            },
+                            {
+                                "name": "Day",
+                                "expr": "Day",
+                                "data_type": "TEXT",
+                                "description": "The date of the training datapoint",
+                            },
+                            {
+                                "name": "Training dataset size",
+                                "expr": "Training dataset size",
+                                "data_type": "TEXT",
+                                "description": "Training dataset size for the datapoint",
+                            },
+                            {
+                                "name": "Domain",
+                                "expr": "Domain",
+                                "data_type": "TEXT",
+                                "description": "The domain of the training datapoint",
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
+
+        create_response = agent_client.create_semantic_data_model(
+            {
+                "semantic_model": semantic_model.model_dump(),
+                "thread_id": thread_id,
+            }
+        )
+        assert create_response.get("semantic_data_model_id")
+
+        thread_url = urljoin(base_url_agent_server_session + "/", f"api/v2/threads/{thread_id}/state")
+        response = requests.get(thread_url, timeout=30)
+        assert response.status_code == 200, response.text
+        thread = response.json()
+        messages = thread.get("messages", [])
+        assert_sdm_quick_options(messages)
+
+
+@pytest.mark.integration
+def test_semantic_data_model_post_create_messages(
+    base_url_agent_server_session,
+    openai_api_key: str,
+    resources_dir,
+):
+    """Test that SDM creation inserts post-create messages into the thread."""
+    from urllib.parse import urljoin
+    from uuid import uuid4
+
+    import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    from agent_platform.core.payloads.semantic_data_model_payloads import SemanticDataModel
+
+    unique_suffix = str(uuid4())[:8]
+    model_name = f"test_sdm_post_create_{unique_suffix}"
+
+    with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": openai_api_key,
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        db_file = resources_dir / "data_frames" / "combined_data.sqlite"
+        data_connection = agent_client.create_data_connection(
+            name=f"test-connection-{unique_suffix}",
+            description="Test connection for post-create messaging",
+            engine="sqlite",
+            configuration={
+                "db_file": str(db_file),
+            },
+        )
+
+        semantic_model = SemanticDataModel.model_validate(
+            {
+                "name": model_name,
+                "description": "A test semantic model for post-create messaging",
+                "tables": [
+                    {
+                        "name": "artificial_intelligence_number_training_datapoints",
+                        "base_table": {
+                            "table": "artificial_intelligence_number_training_datapoints",
+                            "data_connection_id": data_connection["id"],
+                        },
+                        "dimensions": [
+                            {
+                                "name": "Entity",
+                                "expr": "Entity",
+                                "data_type": "TEXT",
+                                "description": "The entity of the training datapoint",
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+        create_response = agent_client.create_semantic_data_model(
+            {
+                "semantic_model": semantic_model.model_dump(),
+                "thread_id": thread_id,
+            }
+        )
+        assert create_response.get("semantic_data_model_id")
+
+        thread_url = urljoin(base_url_agent_server_session + "/", f"api/v2/threads/{thread_id}/state")
+        response = requests.get(thread_url, timeout=30)
+        assert response.status_code == 200, response.text
+        thread = response.json()
+        messages = thread.get("messages", [])
+        assert_sdm_quick_options(messages)
 
 
 @pytest.mark.integration
@@ -398,6 +665,18 @@ def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_serve
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create data connection
         db_file = resources_dir / "data_frames" / "combined_data.sqlite"
         data_connection = agent_client.create_data_connection(
@@ -434,7 +713,9 @@ def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_serve
             ],
         }
 
-        created_model_1 = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_1))
+        created_model_1 = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model_1, thread_id=thread_id)
+        )
         model_id_1 = created_model_1["semantic_data_model_id"]
 
         # Create second semantic data model with different name
@@ -444,7 +725,9 @@ def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_serve
             "tables": semantic_model_1["tables"],
         }
 
-        created_model_2 = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model_2))
+        created_model_2 = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model_2, thread_id=thread_id)
+        )
         model_id_2 = created_model_2["semantic_data_model_id"]
         assert model_id_2 != model_id_1
 
@@ -458,7 +741,7 @@ def test_cannot_rename_semantic_data_model_to_existing_name(base_url_agent_serve
         with pytest.raises(Exception, match=r"409|conflict|already exists"):
             agent_client.set_semantic_data_model(
                 semantic_data_model_id=model_id_2,
-                semantic_model=dict(semantic_model=updated_model_2),
+                semantic_model=dict(semantic_model=updated_model_2, thread_id=thread_id),
             )
 
         # Verify model_2 still has its original name
@@ -472,6 +755,18 @@ def test_can_update_semantic_data_model_with_same_name(base_url_agent_server_ses
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create data connection
         db_file = resources_dir / "data_frames" / "combined_data.sqlite"
         data_connection = agent_client.create_data_connection(
@@ -508,7 +803,9 @@ def test_can_update_semantic_data_model_with_same_name(base_url_agent_server_ses
             ],
         }
 
-        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        created_model = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model, thread_id=thread_id)
+        )
         model_id = created_model["semantic_data_model_id"]
 
         # Update with the same name but different description - should succeed
@@ -520,7 +817,7 @@ def test_can_update_semantic_data_model_with_same_name(base_url_agent_server_ses
 
         agent_client.set_semantic_data_model(
             semantic_data_model_id=model_id,
-            semantic_model=dict(semantic_model=updated_model),
+            semantic_model=dict(semantic_model=updated_model, thread_id=thread_id),
         )
 
         # Verify the update succeeded
@@ -594,13 +891,16 @@ def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_se
                 }
             ],
             "files_info": [],
+            "thread_id": thread_id,
         }
 
         # Generate the semantic data model
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
 
         # Create the semantic data model
-        created_model = agent_client.create_semantic_data_model(generated_model.model_dump())
+        created_model = agent_client.create_semantic_data_model(
+            {**generated_model.model_dump(), "thread_id": thread_id}
+        )
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
         # Set the generated data model for the agent
@@ -868,6 +1168,7 @@ def test_generate_semantic_data_model_generation_integration(
                 }
             ],
             "agent_id": agent_id,
+            "thread_id": thread_id,
         }
 
         # Generate the semantic data model
@@ -897,7 +1198,9 @@ def test_generate_semantic_data_model_generation_integration(
         for table in semantic_model.tables:
             assert "name" in table, "Table name is expected"
 
-        semantic_data_model_id = agent_client.create_semantic_data_model(orig_model)["semantic_data_model_id"]
+        semantic_data_model_id = agent_client.create_semantic_data_model({**orig_model, "thread_id": thread_id})[
+            "semantic_data_model_id"
+        ]
 
         agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
         agent_client.set_thread_semantic_data_models(thread_id, [semantic_data_model_id])
@@ -1030,18 +1333,17 @@ Google,2023,15"""
             ),
             description="Agent which can query the semantic data model",
         )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Create the semantic data model -- note that it doesn't really reference
         # a file yet (because it currently doesn't exist in a thread).
         created_model = agent_client.create_semantic_data_model(
-            dict(semantic_model=semantic_model.model_dump()),
+            dict(semantic_model=semantic_model.model_dump(), thread_id=thread_id),
         )
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
         # Set the semantic data model for the agent
         agent_client.set_agent_semantic_data_models(agent_id, [semantic_data_model_id])
-
-        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Step 5: Upload that file to the thread
         thread_response = agent_client.upload_file_to_thread(
@@ -1269,6 +1571,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
                 }
             ],
             "files_info": [],
+            "thread_id": thread_id,
         }
 
         # Generate the semantic data model
@@ -1277,7 +1580,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
 
         # Create the semantic data model
         created_model = agent_client.create_semantic_data_model(
-            {"semantic_model": generated_model.semantic_model.model_dump()}
+            {"semantic_model": generated_model.semantic_model.model_dump(), "thread_id": thread_id}
         )
         semantic_data_model_id = created_model["semantic_data_model_id"]
 
@@ -1520,6 +1823,7 @@ def test_user_description_preserved_after_generation(base_url_agent_server_sessi
                 },
             ],
         )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Setup data connection
         db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
@@ -1552,6 +1856,7 @@ def test_user_description_preserved_after_generation(base_url_agent_server_sessi
             ],
             "files_info": [],
             "agent_id": agent_id,  # This triggers LLM enhancement
+            "thread_id": thread_id,
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
@@ -1586,6 +1891,7 @@ def test_no_description_allows_llm_generated_description(base_url_agent_server_s
                 },
             ],
         )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
         # Setup data connection
         db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
@@ -1615,6 +1921,7 @@ def test_no_description_allows_llm_generated_description(base_url_agent_server_s
             ],
             "files_info": [],
             "agent_id": agent_id,
+            "thread_id": thread_id,
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
@@ -1636,29 +1943,44 @@ def test_generate_semantic_data_model_rejects_empty_columns(base_url_agent_serve
     from urllib.parse import urljoin
 
     import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
-    generate_payload = {
-        "name": "test_model",
-        "description": "Test model",
-        "data_connections_info": [
-            {
-                "data_connection_id": "fake-id",
-                "tables_info": [{"name": "test_table", "columns": []}],
-            }
-        ],
-        "files_info": [],
-    }
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
 
-    base_url = urljoin(base_url_agent_server + "/", "api/v2")
-    url = urljoin(base_url + "/", "semantic-data-models/generate")
-    response = requests.post(url, json=generate_payload)
+        generate_payload = {
+            "name": "test_model",
+            "description": "Test model",
+            "data_connections_info": [
+                {
+                    "data_connection_id": "fake-id",
+                    "tables_info": [{"name": "test_table", "columns": []}],
+                }
+            ],
+            "files_info": [],
+            "thread_id": thread_id,
+        }
 
-    assert response.status_code == 422, (
-        f"Expected 422 Unprocessable Entity when columns is empty, got {response.status_code}: {response.text}"
-    )
-    # Verify the error is about columns min length
-    response_text = response.text.lower()
-    assert "columns" in response_text, f"Expected error message to mention 'columns', got: {response.text}"
+        base_url = urljoin(base_url_agent_server + "/", "api/v2")
+        url = urljoin(base_url + "/", "semantic-data-models/generate")
+        response = requests.post(url, json=generate_payload)
+
+        assert response.status_code == 422, (
+            f"Expected 422 Unprocessable Entity when columns is empty, got {response.status_code}: {response.text}"
+        )
+        # Verify the error is about columns min length
+        response_text = response.text.lower()
+        assert "columns" in response_text, f"Expected error message to mention 'columns', got: {response.text}"
 
 
 @pytest.mark.integration
@@ -1667,6 +1989,18 @@ def test_distinct_samples_from_file(base_url_agent_server):
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create duplicates in a sampled column ("city") so SDM generation must dedupe.
         csv_content = b"name,age,city\nJohn,25,Paris\nJane,30,Paris\nBob,35,Rome\n"
 
@@ -1689,12 +2023,13 @@ def test_distinct_samples_from_file(base_url_agent_server):
                 "files_info": [
                     {
                         # No need to upload; SDM generation only needs a file reference structure.
-                        "thread_id": "thread_for_test_only",
+                        "thread_id": thread_id,
                         "file_ref": "dupe_samples.csv",
                         "sheet_name": None,
                         "tables_info": inspect_result["tables"],
                     }
                 ],
+                "thread_id": thread_id,
             }
         )
 
@@ -1732,6 +2067,18 @@ def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
         conn.close()
 
     with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         data_connection = agent_client.create_data_connection(
             name="sqlite-dupe-samples",
             description="SQLite connection for SDM sample dedupe test",
@@ -1759,6 +2106,7 @@ def test_distinct_samples_from_data_connection(base_url_agent_server, tmp_path):
                 "description": "Ensure SDM sample_values are unique (sqlite)",
                 "data_connections_info": [{"data_connection_id": data_connection["id"], "tables_info": tables_info}],
                 "files_info": [],
+                "thread_id": thread_id,
             }
         )
 
@@ -1781,6 +2129,18 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Use the SQLite database with FK relationships
         db_file = resources_dir / "data_frames" / "fk_test.sqlite"
         assert db_file.exists(), f"FK test database not found at {db_file}"
@@ -1813,6 +2173,7 @@ def test_generate_semantic_data_model_with_foreign_key_relationships(base_url_ag
                 }
             ],
             "files_info": [],
+            "thread_id": thread_id,
         }
 
         generated_model = agent_client.generate_semantic_data_model(generate_payload)
@@ -1903,6 +2264,18 @@ def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
         # Create data connection
         db_file = resources_dir / "data_frames" / "combined_data.sqlite"
         data_connection = agent_client.create_data_connection(
@@ -1940,7 +2313,9 @@ def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent
         }
 
         # First, create an SDM with the name "foo" using the create endpoint
-        created_model = agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+        created_model = agent_client.create_semantic_data_model(
+            dict(semantic_model=semantic_model, thread_id=thread_id)
+        )
         first_sdm_id = created_model["semantic_data_model_id"]
         assert first_sdm_id is not None
 
@@ -1975,7 +2350,10 @@ def test_import_semantic_data_model_auto_renames_on_name_conflict(base_url_agent
 
         # Import the SDM - should succeed with auto-rename
         import_url = urljoin(base_url_agent_server_session, "/api/v2/semantic-data-models/import")
-        import_response = requests.post(import_url, json={"semantic_model": import_model})
+        import_response = requests.post(
+            import_url,
+            json={"semantic_model": import_model, "thread_id": thread_id},
+        )
         assert import_response.status_code == 200, f"Import failed: {import_response.text}"
 
         import_data = import_response.json()

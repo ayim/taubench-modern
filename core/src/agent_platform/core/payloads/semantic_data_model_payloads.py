@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.payloads.data_connection import (
@@ -17,21 +17,20 @@ from agent_platform.core.semantic_data_model.types import (
 )
 
 
-@dataclass(frozen=True)
-class SetSemanticDataModelPayload:
+class SetSemanticDataModelPayload(BaseModel):
     """Payload for setting a semantic data model."""
 
-    semantic_model: SemanticDataModel | dict = field(
-        metadata={"description": "The semantic data model as a dictionary."},
-    )
-    """The semantic data model as a dictionary."""
+    model_config = ConfigDict(extra="forbid")
 
-    @classmethod
-    def model_validate(cls, data: Any) -> "SetSemanticDataModelPayload":
-        """Validate and create payload from dict data."""
-        return SetSemanticDataModelPayload(
-            semantic_model=data.get("semantic_model", {}),
-        )
+    semantic_model: SemanticDataModel = Field(
+        ...,
+        description="The semantic data model as a dictionary.",
+    )
+    thread_id: str = Field(
+        ...,
+        min_length=1,
+        description="Thread ID for post-create messaging.",
+    )
 
 
 @dataclass(frozen=True)
@@ -131,6 +130,11 @@ class GenerateSemanticDataModelPayload(BaseModel):
     data_connections_info: list[DataConnectionInfo]
     files_info: list[FileInfo]
     agent_id: str | None = None
+    thread_id: str = Field(
+        ...,
+        description="Thread ID used for post-create thread messages when the SDM is created.",
+        min_length=1,
+    )
     existing_semantic_data_model: SemanticDataModel | dict | None | str = Field(
         default=None,
         description=(
@@ -200,8 +204,7 @@ class SemanticDataModelWithAssociations:
     empty_file_references: list[EmptyFileReference]
 
 
-@dataclass(frozen=True)
-class ImportSemanticDataModelPayload:
+class ImportSemanticDataModelPayload(BaseModel):
     """Payload for importing a semantic data model.
 
     The semantic_model should contain data_connection_name instead of data_connection_id.
@@ -212,31 +215,39 @@ class ImportSemanticDataModelPayload:
     a duplicate.
     """
 
-    semantic_model: SemanticDataModel | dict | str = field(
-        metadata={"description": ("The semantic data model with data_connection_name (can be dict or YAML string).")},
+    model_config = ConfigDict(extra="forbid")
+
+    semantic_model: SemanticDataModel = Field(
+        ...,
+        description="The semantic data model with data_connection_name (can be dict or YAML string).",
     )
     """The semantic data model with data_connection_name instead of data_connection_id.
     Can be provided as a dict/object or as a YAML string."""
 
-    agent_id: str | None = field(
+    thread_id: str = Field(
+        ...,
+        min_length=1,
+        description="Thread ID for file reference resolution.",
+    )
+    """Thread ID for file reference resolution."""
+
+    agent_id: str | None = Field(
         default=None,
-        metadata={"description": "Optional agent ID for deduplication check."},
+        description="Optional agent ID for deduplication check.",
     )
     """If provided, checks for duplicate SDMs linked to this agent before creating new."""
 
-    thread_id: str | None = field(
-        default=None,
-        metadata={"description": "Optional thread ID for file reference resolution."},
-    )
-    """If provided, enables resolution of file references during import."""
-
+    @model_validator(mode="before")
     @classmethod
-    def model_validate(cls, data: Any) -> "ImportSemanticDataModelPayload":
-        """Validate and create payload from dict data.
-
-        If semantic_model is provided as a string, it will be parsed as YAML.
-        """
+    def _parse_semantic_model(cls, data: Any) -> Any:
+        """Parse semantic_model YAML strings into dicts before validation."""
         import yaml
+
+        if isinstance(data, ImportSemanticDataModelPayload):
+            return data
+
+        if not isinstance(data, dict):
+            raise ValueError("ImportSemanticDataModelPayload expects a dictionary payload.")
 
         semantic_model_data = data.get("semantic_model", {})
 
@@ -246,12 +257,9 @@ class ImportSemanticDataModelPayload:
                 semantic_model_data = yaml.safe_load(semantic_model_data)
             except yaml.YAMLError as e:
                 raise ValueError(f"Invalid YAML in semantic_model: {e}") from e
+            data = {**data, "semantic_model": semantic_model_data}
 
-        return ImportSemanticDataModelPayload(
-            semantic_model=semantic_model_data,
-            agent_id=data.get("agent_id"),
-            thread_id=data.get("thread_id"),
-        )
+        return data
 
 
 @dataclass(frozen=True)

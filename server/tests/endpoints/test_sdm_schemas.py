@@ -8,7 +8,6 @@ These tests do not duplicate foundational validation unit tests.
 
 from __future__ import annotations
 
-from dataclasses import asdict
 from typing import Any, cast
 
 import pytest
@@ -107,6 +106,7 @@ def _make_schema(
 def _make_sdm_payload(
     name: str = "Test Model",
     schemas: list[Schema] | None = None,
+    thread_id: str = "test-thread-id",
 ) -> dict[str, Any]:
     """Helper to create an SDM payload dict for API requests.
 
@@ -118,7 +118,7 @@ def _make_sdm_payload(
         tables=[_minimal_table()],
         schemas=schemas,
     )
-    return asdict(SetSemanticDataModelPayload(semantic_model=sdm.model_dump()))
+    return SetSemanticDataModelPayload(semantic_model=sdm, thread_id=thread_id).model_dump()
 
 
 def _make_sdm_with_table_and_schemas(

@@ -6203,6 +6203,11 @@ export interface components {
       /** Agent Id */
       agent_id?: string | null;
       /**
+       * Thread Id
+       * @description Thread ID used for post-create thread messages when the SDM is created.
+       */
+      thread_id: string;
+      /**
        * Existing Semantic Data Model
        * @description The existing semantic data model to enhance. Can be provided as a dict/object or just its id. If not provided, a new semantic data model will be generated based on the data_connections_info and files_info.
        */
@@ -6408,28 +6413,30 @@ export interface components {
       /** Warnings */
       warnings?: string[];
     };
-    /** ImportSemanticDataModelPayload */
+    /**
+     * ImportSemanticDataModelPayload
+     * @description Payload for importing a semantic data model.
+     *
+     *     The semantic_model should contain data_connection_name instead of data_connection_id.
+     *     These names will be resolved to IDs in the target environment.
+     *
+     *     If agent_id is provided, deduplication will check for existing SDMs linked to that agent.
+     *     If a matching SDM is found (same name and content), it will be reused instead of creating
+     *     a duplicate.
+     */
     ImportSemanticDataModelPayload: {
+      /** @description The semantic data model with data_connection_name (can be dict or YAML string). */
+      semantic_model: components['schemas']['SemanticDataModel'];
       /**
-       * Semantic Model
-       * @description The semantic data model with data_connection_name (can be dict or YAML string).
+       * Thread Id
+       * @description Thread ID for file reference resolution.
        */
-      semantic_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          }
-        | string;
+      thread_id: string;
       /**
        * Agent Id
        * @description Optional agent ID for deduplication check.
        */
       agent_id?: string | null;
-      /**
-       * Thread Id
-       * @description Optional thread ID for file reference resolution.
-       */
-      thread_id?: string | null;
     };
     /** IngestDocumentResponse */
     IngestDocumentResponse: {
@@ -9652,17 +9659,18 @@ export interface components {
        */
       semantic_data_model_ids?: string[];
     };
-    /** SetSemanticDataModelPayload */
+    /**
+     * SetSemanticDataModelPayload
+     * @description Payload for setting a semantic data model.
+     */
     SetSemanticDataModelPayload: {
+      /** @description The semantic data model as a dictionary. */
+      semantic_model: components['schemas']['SemanticDataModel'];
       /**
-       * Semantic Model
-       * @description The semantic data model as a dictionary.
+       * Thread Id
+       * @description Thread ID for post-create messaging.
        */
-      semantic_model:
-        | components['schemas']['SemanticDataModel']
-        | {
-            [key: string]: unknown;
-          };
+      thread_id: string;
     };
     /** SetThreadSemanticDataModelsPayload */
     SetThreadSemanticDataModelsPayload: {

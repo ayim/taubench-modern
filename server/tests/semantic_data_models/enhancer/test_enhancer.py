@@ -979,6 +979,7 @@ async def test_enhancer_duplicate_name_gets_counter_appended(
         data_connections_info=[data_connection_info],
         files_info=[],
         agent_id="test_agent_id",
+        thread_id="test_thread_id",
         existing_semantic_data_model=None,
     )
 

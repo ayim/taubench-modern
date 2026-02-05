@@ -40,8 +40,24 @@ def verified_queries_data_connection(verified_queries_agent_client, verified_que
 
 
 @pytest.fixture(scope="module")
+def verified_queries_thread_id(verified_queries_agent_client) -> str:
+    """Module-scoped thread for verified queries tests."""
+    agent_id = verified_queries_agent_client.create_agent_and_return_agent_id(
+        action_packages=[],
+        platform_configs=[
+            {
+                "kind": "openai",
+                "openai_api_key": "unused",
+                "models": {"openai": ["gpt-5-low"]},
+            }
+        ],
+    )
+    return verified_queries_agent_client.create_thread_and_return_thread_id(agent_id)
+
+
+@pytest.fixture(scope="module")
 def verified_queries_semantic_model(
-    verified_queries_agent_client, verified_queries_data_connection
+    verified_queries_agent_client, verified_queries_data_connection, verified_queries_thread_id: str
 ) -> tuple[str, dict]:
     """Module-scoped semantic data model for verified queries tests."""
     semantic_model = {
@@ -84,7 +100,9 @@ def verified_queries_semantic_model(
             }
         ],
     }
-    created_model = verified_queries_agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+    created_model = verified_queries_agent_client.create_semantic_data_model(
+        dict(semantic_model=semantic_model, thread_id=verified_queries_thread_id)
+    )
     return created_model["semantic_data_model_id"], semantic_model
 
 
@@ -303,6 +321,7 @@ def test_export_import_preserves_parameters(
 
     import_payload = {
         "semantic_model": exported_sdm,
+        "thread_id": thread_id,
     }
 
     import_response = requests.post(import_url, json=import_payload)

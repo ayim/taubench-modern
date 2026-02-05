@@ -15354,6 +15354,13 @@ export const spec = {
             ],
             title: 'Agent Id',
           },
+          thread_id: {
+            type: 'string',
+            minLength: 1,
+            title: 'Thread Id',
+            description:
+              'Thread ID used for post-create thread messages when the SDM is created.',
+          },
           existing_semantic_data_model: {
             anyOf: [
               {
@@ -15381,6 +15388,7 @@ export const spec = {
           'description',
           'data_connections_info',
           'files_info',
+          'thread_id',
         ],
         title: 'GenerateSemanticDataModelPayload',
         description: 'Payload for generating a semantic data model.',
@@ -15741,21 +15749,15 @@ export const spec = {
       ImportSemanticDataModelPayload: {
         properties: {
           semantic_model: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/SemanticDataModel',
-              },
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'string',
-              },
-            ],
-            title: 'Semantic Model',
+            $ref: '#/components/schemas/SemanticDataModel',
             description:
               'The semantic data model with data_connection_name (can be dict or YAML string).',
+          },
+          thread_id: {
+            type: 'string',
+            minLength: 1,
+            title: 'Thread Id',
+            description: 'Thread ID for file reference resolution.',
           },
           agent_id: {
             anyOf: [
@@ -15769,22 +15771,13 @@ export const spec = {
             title: 'Agent Id',
             description: 'Optional agent ID for deduplication check.',
           },
-          thread_id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Thread Id',
-            description: 'Optional thread ID for file reference resolution.',
-          },
         },
+        additionalProperties: false,
         type: 'object',
-        required: ['semantic_model'],
+        required: ['semantic_model', 'thread_id'],
         title: 'ImportSemanticDataModelPayload',
+        description:
+          'Payload for importing a semantic data model.\n\nThe semantic_model should contain data_connection_name instead of data_connection_id.\nThese names will be resolved to IDs in the target environment.\n\nIf agent_id is provided, deduplication will check for existing SDMs linked to that agent.\nIf a matching SDM is found (same name and content), it will be reused instead of creating\na duplicate.',
       },
       IngestDocumentResponse: {
         properties: {
@@ -22759,22 +22752,21 @@ export const spec = {
       SetSemanticDataModelPayload: {
         properties: {
           semantic_model: {
-            anyOf: [
-              {
-                $ref: '#/components/schemas/SemanticDataModel',
-              },
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-            ],
-            title: 'Semantic Model',
+            $ref: '#/components/schemas/SemanticDataModel',
             description: 'The semantic data model as a dictionary.',
           },
+          thread_id: {
+            type: 'string',
+            minLength: 1,
+            title: 'Thread Id',
+            description: 'Thread ID for post-create messaging.',
+          },
         },
+        additionalProperties: false,
         type: 'object',
-        required: ['semantic_model'],
+        required: ['semantic_model', 'thread_id'],
         title: 'SetSemanticDataModelPayload',
+        description: 'Payload for setting a semantic data model.',
       },
       SetThreadSemanticDataModelsPayload: {
         properties: {

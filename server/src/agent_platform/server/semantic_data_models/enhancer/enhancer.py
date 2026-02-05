@@ -191,19 +191,18 @@ class SemanticDataModelEnhancer:
         """
         import time
 
-        from fastapi import Request
         from tenacity import (
             AsyncRetrying,
             retry_if_exception_type,
         )
         from tenacity.stop import stop_after_attempt
 
-        from agent_platform.server.api.private_v2.prompt import prompt_generate
         from agent_platform.server.semantic_data_models.enhancer.errors import (
             LLMOutputResponseError,
             LLMResponseError,
         )
         from agent_platform.server.semantic_data_models.enhancer.type_defs import LLMOutputSchemas
+        from agent_platform.server.semantic_data_models.utils import prompt_generate_internal
 
         async def _attempt_generation(
             retry_state: RetryCallState,
@@ -219,12 +218,11 @@ class SemanticDataModelEnhancer:
             logger.info(">> Starting enhancement (prompt_generate)")
             self._write_input_prompt(self._enhancement_prompt_thread, "enhancement", iteration=attempt_number)
 
-            response = await prompt_generate(
+            response = await prompt_generate_internal(
                 # Don't send our current prompt thread or it will be finalized by the server.
                 prompt=self._enhancement_prompt_thread.copy(),
                 user=self._user,
                 storage=self._storage,
-                request=Request(scope={"type": "http", "method": "POST"}),
                 agent_id=self._agent_id,
                 minimize_reasoning=self._minimize_reasoning,
             )

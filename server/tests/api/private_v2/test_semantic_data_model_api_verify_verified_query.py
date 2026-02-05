@@ -38,7 +38,31 @@ def api_test_data_connection(api_test_agent_client, api_test_resources_dir) -> d
 
 
 @pytest.fixture(scope="module")
-def api_test_semantic_model(api_test_agent_client, api_test_data_connection) -> tuple[str, dict]:
+def api_test_thread_id(api_test_agent_client) -> str:
+    """Module-scoped thread for API tests."""
+    import uuid
+
+    agent_id = api_test_agent_client.create_agent_and_return_agent_id(
+        name=f"API Param Test Agent {uuid.uuid4().hex[:8]}",
+        action_packages=[],
+        platform_configs=[
+            {
+                "kind": "openai",
+                "openai_api_key": "unused",
+                "models": {"openai": ["gpt-4o"]},
+            }
+        ],
+        runbook="You are a helpful assistant.",
+    )
+    return api_test_agent_client.create_thread_and_return_thread_id(agent_id)
+
+
+@pytest.fixture(scope="module")
+def api_test_semantic_model(
+    api_test_agent_client,
+    api_test_data_connection,
+    api_test_thread_id: str,
+) -> tuple[str, dict]:
     """Module-scoped semantic data model for API tests."""
     semantic_model = {
         "name": "test_api_parameterized_query_model",
@@ -80,7 +104,9 @@ def api_test_semantic_model(api_test_agent_client, api_test_data_connection) -> 
             }
         ],
     }
-    created_model = api_test_agent_client.create_semantic_data_model(dict(semantic_model=semantic_model))
+    created_model = api_test_agent_client.create_semantic_data_model(
+        dict(semantic_model=semantic_model, thread_id=api_test_thread_id)
+    )
     return created_model["semantic_data_model_id"], semantic_model
 
 

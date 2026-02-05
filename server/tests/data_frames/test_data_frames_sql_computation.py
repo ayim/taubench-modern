@@ -624,6 +624,7 @@ class _DataFramesChecker:
                 ],
                 files_info=[],
                 agent_id=agent_id,
+                thread_id=self.tid,
             ),
             user=self.user,
             storage=self.model_creator.storage,

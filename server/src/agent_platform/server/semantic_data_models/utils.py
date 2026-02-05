@@ -5,9 +5,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from agent_platform.core.semantic_data_model.types import (
-        SemanticDataModel,
-    )
+    from agent_platform.core.prompts import Prompt
+    from agent_platform.core.responses import ResponseMessage
+    from agent_platform.core.semantic_data_model.types import SemanticDataModel
+    from agent_platform.server.api.dependencies import StorageDependency
+    from agent_platform.server.api.private_v2.prompt import ModelType
+    from agent_platform.server.auth import AuthedUser
     from agent_platform.server.storage import BaseStorage
 
 
@@ -149,3 +152,35 @@ async def get_semantic_data_model_by_name(
         if semantic_model.name == model_name:
             return semantic_model
     return None
+
+
+async def prompt_generate_internal(
+    *,
+    prompt: Prompt,
+    user: AuthedUser,
+    storage: StorageDependency,
+    platform_config_raw: dict | None = None,
+    model: str | None = None,
+    model_type: ModelType = "llm",
+    agent_id: str | None = None,
+    thread_id: str | None = None,
+    minimize_reasoning: bool = False,
+) -> ResponseMessage:
+    """Internal helper for generating prompt responses without an HTTP request."""
+    from fastapi import Request
+
+    from agent_platform.server.api.private_v2.prompt import prompt_generate
+
+    request = Request(scope={"type": "http", "method": "POST", "path": "/api/v2/prompt/generate"})
+    return await prompt_generate(
+        prompt=prompt,
+        user=user,
+        request=request,
+        storage=storage,
+        platform_config_raw=platform_config_raw,
+        model=model,
+        model_type=model_type,
+        agent_id=agent_id,
+        thread_id=thread_id,
+        minimize_reasoning=minimize_reasoning,
+    )

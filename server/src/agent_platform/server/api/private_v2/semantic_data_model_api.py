@@ -44,6 +44,9 @@ from agent_platform.core.semantic_data_model.types import (
 )
 from agent_platform.server.api.dependencies import StorageDependency
 from agent_platform.server.auth import AuthedUser
+from agent_platform.server.semantic_data_models.post_create_insights import (
+    add_sdm_post_create_messages,
+)
 from sema4ai.common.text import slugify
 
 if typing.TYPE_CHECKING:
@@ -321,6 +324,14 @@ async def create_semantic_data_model(
             semantic_model=semantic_data_model,
             data_connection_ids=list(references.data_connection_ids),
             file_references=file_references,
+        )
+
+        await add_sdm_post_create_messages(
+            storage=storage,
+            user=user,
+            thread_id=payload.thread_id,
+            semantic_model=semantic_data_model,
+            semantic_data_model_id=model_id,
         )
 
         # Return the ID of the created semantic data model
@@ -833,6 +844,14 @@ async def import_semantic_data_model(
         await storage.set_agent_semantic_data_models(payload.agent_id, updated_sdm_ids)
 
         logger.info(f"Linked semantic data model {model_id} to agent {payload.agent_id}")
+
+    await add_sdm_post_create_messages(
+        storage=storage,
+        user=user,
+        thread_id=payload.thread_id,
+        semantic_model=resolved_model,
+        semantic_data_model_id=model_id,
+    )
 
     return ImportSemanticDataModel(
         semantic_data_model_id=model_id,

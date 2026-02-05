@@ -206,12 +206,15 @@ def test_generate_semantic_data_model_basic(
     # Validate the DataConnectionInfo structure
     assert_data_connection_info_structure(data_connection_info.model_dump())
 
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
+
     payload = GenerateSemanticDataModelPayload(
         name="test_model",  # Enhancement should improve this
         description=None,  # Enhancement should add this
         data_connections_info=[data_connection_info],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     # Generate the semantic data model
@@ -330,6 +333,7 @@ def _generate_full_semantic_data_model(
     assert_inspect_response_structure(inspect_response)
 
     # Create the payload for generating the semantic data model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="test_full_model",
         description=None,
@@ -341,6 +345,7 @@ def _generate_full_semantic_data_model(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     # Generate the semantic data model
@@ -449,6 +454,7 @@ def test_generated_semantic_data_model_structure(
 def created_semantic_data_model_id(
     agent_server_client_with_data_connection: tuple[AgentServerClient, DataConnection],
     generated_semantic_data_model: GenerateSemanticDataModelResponse,
+    agent_for_full_model: str,
 ) -> str:
     """
     Fixture that creates a semantic data model in the agent server.
@@ -458,9 +464,14 @@ def created_semantic_data_model_id(
     """
     client, _ = agent_server_client_with_data_connection
 
+    thread_id = client.create_thread_and_return_thread_id(agent_for_full_model)
+
     # Create the semantic data model
     created_model = client.create_semantic_data_model(
-        {"semantic_model": generated_semantic_data_model.semantic_model.model_dump()}
+        {
+            "semantic_model": generated_semantic_data_model.semantic_model.model_dump(),
+            "thread_id": thread_id,
+        }
     )
     return created_model["semantic_data_model_id"]
 
@@ -476,8 +487,10 @@ def test_created_semantic_data_model_retrieval(
     # Retrieve the model
     retrieved_model = client.get_semantic_data_model(created_semantic_data_model_id)
 
-    # Verify the retrieved model matches the original
-    assert retrieved_model == generated_semantic_data_model.semantic_model
+    # Verify the retrieved model matches the original (ignore server-assigned id)
+    retrieved_payload = retrieved_model.model_dump(exclude={"id"})
+    expected_payload = generated_semantic_data_model.semantic_model.model_dump(exclude={"id"})
+    assert retrieved_payload == expected_payload
 
 
 @pytest.fixture(scope="module")
@@ -616,6 +629,7 @@ def test_data_frame_column_headers_populated(
         )
 
         # Generate and create semantic model
+        thread_id = client.create_thread_and_return_thread_id(agent_id)
         payload = GenerateSemanticDataModelPayload(
             name=f"column_headers_snowflake_{uuid.uuid4().hex[:8]}",
             description="Test model for column headers validation on Snowflake",
@@ -627,6 +641,7 @@ def test_data_frame_column_headers_populated(
             ],
             files_info=[],
             agent_id=agent_id,
+            thread_id=thread_id,
         )
         generated_model = client.generate_semantic_data_model(payload.model_dump())
         created_model = client.create_semantic_data_model(
@@ -776,6 +791,7 @@ def initial_sdm_with_one_table(
     assert_inspect_response_structure(inspect_response)
 
     # Create the payload for generating the semantic data model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_initial",
         description=None,
@@ -787,6 +803,7 @@ def initial_sdm_with_one_table(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     # Generate the semantic data model
@@ -839,6 +856,7 @@ def sdm_after_column_change(
     assert_inspect_response_structure(inspect_response)
 
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_column_change",
         description=None,
@@ -850,6 +868,7 @@ def sdm_after_column_change(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
         existing_semantic_data_model=initial_sdm_with_one_table.semantic_model.model_dump(),
     )
 
@@ -908,6 +927,7 @@ def sdm_after_table_added(
     assert_inspect_response_structure(inspect_response)
 
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_table_added",
         description=None,
@@ -919,6 +939,7 @@ def sdm_after_table_added(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
         existing_semantic_data_model=sdm_after_column_change.semantic_model.model_dump(),
     )
 
@@ -978,6 +999,7 @@ def sdm_after_more_columns(
     assert_inspect_response_structure(inspect_response)
 
     # Create the payload with existing_semantic_data_model to trigger partial enhancement
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="test_enhancer_more_columns",
         description=None,
@@ -989,6 +1011,7 @@ def sdm_after_more_columns(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
         existing_semantic_data_model=sdm_after_table_added.semantic_model.model_dump(),
     )
 

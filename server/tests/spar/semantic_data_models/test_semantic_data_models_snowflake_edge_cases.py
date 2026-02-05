@@ -254,6 +254,7 @@ def test_generate_semantic_model_with_edge_cases(
     )
 
     # Generate semantic model
+    thread_id = client.create_thread_and_return_thread_id(agent_for_edge_cases)
     payload = GenerateSemanticDataModelPayload(
         name="snowflake_edge_cases_model",
         description="Model for testing Snowflake edge case types",
@@ -265,6 +266,7 @@ def test_generate_semantic_model_with_edge_cases(
         ],
         files_info=[],
         agent_id=agent_for_edge_cases,
+        thread_id=thread_id,
     )
 
     result = client.generate_semantic_data_model(payload.model_dump())
@@ -310,6 +312,7 @@ def created_edge_case_model_id(
         ],
     )
 
+    thread_id = client.create_thread_and_return_thread_id(agent_for_edge_cases)
     payload = GenerateSemanticDataModelPayload(
         name="snowflake_edge_cases_persisted_model",
         description="Model for querying Snowflake edge case types",
@@ -321,6 +324,7 @@ def created_edge_case_model_id(
         ],
         files_info=[],
         agent_id=agent_for_edge_cases,
+        thread_id=thread_id,
     )
 
     result = client.generate_semantic_data_model(payload.model_dump())

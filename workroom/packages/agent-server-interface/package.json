@@ -1,6 +1,6 @@
 {
   "name": "@sema4ai/agent-server-interface",
-  "version": "2.2.18-unreleased-eb710fe.0",
+  "version": "2.2.18-unreleased-6f7e49b.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
@@ -29,6 +29,7 @@
   "license": "ISC",
   "description": "Agent Server Interface for Typescript",
   "devDependencies": {
+    "@jest/test-sequencer": "^29.7.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.1",
     "jest": "^29.7.0",

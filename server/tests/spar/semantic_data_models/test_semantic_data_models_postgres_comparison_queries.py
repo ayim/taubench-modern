@@ -290,6 +290,7 @@ def comparison_semantic_data_model(
     assert table["name"] == "comparison_v1_v2"
 
     # Create the payload for generating the semantic data model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="invoice_comparison_model",
         description="Semantic data model for invoice comparison between v1 and v2 processing",
@@ -301,6 +302,7 @@ def comparison_semantic_data_model(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     # Generate the semantic data model

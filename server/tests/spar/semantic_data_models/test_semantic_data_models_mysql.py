@@ -185,6 +185,7 @@ def test_mysql_basic_query_generation(
     )
 
     # Generate semantic data model
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="mysql_basic_test_model",
         description=None,
@@ -196,6 +197,7 @@ def test_mysql_basic_query_generation(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     result = client.generate_semantic_data_model(payload.model_dump())

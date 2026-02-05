@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import typing
+from collections.abc import Sequence
+from textwrap import indent
 
 from structlog import get_logger
 
@@ -229,7 +231,7 @@ def get_semantic_data_models_with_engines(
     return models_and_engines
 
 
-def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]]) -> str:
+def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, str | None]]) -> str:
     """Summarize a list of semantic data models."""
     if not models_and_engines:
         return "No semantic data models available."
@@ -237,19 +239,19 @@ def summarize_data_models(models_and_engines: list[tuple[SemanticDataModel, str]
     return "\n".join(summarize_data_model(model, engine) for model, engine in models_and_engines)
 
 
-def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
+def summarize_data_model(model: SemanticDataModel, engine: str | None) -> str:
     """Describe available semantic data models (structure only).
 
     Returns pure structural information: model names, tables, columns,
     and relationships. No SQL generation guidance.
 
     Args:
-        models_and_engines: List of (semantic_data_model, engine) tuples
+        model: The semantic data model to summarize.
+        engine: Optional SQL engine/dialect to include in the header.
 
     Returns:
         Formatted description of model structures
     """
-    from textwrap import indent
 
     from agent_platform.core.semantic_data_model.types import VerifiedQuery
 
@@ -264,7 +266,8 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     description = model_dict.pop("description", "")
 
     model_header = f"### Model: {name}"
-    model_header += f"\nSQL dialect: {engine}"
+    if engine:
+        model_header += f"\nSQL dialect: {engine}"
     if description:
         model_header += f"\nDescription: {description}"
     result.append(model_header)

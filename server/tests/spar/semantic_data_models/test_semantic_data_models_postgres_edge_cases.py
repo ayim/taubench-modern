@@ -129,6 +129,7 @@ def edge_case_semantic_model(
         ],
     )
 
+    thread_id = client.create_thread_and_return_thread_id(agent_id)
     payload = GenerateSemanticDataModelPayload(
         name="postgres_edge_cases_model",
         description=None,
@@ -140,6 +141,7 @@ def edge_case_semantic_model(
         ],
         files_info=[],
         agent_id=agent_id,
+        thread_id=thread_id,
     )
 
     return client.generate_semantic_data_model(payload.model_dump())
