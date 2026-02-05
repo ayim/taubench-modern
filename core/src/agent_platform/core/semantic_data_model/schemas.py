@@ -188,11 +188,11 @@ class Schema(BaseModel):
     @field_validator("json_schema", mode="after")
     @classmethod
     def validate_json_schema(cls, v: dict[str, Any]) -> dict[str, Any]:
-        """Validate that json_schema is a valid JSON Schema (Draft 2020-12)."""
-        from jsonschema import Draft202012Validator
+        """Validate that the provided json_schema adheres to our custom JsonSchema definition"""
+        from agent_platform.core.semantic_data_model.jsonschema import CustomDraft202012Validator
 
         # Raises SchemaError when invalid
-        Draft202012Validator.check_schema(v)
+        CustomDraft202012Validator.check_schema(v)
 
         return v
 
