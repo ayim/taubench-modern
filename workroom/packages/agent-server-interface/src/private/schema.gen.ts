@@ -10233,6 +10233,16 @@ export interface components {
        * @description The work item ID associated with this thread.
        */
       work_item_id?: string | null;
+      /**
+       * Parent Trace Id
+       * @description OpenTelemetry trace ID (32-char hex) for thread grouping context.
+       */
+      parent_trace_id?: string | null;
+      /**
+       * Parent Span Id
+       * @description OpenTelemetry span ID (16-char hex) of the thread span.
+       */
+      parent_span_id?: string | null;
     };
     /** ThreadAgentMessage */
     ThreadAgentMessage: {
@@ -11275,6 +11285,16 @@ export interface components {
        * @description The work item ID associated with this thread.
        */
       work_item_id?: string | null;
+      /**
+       * Parent Trace Id
+       * @description OpenTelemetry trace ID (32-char hex) for thread grouping context.
+       */
+      parent_trace_id?: string | null;
+      /**
+       * Parent Span Id
+       * @description OpenTelemetry span ID (16-char hex) of the thread span.
+       */
+      parent_span_id?: string | null;
     };
     /** ValidateSemanticDataModelPayload */
     ValidateSemanticDataModelPayload: {

@@ -4,6 +4,24 @@ from agent_platform.core.thread.thread import Thread
 
 
 class TestThread:
+    def test_parent_ids_setting(self):
+        """New threads have parent_trace_id=None until thread grouping context is created."""
+        thread = Thread(user_id="dummy", agent_id="dummy", name="test-thread")
+        assert thread.parent_trace_id is None
+        assert thread.parent_span_id is None
+
+    def test_trace_context_can_be_set(self):
+        """parent_trace_id and parent_span_id can be explicitly set."""
+        thread = Thread(
+            user_id="dummy",
+            agent_id="dummy",
+            name="test-thread",
+            parent_trace_id="0123456789abcdef0123456789abcdef",
+            parent_span_id="0123456789abcdef",
+        )
+        assert thread.parent_trace_id == "0123456789abcdef0123456789abcdef"
+        assert thread.parent_span_id == "0123456789abcdef"
+
     def test_add_message_updates_updated_at(self):
         import time
 

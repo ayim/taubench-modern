@@ -3,8 +3,11 @@
 import json
 from asyncio import FIRST_COMPLETED, create_task, wait
 from datetime import UTC, datetime
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from opentelemetry.trace import Span
 
 import structlog
 
@@ -20,6 +23,7 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
 )
+from agent_platform.core.telemetry.helpers import thread_span_context
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.messages import ThreadAgentMessage
 from agent_platform.core.user import User
@@ -117,9 +121,36 @@ async def invoke_agent_sync(
     server_context: AgentServerContext,
     initial_payload: InitiateStreamPayload,
 ) -> tuple[Thread, list[ThreadAgentMessage]]:
-    """
-    Invoke an agent synchronously and return the thread and agent messages.
+    """Invoke an agent synchronously and return the thread and agent messages.
 
+    This thin wrapper establishes thread trace context, then delegates to _invoke_agent_sync.
+    """
+    # 1. Upsert thread and messages (before establishing trace context)
+    thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
+
+    # Establish thread trace context for grouping runs under a common parent
+    async with thread_span_context(thread_state=thread_state, user_id=user.user_id) as thread_span:
+        return await _invoke_agent_sync(
+            agent=agent,
+            user=user,
+            storage=storage,
+            server_context=server_context,
+            initial_payload=initial_payload,
+            thread_state=thread_state,
+            thread_span=thread_span,
+        )
+
+
+async def _invoke_agent_sync(
+    agent: Agent,
+    user: User,
+    storage: BaseStorage,
+    server_context: AgentServerContext,
+    initial_payload: InitiateStreamPayload,
+    thread_state: Thread,
+    thread_span: "Span | None" = None,
+) -> tuple[Thread, list[ThreadAgentMessage]]:
+    """Invoke an agent synchronously and return the thread and agent messages.
     This is the internal API for running an agent to completion without HTTP dependencies.
 
     Args:
@@ -128,10 +159,10 @@ async def invoke_agent_sync(
         storage: The storage instance
         server_context: The server context for tracing/logging
         initial_payload: The initial payload with thread and messages
-
+        thread_state: The thread state
+        thread_span: The top-level thread span
     Returns:
         Tuple of (Thread, list of ThreadAgentMessages)
-
     Raises:
         Various exceptions from agent invocation (AgentNotFoundError, etc.)
     """
@@ -143,10 +174,9 @@ async def invoke_agent_sync(
     active_run = None
     collected_events: list[StreamingDelta] = []
 
-    # 1. Initial payload is already validated by the caller
     with server_context.start_span("invoke_agent_sync") as span:
         span.set_attribute("langsmith.metadata.agent_id", str(agent.agent_id))
-        span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+        span.set_attribute("langsmith.metadata.thread_id", str(thread_state.thread_id))
         span.set_attribute(
             "langsmith.metadata.user_id",
             server_context.user_context.user.cr_user_id
@@ -154,22 +184,6 @@ async def invoke_agent_sync(
             else server_context.user_context.user.sub,
         )
         span.set_attribute("langsmith.metadata.agent_name", agent.name)
-
-        # 2. Upsert thread and messages
-        with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-            input_value = {
-                "thread_id": str(initial_payload.thread_id),
-                "message_count": len(initial_payload.messages),
-            }
-            upsert_span.set_attribute("input.value", json.dumps(input_value))
-            thread_state = await _upsert_thread_and_messages(
-                user,
-                initial_payload,
-                storage,
-            )
-            output = thread_state.model_dump()
-            output.pop("messages", None)
-            upsert_span.set_attribute("output.value", json.dumps(output))
         span.update_name(f"{thread_state.name}")
 
         # 3. Fetch the agent (already passed in, but log it)
@@ -278,8 +292,14 @@ async def invoke_agent_sync(
 
         # 13. Stop the runner
         await runner.stop()
+        new_thread_name = None
         if auto_name_task is not None:
-            await auto_name_task
+            new_thread_name = await auto_name_task
+
+        # Update thread span name with the final thread name
+        final_name = new_thread_name or thread_state.name
+        if thread_span:
+            thread_span.update_name(final_name)
 
         # 14. Mark run as completed
         await _update_run_status(

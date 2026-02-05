@@ -11,7 +11,11 @@ from asyncio import (
 )
 from datetime import UTC, datetime
 from json import JSONDecodeError
+from typing import TYPE_CHECKING
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from opentelemetry.trace import Span
 
 import structlog
 from fastapi import (
@@ -35,6 +39,7 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaAgentFinished,
     StreamingDeltaAgentReady,
 )
+from agent_platform.core.telemetry.helpers import thread_span_context
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.content import ThreadTextContent
 from agent_platform.core.thread.messages import ThreadAgentMessage
@@ -300,8 +305,97 @@ async def stream_run(
     agent_id: str,
     storage: StorageDependency,
 ):
+    """WebSocket endpoint to stream a conversation (run) with a given agent.
+
+    This thin wrapper establishes thread trace context, then delegates to _stream_run.
     """
-    WebSocket endpoint to stream a conversation (run) with a given agent.
+    await websocket.accept()
+
+    try:
+        # 1. Receive and validate initial payload
+        initial_payload = await _get_initial_payload(websocket)
+
+        agent = await storage.get_agent(user.user_id, agent_id)
+
+        # Fetch the first LangSmith observability config
+        observability_config = None
+        for config in agent.observability_configs:
+            if config.type == "langsmith":
+                observability_config = config
+                break
+
+        if observability_config is None:
+            logger.info("No LangSmith observability config found, using default")
+
+        # Create agent server context
+        server_context = AgentServerContext.from_request(
+            request=websocket,
+            user=user,
+            version="2.0.0",
+            observability_config=observability_config,
+            agent_id=agent_id,
+        )
+
+        # 2. Upsert thread and messages (before establishing trace context)
+        thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
+
+        # Establish thread trace context for grouping runs under a common parent
+        async with thread_span_context(
+            thread_state=thread_state,
+            user_id=user.user_id,
+        ) as thread_span:
+            await _stream_run(
+                websocket=websocket,
+                user=user,
+                agent=agent,
+                agent_id=agent_id,
+                thread_state=thread_state,
+                initial_payload=initial_payload,
+                storage=storage,
+                server_context=server_context,
+                thread_span=thread_span,
+            )
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket disconnected in wrapper")
+
+    except AgentNotFoundError as e:
+        logger.error("Error getting agent", error=e)
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Agent not found")
+
+    except WebSocketException as e:
+        logger.error("WebSocket error in wrapper", error=e)
+        await websocket.close(code=e.code, reason=e.reason)
+
+    except Exception as e:
+        logger.error(f"Unexpected error in stream_run wrapper for agent {agent_id}: {e}")
+        logger.error(traceback.format_exc())
+        await websocket.close(code=status.WS_1011_INTERNAL_ERROR, reason="Unexpected error")
+
+
+async def _stream_run(
+    websocket: WebSocket,
+    user: AuthedUserWebsocket,
+    agent: Agent,
+    agent_id: str,
+    thread_state: Thread,
+    initial_payload: InitiateStreamPayload,
+    storage: StorageDependency,
+    server_context: AgentServerContext,
+    thread_span: "Span | None" = None,
+):
+    """Helper function to stream a run.
+
+    Args:
+        websocket: The websocket connection
+        user: The user context
+        agent: The agent
+        agent_id: The agent ID
+        thread_state: The thread state
+        initial_payload: The initial payload
+        storage: The storage instance
+        server_context: The server context
+        thread_span: The top-level thread span
     """
 
     async def _safe_close_websocket(
@@ -332,52 +426,20 @@ async def stream_run(
         websocket_addr="todo://think-about-out-of-process",
     )
 
-    await websocket.accept()
-
     active_run: Run | None = None
-    server_context = None
+
+    attributes = {
+        "agent_id": agent.agent_id,
+        "thread_id": thread_state.thread_id,
+    }
+    server_context.increment_counter("sema4ai.agent_server.messages", len(initial_payload.messages), attributes)
 
     try:
-        # 1. Receive and validate initial payload
-        initial_payload = await _get_initial_payload(websocket)
-
-        agent = await storage.get_agent(user.user_id, agent_id)
-
-        # Fetch the first LangSmith observability config
-        observability_config = None
-        for config in agent.observability_configs:
-            if config.type == "langsmith":
-                observability_config = config
-                break
-
-        if observability_config is None:
-            logger.info("No LangSmith observability config found, using default")
-
-        # Create agent server context
-        server_context = AgentServerContext.from_request(
-            request=websocket,
-            user=user,
-            version="2.0.0",
-            observability_config=observability_config,
-            agent_id=agent_id,
-        )
-
-        attributes = {
-            "agent_id": agent.agent_id,
-        }
-        if initial_payload.thread_id is not None:
-            attributes["thread_id"] = initial_payload.thread_id
-
-        server_context.increment_counter("sema4ai.agent_server.messages", len(initial_payload.messages), attributes)
-
         # Start a new trace for this stream
-        with server_context.start_span(
-            "stream_run",
-        ) as span:
+        with server_context.start_span("stream_run") as span:
             auto_name_task = None
-            # Add string attributes that are safe for OTEL
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
-            span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+            span.set_attribute("langsmith.metadata.thread_id", str(thread_state.thread_id))
             span.set_attribute(
                 "langsmith.metadata.user_id",
                 server_context.user_context.user.cr_user_id
@@ -393,22 +455,6 @@ async def stream_run(
                 "langsmith.metadata.agent_architecture_version",
                 agent.agent_architecture.version,
             )
-
-            # 2. Upsert thread and messages
-            with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-                input_value = {
-                    "thread_id": str(initial_payload.thread_id),
-                    "message_count": len(initial_payload.messages),
-                }
-                upsert_span.set_attribute("input.value", json.dumps(input_value))
-                thread_state = await _upsert_thread_and_messages(
-                    user,
-                    initial_payload,
-                    storage,
-                )
-                formatted_thread_state = thread_state.model_dump()
-                formatted_thread_state.pop("messages")
-                upsert_span.set_attribute("output.value", json.dumps(formatted_thread_state))
             span.update_name(f"{thread_state.name}")
             try:
                 last_user_message = thread_state.messages[-1]
@@ -576,8 +622,17 @@ async def stream_run(
 
                     # If we are here, stream_run considers this a normal completion path
                     # Ensure auto-name has a chance to finish and persist
+                    new_thread_name = None
                     if auto_name_task is not None:
-                        await auto_name_task
+                        new_thread_name = await auto_name_task
+
+                    # Update thread span name with the final thread name
+                    final_name = new_thread_name or thread_state.name
+                    run_timestamp = active_run.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                    span.update_name(f"{final_name} @ {run_timestamp}")
+                    if thread_span:
+                        thread_span.update_name(final_name)
+
                     await _update_run_status(storage, active_run, "completed", "normal_completion")
                     await _safe_close_websocket(websocket)
 
@@ -612,15 +667,6 @@ async def stream_run(
             "cancelled",
             "websocket_disconnected",
         )
-
-    except AgentNotFoundError as e:
-        logger.error("Error getting agent", error=e)
-        await _update_run_status(storage, active_run, "failed", "agent_not_found", error=str(e))
-        # Re-raise as WebSocketException as per original logic, or handle directly
-        raise WebSocketException(
-            code=status.WS_1008_POLICY_VIOLATION,
-            reason="Agent not found",
-        ) from e
 
     except WebSocketException as e:
         logger.error("WebSocket error", error=e)
@@ -776,13 +822,21 @@ async def async_run(
             agent_id=agent_id,
         )
 
+        # 1. Validate the agent ID from the URL vs. the payload
+        if initial_payload.agent_id != agent_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Agent ID mismatch in URL and payload.",
+            )
+
+        # 2. Upsert thread and messages (before establishing trace context)
+        thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
+
         # Start a new trace for this async run
-        with server_context.start_span(
-            "async_run",
-        ) as span:
+        with server_context.start_span("async_run") as span:
             # Add string attributes that are safe for OTEL
             span.set_attribute("langsmith.metadata.agent_id", str(agent_id))
-            span.set_attribute("langsmith.metadata.thread_id", str(initial_payload.thread_id))
+            span.set_attribute("langsmith.metadata.thread_id", str(thread_state.thread_id))
             span.set_attribute(
                 "langsmith.metadata.user_id",
                 server_context.user_context.user.cr_user_id
@@ -790,27 +844,6 @@ async def async_run(
                 else server_context.user_context.user.sub,
             )
             span.set_attribute("langsmith.metadata.agent_name", agent.name)
-
-            # 1. Validate the agent ID from the URL vs. the payload
-            if initial_payload.agent_id != agent_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Agent ID mismatch in URL and payload.",
-                )
-
-            # 2. Upsert thread and messages
-            with server_context.start_span("upsert_thread_and_messages") as upsert_span:
-                input_value = {
-                    "thread_id": str(initial_payload.thread_id),
-                    "message_count": len(initial_payload.messages),
-                }
-                upsert_span.set_attribute("input.value", json.dumps(input_value))
-                thread_state = await _upsert_thread_and_messages(
-                    user,
-                    initial_payload,
-                    storage,
-                )
-                upsert_span.set_attribute("output.value", json.dumps(thread_state.model_dump()))
             span.update_name(f"{thread_state.name}")
 
             # 3. Create a new asynchronous run
@@ -838,54 +871,64 @@ async def async_run(
             # 4. Start the background task to run the agent
             async def _background_agent_run():
                 """Background task to execute the agent run."""
-                try:
-                    auto_name_task = None
-                    # Get the agent runner
-                    runner = await agent_arch_manager.get_runner(
-                        agent.agent_architecture.name,
-                        agent.agent_architecture.version,
-                        thread_state.thread_id,
-                    )
+                # Establish thread trace context for grouping runs under a common parent
+                async with thread_span_context(
+                    thread_state=thread_state,
+                    user_id=user.user_id,
+                ) as thread_span:
+                    try:
+                        auto_name_task = None
+                        # Get the agent runner
+                        runner = await agent_arch_manager.get_runner(
+                            agent.agent_architecture.name,
+                            agent.agent_architecture.version,
+                            thread_state.thread_id,
+                        )
 
-                    # Start the runner
-                    await runner.start()
+                        # Start the runner
+                        await runner.start()
 
-                    # Create kernel and invoke the agent
-                    kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
-                    if initial_payload.override_model_id:
-                        kernel.model_selector.override_model(initial_payload.override_model_id)
-                    auto_name_task = create_task(maybe_auto_name_thread(kernel, storage))
-                    await runner.invoke(kernel)
+                        # Create kernel and invoke the agent
+                        kernel = AgentServerKernel(server_context, thread_state, agent, active_run)
+                        if initial_payload.override_model_id:
+                            kernel.model_selector.override_model(initial_payload.override_model_id)
+                        auto_name_task = create_task(maybe_auto_name_thread(kernel, storage))
+                        await runner.invoke(kernel)
 
-                    # Stop the runner
-                    await runner.stop()
-                    if auto_name_task is not None:
-                        await auto_name_task
+                        # Stop the runner
+                        await runner.stop()
+                        new_thread_name = None
+                        if auto_name_task is not None:
+                            new_thread_name = await auto_name_task
 
-                    # Mark run as completed
-                    await _update_run_status(
-                        storage,
-                        active_run,
-                        "completed",
-                        "normal_completion_async",
-                    )
+                        # Update thread span name with the final thread name
+                        final_name = new_thread_name or thread_state.name
+                        thread_span.update_name(final_name)
 
-                except Exception as e:
-                    logger.error(
-                        f"Error in background async run for agent {agent_id}: {e}",
-                    )
-                    logger.error(traceback.format_exc())
-                    await _update_run_status(
-                        storage,
-                        active_run,
-                        "failed",
-                        "background_error_async",
-                        error=str(e),
-                    )
-                finally:
-                    if auto_name_task is not None and not auto_name_task.done():
-                        auto_name_task.cancel()
-                        await gather(auto_name_task, return_exceptions=True)
+                        # Mark run as completed
+                        await _update_run_status(
+                            storage,
+                            active_run,
+                            "completed",
+                            "normal_completion_async",
+                        )
+
+                    except Exception as e:
+                        logger.error(
+                            f"Error in background async run for agent {agent_id}: {e}",
+                        )
+                        logger.error(traceback.format_exc())
+                        await _update_run_status(
+                            storage,
+                            active_run,
+                            "failed",
+                            "background_error_async",
+                            error=str(e),
+                        )
+                    finally:
+                        if auto_name_task is not None and not auto_name_task.done():
+                            auto_name_task.cancel()
+                            await gather(auto_name_task, return_exceptions=True)
 
             # Start the background task
             background_task = create_task(_background_agent_run())

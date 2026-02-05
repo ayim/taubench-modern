@@ -28,15 +28,18 @@ _MAX_NAME_LENGTH = 80
 _ALLOWED_NAME_PATTERN = re.compile(r"[^\w \-]+", re.UNICODE)
 
 
-async def maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage) -> None:
+async def maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage) -> str | None:
     """Best-effort asynchronous auto-naming.
 
     Attempts to auto-name the current thread if eligible. Errors are logged and
     never allowed to crash the caller; cancellations are propagated.
+
+    Returns:
+        The new thread name if auto-naming succeeded, None otherwise.
     """
 
     try:
-        await _maybe_auto_name_thread(kernel, storage)
+        return await _maybe_auto_name_thread(kernel, storage)
     except CancelledError:
         logger.debug(
             f"Auto naming task cancelled for thread ({kernel.thread.thread_id})  | run ({kernel.run.run_id})",
@@ -46,30 +49,35 @@ async def maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage
         logger.exception(
             f"Auto naming task failed for thread ({kernel.thread.thread_id})  | run ({kernel.run.run_id})",
         )
+        return None
 
 
-async def _maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage) -> None:
-    """Core auto-naming flow guarded by eligibility checks."""
+async def _maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorage) -> str | None:
+    """Core auto-naming flow guarded by eligibility checks.
+
+    Returns:
+        The new thread name if auto-naming succeeded, None otherwise.
+    """
     thread_id = kernel.thread.thread_id
     agent_id = kernel.agent.agent_id
     current_run_id = kernel.run.run_id
 
     # Never rename for worker agents
     if kernel.agent.is_worker_agent():
-        return
+        return None
 
     if not _check_thread_eligibility(kernel.thread):
-        return
+        return None
 
     if not await _is_first_run_for_thread(storage, thread_id, current_run_id, agent_id):
-        return
+        return None
 
     first_user_message = _extract_first_user_message(kernel.thread)
     if not first_user_message:
         logger.debug(
             f"Skipping auto naming because no user message found for thread ({thread_id})",
         )
-        return
+        return None
 
     name_and_model = await _generate_thread_name(
         kernel,
@@ -77,7 +85,7 @@ async def _maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorag
         first_user_message,
     )
     if not name_and_model:
-        return
+        return None
 
     name, model = name_and_model
 
@@ -88,6 +96,7 @@ async def _maybe_auto_name_thread(kernel: AgentServerKernel, storage: BaseStorag
         name,
         model,
     )
+    return name
 
 
 def _check_thread_eligibility(

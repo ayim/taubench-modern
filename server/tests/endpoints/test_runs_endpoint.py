@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import uuid
-from collections.abc import AsyncGenerator, Mapping
+from collections.abc import AsyncGenerator, Generator, Mapping
 from datetime import UTC, datetime
 from typing import Any, NamedTuple
 
@@ -109,6 +109,21 @@ class StubStorage:
     async def add_message_to_thread(self, user_id: str, thread_id: str, message: Any) -> None:
         self.call_counts.bump("add_message_to_thread")
 
+    async def set_thread_trace_context(
+        self,
+        user_id: str,
+        thread_id: str,
+        parent_trace_id: str,
+        parent_span_id: str,
+    ) -> None:
+        """Set trace context fields for a thread."""
+        if thread_id not in self.threads:
+            return
+
+        thread = self.threads[thread_id]
+        thread.parent_trace_id = parent_trace_id
+        thread.parent_span_id = parent_span_id
+
     # ---------------- run CRUD ----------------------------------------------
     async def create_run(self, run):
         self.call_counts.bump("create_run")
@@ -172,8 +187,13 @@ class StubRunner:
 
 
 @pytest.fixture
-def stub_storage() -> StubStorage:
-    return StubStorage()
+def stub_storage() -> Generator[StubStorage, None, None]:
+    from agent_platform.server.storage.option import StorageService
+
+    storage = StubStorage()
+    StorageService.set_for_testing(storage)  # type: ignore[arg-type]
+    yield storage
+    StorageService.reset()
 
 
 @pytest.fixture

@@ -38,7 +38,9 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.updated_at,
                     t.trial_id,
                     t.metadata,
-                    t.work_item_id
+                    t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id
                    FROM v2.thread t
                    WHERE v2.check_user_access(t.user_id, %(user_id)s::uuid)
                      AND (%(include_trial_threads)s OR t.trial_id IS NULL)
@@ -80,7 +82,9 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.updated_at,
                     t.trial_id,
                     t.metadata,
-                    t.work_item_id
+                    t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id
                 FROM v2.thread t
                 WHERE t.agent_id = %(agent_id)s::uuid
                 AND v2.check_user_access(t.user_id, %(user_id)s::uuid)
@@ -120,6 +124,8 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.trial_id,
                     t.metadata,
                     t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id,
                     v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
                    FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
@@ -227,6 +233,8 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                     t.updated_at,
                     t.metadata,
                     t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id,
                     v2.check_user_access(t.user_id, %(user_id)s::uuid) as has_access
                    FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
@@ -246,6 +254,32 @@ class PostgresStorageThreadsMixin(PostgresStorageMessagesMixin):
                 """DELETE FROM v2.thread t
                    WHERE t.thread_id = %(thread_id)s::uuid""",
                 {"thread_id": thread_id},
+            )
+
+    async def set_thread_trace_context(
+        self,
+        user_id: str,
+        thread_id: str,
+        parent_trace_id: str,
+        parent_span_id: str,
+    ) -> None:
+        """Set trace context fields for a thread."""
+        self._validate_uuid(user_id)
+        self._validate_uuid(thread_id)
+
+        async with self._transaction() as cur:
+            await cur.execute(
+                """UPDATE v2.thread
+                   SET parent_trace_id = %(parent_trace_id)s,
+                       parent_span_id = %(parent_span_id)s
+                   WHERE thread_id = %(thread_id)s::uuid
+                     AND v2.check_user_access(user_id, %(user_id)s::uuid)""",
+                {
+                    "thread_id": thread_id,
+                    "user_id": user_id,
+                    "parent_trace_id": parent_trace_id,
+                    "parent_span_id": parent_span_id,
+                },
             )
 
     async def count_threads(self) -> int:

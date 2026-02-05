@@ -44,7 +44,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.updated_at,
                     t.trial_id,
                     t.metadata,
-                    t.work_item_id
+                    t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id
                 FROM v2_thread t
                 WHERE v2_check_user_access(t.user_id, :user_id) = 1
                   AND (:include_trial_threads = 1 OR t.trial_id IS NULL)
@@ -82,7 +84,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.updated_at,
                     t.trial_id,
                     t.metadata,
-                    t.work_item_id
+                    t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id
                 FROM v2_thread t
                 WHERE t.agent_id = :agent_id
                   AND v2_check_user_access(t.user_id, :user_id) = 1
@@ -124,6 +128,8 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     t.metadata,
                     t.trial_id,
                     t.work_item_id,
+                    t.parent_trace_id,
+                    t.parent_span_id,
                     v2_check_user_access(t.user_id, :user_id) AS has_access
                 FROM v2_thread t
                 WHERE t.thread_id = :thread_id
@@ -229,6 +235,34 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                 WHERE thread_id = :thread_id
                 """,
                 {"thread_id": thread_id},
+            )
+
+    async def set_thread_trace_context(
+        self,
+        user_id: str,
+        thread_id: str,
+        parent_trace_id: str,
+        parent_span_id: str,
+    ) -> None:
+        """Set trace context fields for a thread."""
+        self._validate_uuid(user_id)
+        self._validate_uuid(thread_id)
+
+        async with self._transaction() as cur:
+            await cur.execute(
+                """
+                UPDATE v2_thread
+                SET parent_trace_id = :parent_trace_id,
+                    parent_span_id = :parent_span_id
+                WHERE thread_id = :thread_id
+                  AND v2_check_user_access(user_id, :user_id) = 1
+                """,
+                {
+                    "thread_id": thread_id,
+                    "user_id": user_id,
+                    "parent_trace_id": parent_trace_id,
+                    "parent_span_id": parent_span_id,
+                },
             )
 
     async def count_threads(self) -> int:

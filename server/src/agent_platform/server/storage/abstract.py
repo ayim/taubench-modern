@@ -165,6 +165,23 @@ class AbstractStorage(ABC):
         """Delete a thread."""
 
     @abstractmethod
+    async def set_thread_trace_context(
+        self,
+        user_id: str,
+        thread_id: str,
+        parent_trace_id: str,
+        parent_span_id: str,
+    ) -> None:
+        """Set trace context fields for a thread.
+
+        Args:
+            user_id: The user ID (for access control).
+            thread_id: The thread ID to update.
+            parent_trace_id: 32-character hex trace ID to set.
+            parent_span_id: 16-character hex span ID to set.
+        """
+
+    @abstractmethod
     async def count_threads(self) -> int:
         """Count the number of threads."""
 

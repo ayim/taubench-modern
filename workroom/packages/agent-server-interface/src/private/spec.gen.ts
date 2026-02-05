@@ -24214,6 +24214,32 @@ export const spec = {
             title: 'Work Item Id',
             description: 'The work item ID associated with this thread.',
           },
+          parent_trace_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Trace Id',
+            description:
+              'OpenTelemetry trace ID (32-char hex) for thread grouping context.',
+          },
+          parent_span_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Span Id',
+            description:
+              'OpenTelemetry span ID (16-char hex) of the thread span.',
+          },
         },
         type: 'object',
         required: ['user_id', 'agent_id', 'name'],
@@ -26036,6 +26062,32 @@ export const spec = {
             ],
             title: 'Work Item Id',
             description: 'The work item ID associated with this thread.',
+          },
+          parent_trace_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Trace Id',
+            description:
+              'OpenTelemetry trace ID (32-char hex) for thread grouping context.',
+          },
+          parent_span_id: {
+            anyOf: [
+              {
+                type: 'string',
+              },
+              {
+                type: 'null',
+              },
+            ],
+            title: 'Parent Span Id',
+            description:
+              'OpenTelemetry span ID (16-char hex) of the thread span.',
           },
         },
         type: 'object',

@@ -92,6 +92,18 @@ class Thread(TolerantDataclass):
     )
     """The work item ID associated with this thread."""
 
+    parent_trace_id: str | None = field(
+        default=None,
+        metadata={"description": "OpenTelemetry trace ID (32-char hex) for thread grouping context."},
+    )
+    """OpenTelemetry trace ID for thread grouping context (stable across runs)."""
+
+    parent_span_id: str | None = field(
+        default=None,
+        metadata={"description": "OpenTelemetry span ID (16-char hex) of the thread span."},
+    )
+    """OpenTelemetry span ID of the thread grouping span (parent for all runs)."""
+
     def add_message(self, message: ThreadMessage) -> None:
         """Adds a new message to the thread.  Updates `updated_at` to reflect
         that the thread has changed.
@@ -119,6 +131,8 @@ class Thread(TolerantDataclass):
             metadata=self.metadata,
             trial_id=self.trial_id,
             work_item_id=self.work_item_id,
+            parent_trace_id=self.parent_trace_id,
+            parent_span_id=self.parent_span_id,
         )
 
     def model_dump(self) -> dict:
@@ -133,6 +147,8 @@ class Thread(TolerantDataclass):
             "metadata": self.metadata,
             "trial_id": self.trial_id,
             "work_item_id": self.work_item_id,
+            "parent_trace_id": self.parent_trace_id,
+            "parent_span_id": self.parent_span_id,
             "messages": [msg.model_dump() for msg in self.messages],
         }
 
