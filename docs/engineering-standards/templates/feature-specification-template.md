@@ -1,47 +1,30 @@
 # Feature Specification: [Feature Name]
 
+> **For AI Assistants:** Define WHAT to build. Each story needs: user story format (As a/I want/so that), Context (2-3 paragraphs explaining WHY), Scope (specific deliverables split into "What this produces" and "What this enables"), 5+ acceptance criteria, performance targets, edge cases, and dependencies.
+
 **Status:** Proposed | In Progress | Approved | Implemented  
 **Author:** [Team/Person]  
 **Date:** YYYY-MM-DD  
-**Architecture:** See [architecture-guide.md](./architecture-guide.md) for implementation details
+**Implementation:** See [implementation-guide.md](./implementation-guide.md)
 
 ---
 
 ## Executive Summary
 
-<!-- 2-3 sentences describing what this feature does and why it matters -->
-
-[Brief description of the feature and its business value.]
+[2-3 sentences describing what this feature does and why it matters.]
 
 **Key Capabilities:**
-
-<!-- Bullet list of 4-8 main capabilities -->
 
 - **[Capability 1]:** [Description]
 - **[Capability 2]:** [Description]
 - **[Capability 3]:** [Description]
-- **[Capability 4]:** [Description]
 
 **Expected Impact:**
 
-| Metric             | Target         |
-| ------------------ | -------------- |
-| [Primary metric]   | [Target value] |
+| Metric | Target |
+| ------ | ------ |
+| [Primary metric] | [Target value] |
 | [Secondary metric] | [Target value] |
-| [Tertiary metric]  | [Target value] |
-
----
-
-## Table of Contents
-
-1. [Problem Statement](#problem-statement)
-2. [Solution Overview](#solution-overview)
-3. [Requirements](#requirements)
-4. [Epics](#epics)
-5. [User Stories](#user-stories)
-6. [Breaking Changes](#breaking-changes)
-7. [Success Metrics](#success-metrics)
-8. [References](#references)
 
 ---
 
@@ -49,19 +32,9 @@
 
 ### 1. [Problem Area 1]
 
-<!-- Describe the first problem area -->
-
 [Description of the problem, its impact, and why it needs to be solved.]
 
 ### 2. [Problem Area 2]
-
-<!-- Describe the second problem area -->
-
-[Description of the problem, its impact, and why it needs to be solved.]
-
-### 3. [Problem Area 3]
-
-<!-- Describe the third problem area -->
 
 [Description of the problem, its impact, and why it needs to be solved.]
 
@@ -69,147 +42,139 @@
 
 ## Solution Overview
 
-### Architecture: [High-Level Architecture Name]
+[1-2 sentences describing the high-level approach to solving the problem.]
 
-<!-- ASCII diagram showing the high-level architecture -->
+### Example
 
+[Provide a concrete example showing how the feature works. This could be YAML config, API request/response, or UI flow. Examples help both humans and AI understand the intended behavior.]
+
+```yaml
+# Example configuration or code
+example_field: value
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Input          │────▶│  Processing      │────▶│  Output         │
-└─────────────────┘     │  Component       │     └─────────────────┘
-                        └──────────────────┘
+
+### What's New
+
+| Concept | Description |
+| ------- | ----------- |
+| **[New concept 1]** | [Brief description] |
+| **[New concept 2]** | [Brief description] |
+
+### What's NOT Included (by design)
+
+> **Important:** Explicitly state what was intentionally excluded and why. This prevents scope creep and clarifies design decisions.
+
+- **No [excluded feature 1]** - [Reason for exclusion]
+- **No [excluded feature 2]** - [Reason for exclusion]
+
+### Data Flow
+
+```mermaid
+flowchart TD
+    A[Step 1] --> B[Step 2]
+    B --> C{Decision}
+    C -->|Option 1| D[Result 1]
+    C -->|Option 2| E[Result 2]
 ```
-
-**Pipeline Steps:**
-
-1. **[Step 1]:** [Description]
-2. **[Step 2]:** [Description]
-3. **[Step 3]:** [Description]
-4. **[Step 4]:** [Description]
 
 ---
 
 ## Requirements
 
-### Functional Requirements
+### Functional
 
-| ID   | Requirement               | Priority | Epic   |
-| ---- | ------------------------- | -------- | ------ |
-| FR-1 | [Requirement description] | P0       | [Epic] |
-| FR-2 | [Requirement description] | P0       | [Epic] |
-| FR-3 | [Requirement description] | P1       | [Epic] |
-| FR-4 | [Requirement description] | P2       | [Epic] |
+| ID | Requirement | Priority |
+| -- | ----------- | -------- |
+| FR-1 | [Requirement description] | P0 |
+| FR-2 | [Requirement description] | P1 |
+| FR-3 | [Requirement description] | P2 |
 
-### Non-Functional Requirements
+### Non-Functional
 
-| ID    | Requirement               | Target   | Priority |
-| ----- | ------------------------- | -------- | -------- |
-| NFR-1 | [Performance requirement] | [Target] | P0       |
-| NFR-2 | [Scalability requirement] | [Target] | P1       |
-| NFR-3 | [Reliability requirement] | [Target] | P1       |
+| ID | Requirement | Target |
+| -- | ----------- | ------ |
+| NFR-1 | [Performance/latency requirement] | < Xms |
+| NFR-2 | [Throughput/capacity requirement] | [Target] |
+
+### Expectations
+
+| Name | Expectation |
+| ---- | ----------- |
+| [Constraint name] | [Value or limit] |
+| [Resource limit] | [Value] |
 
 ---
 
-## Epics
+## Epics & Stories
 
 ### Epic A: [Epic Name]
 
-<!-- 1-2 sentence description of the epic -->
-
-[Description of what this epic delivers and why.]
-
-**Research Foundation:** [Optional - cite relevant papers or prior art]
-
-**Stories:**
-
-- A-1: [Story name]
-- A-2: [Story name]
-- A-3: [Story name]
+**Goals:** [1-2 sentence description of what this epic achieves]
 
 ---
-
-### Epic B: [Epic Name]
-
-[Description of what this epic delivers and why.]
-
-**Research Foundation:** [Optional - cite relevant papers or prior art]
-
-**Stories:**
-
-- B-1: [Story name]
-- B-2: [Story name]
-- B-3: [Story name]
-
----
-
-### Epic C: [Epic Name]
-
-[Description of what this epic delivers and why.]
-
-**Stories:**
-
-- C-1: [Story name]
-- C-2: [Story name]
-
----
-
-## User Stories
-
-<!--
-Story Template:
-
-**Story [ID]: [Story Name]**
-> As a [persona], I want to [action] so that [benefit].
-
-**Context:**
-[2-3 sentences explaining WHY this story matters and what problem it solves.
-Include any background needed for someone unfamiliar with the feature.]
-
-**Scope:**
-*What this story produces:*
-- [Concrete deliverable 1]
-- [Concrete deliverable 2]
-- [Concrete deliverable 3]
-
-*What this enables:*
-- [Capability or downstream usage 1]
-- [Capability or downstream usage 2]
-
-**Acceptance Criteria:**
-- [ ] [Testable criterion 1]
-- [ ] [Testable criterion 2]
-- [ ] [Testable criterion 3]
-- [ ] [Testable criterion 4]
-- [ ] [Testable criterion 5]
-
-**Performance Target:** [Target with units] (if applicable)
-
-**Edge Cases:**
-- [Edge case 1]: [How it's handled]
-- [Edge case 2]: [How it's handled]
-
-**Dependencies:**
-- [Dependency on other story or system]
--->
-
-### Epic A: [Epic Name]
 
 **Story A-1: [Story Name]**
 
 > As a [persona], I want to [action] so that [benefit].
 
 **Context:**
-[Explain why this story matters and what problem it solves.]
+
+[2-3 PARAGRAPHS explaining:
+- WHY this story matters and what problem it solves
+- Background/current state that led to this need
+- How this fits into the broader system or user workflow
+- Any technical or business context needed to understand the approach
+
+Include enough detail that both humans and AI understand the full picture and can make informed implementation decisions.]
 
 **Scope:**
-_What this story produces:_
 
+*What this story produces:*
+- [Deliverable 1: e.g., "`Schema` TypedDict in `types.py` with fields: `name`, `description`, `config`"]
+- [Deliverable 2: e.g., "YAML parsing that handles the new `schemas:` array"]
+- [Deliverable 3: e.g., "Pydantic validation for definitions"]
+
+*What this enables:*
+- [Capability 1: what users can now do]
+- [Capability 2: downstream feature this unlocks]
+- [Capability 3: foundation for future stories]
+
+**Acceptance Criteria:**
+
+- [ ] [Testable criterion 1: must be verifiable]
+- [ ] [Testable criterion 2]
+- [ ] [Testable criterion 3]
+- [ ] [Testable criterion 4]
+- [ ] [Testable criterion 5]
+- [ ] [Testable criterion 6: backward compatibility if applicable]
+
+**Performance Target:** [e.g., "< 10ms added to load time"]
+
+**Edge Cases:**
+
+- [Case 1: e.g., "Empty array"]: [Specific behavior: "Treated as none defined"]
+- [Case 2: e.g., "Duplicate names"]: [Specific behavior: "Rejected with validation error"]
+- [Case 3: e.g., "Invalid syntax"]: [Specific behavior: "Parse error with line number"]
+
+**Dependencies:** [Story ID or "None (builds on existing infrastructure)"]
+
+---
+
+**Story A-2: [Story Name]**
+
+> As a [persona], I want to [action] so that [benefit].
+
+**Context:**
+
+[2-3 paragraphs as above]
+
+**Scope:**
+
+*What this story produces:*
 - [Deliverable 1]
 - [Deliverable 2]
-- [Deliverable 3]
 
-_What this enables:_
-
+*What this enables:*
 - [Capability 1]
 - [Capability 2]
 
@@ -221,136 +186,93 @@ _What this enables:_
 - [ ] [Criterion 4]
 - [ ] [Criterion 5]
 
-**Performance Target:** [Target] (if applicable)
-
 **Edge Cases:**
 
-- [Edge case 1]: [Handling]
-- [Edge case 2]: [Handling]
+- [Case 1]: [Behavior]
+- [Case 2]: [Behavior]
 
-**Dependencies:**
-
-- [Dependency 1]
-
----
-
-**Story A-2: [Story Name]**
-
-> As a [persona], I want to [action] so that [benefit].
-
-**Context:**
-[Explain why this story matters.]
-
-**Scope:**
-_What this story produces:_
-
-- [Deliverable 1]
-- [Deliverable 2]
-
-_What this enables:_
-
-- [Capability 1]
-
-**Acceptance Criteria:**
-
-- [ ] [Criterion 1]
-- [ ] [Criterion 2]
-- [ ] [Criterion 3]
-
-**Dependencies:**
-
-- Story A-1 must be complete
+**Dependencies:** [Story A-1 (prerequisite story name)]
 
 ---
 
 ### Epic B: [Epic Name]
+
+**Goals:** [1-2 sentence description]
+
+---
 
 **Story B-1: [Story Name]**
 
 > As a [persona], I want to [action] so that [benefit].
 
 **Context:**
-[Explain why this story matters.]
+
+[2-3 paragraphs]
 
 **Scope:**
-_What this story produces:_
 
+*What this story produces:*
 - [Deliverable 1]
 - [Deliverable 2]
+
+*What this enables:*
+- [Capability 1]
+- [Capability 2]
 
 **Acceptance Criteria:**
 
 - [ ] [Criterion 1]
 - [ ] [Criterion 2]
 - [ ] [Criterion 3]
+- [ ] [Criterion 4]
+
+**Performance Target:** [e.g., "< 500ms for single operation"]
+
+**Edge Cases:**
+
+- [Case 1]: [Behavior]
+- [Case 2]: [Behavior]
+
+**Dependencies:** [Story A-1, External service API (existing)]
 
 ---
 
-## Breaking Changes
+## Use Cases
 
-### API Changes
+### Use Case 1: [Use Case Name]
 
-| Endpoint/Interface | Change                  | Migration Path   |
-| ------------------ | ----------------------- | ---------------- |
-| [Endpoint]         | [Description of change] | [How to migrate] |
+**Actor:** [Persona]  
+**Goal:** [What they want to accomplish]
 
-### Data Changes
+1. [Step 1: User action]
+2. [Step 2: System response]
+3. [Step 3: Outcome with example query like _"Show items over $500"_]
 
-| Data Structure | Change                  | Migration Path   |
-| -------------- | ----------------------- | ---------------- |
-| [Table/Schema] | [Description of change] | [How to migrate] |
+---
 
-### Behavioral Changes
+### Use Case 2: [Use Case Name]
 
-| Behavior   | Before         | After          | Impact            |
-| ---------- | -------------- | -------------- | ----------------- |
-| [Behavior] | [Old behavior] | [New behavior] | [Who is affected] |
+**Actor:** [Persona]  
+**Goal:** [What they want to accomplish]
+
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+4. [Step 4: Final outcome]
 
 ---
 
 ## Success Metrics
 
-### Primary Metrics
-
-| Metric     | Baseline        | Target         | Measurement Method |
-| ---------- | --------------- | -------------- | ------------------ |
-| [Metric 1] | [Current value] | [Target value] | [How measured]     |
-| [Metric 2] | [Current value] | [Target value] | [How measured]     |
-
-### Secondary Metrics
-
-| Metric     | Target   | Measurement Method |
-| ---------- | -------- | ------------------ |
-| [Metric 1] | [Target] | [How measured]     |
-| [Metric 2] | [Target] | [How measured]     |
-
-### Validation Approach
-
-1. **[Validation method 1]:** [Description]
-2. **[Validation method 2]:** [Description]
-3. **[Validation method 3]:** [Description]
+| Metric | Baseline | Target |
+| ------ | -------- | ------ |
+| [Metric 1: e.g., "Data queryable via NL"] | [Value: e.g., "0%"] | [Value: e.g., "100% of defined items"] |
+| [Metric 2: e.g., "Execution latency"] | [Value: e.g., "N/A"] | [Value: e.g., "< 500ms p95"] |
+| [Metric 3: e.g., "Integration time"] | [Value: e.g., "Manual (hours)"] | [Value: e.g., "Declarative (minutes)"] |
 
 ---
 
 ## References
 
-### Internal Documents
-
-- [Architecture Guide](./architecture-guide.md) - Implementation details
-- [Testing Guide](./testing-guide.md) - Validation approach
-- [Related Feature Spec](./related-spec.md) - Dependencies
-
-### External References
-
-- [Paper/Article 1](URL) - [Brief description]
-- [Paper/Article 2](URL) - [Brief description]
-- [Documentation](URL) - [Brief description]
-
----
-
-## Revision History
-
-| Version | Date       | Author   | Changes               |
-| ------- | ---------- | -------- | --------------------- |
-| 1.0     | YYYY-MM-DD | [Author] | Initial specification |
-| 1.1     | YYYY-MM-DD | [Author] | [Changes made]        |
+- [Implementation Guide](./implementation-guide.md) - Technical implementation details
+- [Related Feature](./related-feature.md) - Related documentation
