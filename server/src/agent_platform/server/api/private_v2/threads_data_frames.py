@@ -1509,7 +1509,7 @@ async def get_data_frame_as_validated_query(
     extracted_parameters = result.parameters or []
 
     # Get semantic data model name from data frame sources
-    sdm_name = await get_semantic_data_model_name(data_frame)
+    sdm_name = await get_semantic_data_model_name(data_frame, storage=base_storage, thread_id=tid)
 
     # Enrich parameter descriptions from SDM if we have parameters and an SDM
     from agent_platform.core.semantic_data_model.types import (

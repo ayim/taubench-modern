@@ -26,22 +26,57 @@ if typing.TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-async def get_semantic_data_model_name(data_frame: PlatformDataFrame) -> str | None:
+async def get_semantic_data_model_name(
+    data_frame: PlatformDataFrame,
+    storage: BaseStorage,
+    thread_id: str,
+) -> str | None:
     """Get the semantic data model name used to create a data frame.
 
-    This function extracts the semantic data model name directly from the data frame's
-    computation_input_sources. The SDM name is stored when the data frame is created.
+    This function extracts the semantic data model name from the data frame's
+    computation_input_sources, checking both direct sources and recursive dependencies.
+    When a source references another data frame, it will load and check that data frame.
 
     Args:
         data_frame: The data frame to analyze.
+        storage: Storage instance for loading referenced data frames.
+        thread_id: Thread ID for loading referenced data frames.
 
     Returns:
-        The semantic data model name found in data frame's computation_input_sources.
+        The semantic data model name found in data frame's sources or dependencies.
         None if no semantic data model was used to create the data frame.
     """
-    for source in data_frame.computation_input_sources.values():
-        if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
-            return source.semantic_data_model_name
+    # Check direct computation_input_sources
+    if data_frame.computation_input_sources:
+        for source in data_frame.computation_input_sources.values():
+            # Direct semantic data model source
+            if source.source_type == "semantic_data_model" and source.semantic_data_model_name:
+                return source.semantic_data_model_name
+
+            # Data frame reference - need to load and check recursively
+            if source.source_type == "data_frame":
+                try:
+                    # Load the referenced data frame
+                    referenced_df = await storage.get_data_frame(
+                        thread_id=thread_id,
+                        data_frame_id=source.source_id,
+                    )
+                    # Recursively check the referenced data frame
+                    sdm_name = await get_semantic_data_model_name(
+                        referenced_df,
+                        storage=storage,
+                        thread_id=thread_id,
+                    )
+                    if sdm_name:
+                        return sdm_name
+                except Exception:
+                    # If we can't load the referenced data frame, continue checking other sources
+                    logger.exception(
+                        f"Failed to load referenced data frame {source.source_id} "
+                        f"when looking for semantic data model name"
+                    )
+                    continue
+
     return None
 
 

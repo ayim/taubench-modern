@@ -6,7 +6,6 @@ from structlog.stdlib import get_logger
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
-    from typing import Any
 
     from agent_platform.core.data_connections.data_connections import DataConnection
     from agent_platform.core.data_frames.data_frames import DataFrameSource, PlatformDataFrame
@@ -193,10 +192,56 @@ class Dependencies:
         for sub_dependencies in self._sub_dependencies.values():
             yield from sub_dependencies._iter_recursive_data_frames()
 
-    def _iter_recursive_data_frame_sources(self) -> "Iterator[DataFrameSource]":
-        yield from self._data_frames_sources.values()
+    def _iter_recursive_data_frame_sources_with_names(self) -> "Iterator[tuple[str, DataFrameSource]]":
+        """Iterate over data frame sources with their table names (dict keys)."""
+        yield from self._data_frames_sources.items()
         for sub_dependencies in self._sub_dependencies.values():
-            yield from sub_dependencies._iter_recursive_data_frame_sources()
+            yield from sub_dependencies._iter_recursive_data_frame_sources_with_names()
+
+    def get_all_data_frame_sources_with_names_recursive(self) -> "list[tuple[str, DataFrameSource]]":
+        """Get all data frame sources with their table names (dict keys).
+
+        This method collects:
+        1. Semantic data model sources (database tables or file references) with their table names
+        2. In-memory/file data frames as pseudo-sources (without table names, using empty string as key)
+
+        Data frame references in computation_input_sources that point to SQL computations are NOT
+        included because they represent intermediate computations handled as CTEs.
+
+        Returns:
+            List of tuples (table_name, DataFrameSource). For in-memory/file data frames,
+            table_name will be an empty string since they don't have logical table names.
+        """
+        from agent_platform.core.data_frames.data_frames import DataFrameSource
+
+        sources_with_names: list[tuple[str, DataFrameSource]] = []
+
+        # Add sources from the root data frame's computation_input_sources with their keys
+        if self._data_frame.computation_input_sources:
+            for table_name, source in self._data_frame.computation_input_sources.items():
+                if source.source_type == "semantic_data_model":
+                    sources_with_names.append((table_name, source))
+
+        # Add sources from recursive dependencies with their keys
+        sources_with_names.extend(self._iter_recursive_data_frame_sources_with_names())
+
+        # Add pseudo-sources for leaf data frames (in-memory/file), NOT for sql_computation
+        # SQL computation dataframes are handled as CTEs, not as materialized sources
+        # These don't have table names, so use empty string as the key
+        for df in self._iter_recursive_data_frames():
+            if df.input_id_type in ("in_memory", "file"):
+                # Create a pseudo DataFrameSource to represent in-memory/file data frames
+                sources_with_names.append(
+                    (
+                        "",  # No table name for in-memory/file data frames
+                        DataFrameSource(
+                            source_type="data_frame",
+                            source_id=df.data_frame_id,
+                        ),
+                    )
+                )
+
+        return sources_with_names
 
     def _iter_recursive_sql_computation_data_frames(self) -> "Iterator[PlatformDataFrame]":
         """Yield SQL computation data frames in dependency-first order (topological sort).
@@ -228,315 +273,32 @@ class Dependencies:
         con = await DataConnectionInspector.create_ibis_connection(data_connection)
         return await self._resolve_sql_with_connection(kernel, data_frame, con)
 
-    def _build_full_sql_query(
-        self,
-        data_frame: "PlatformDataFrame",
-        sql_computation_data_frames: "list[PlatformDataFrame]",
-        logical_table_name_to_actual_table_name: dict[str, str],
-        table_name_to_column_names_to_expr: dict[str, dict[str, str]],
-    ) -> str:
-        import sqlglot
-
-        from agent_platform.core.errors.base import PlatformHTTPError
-        from agent_platform.core.errors.responses import ErrorCode
-        from agent_platform.server.data_frames.sql_manipulation import (
-            build_ctes,
-            update_column_references,
-            update_column_table_qualifiers,
-            update_table_names,
-            update_with_clause,
-        )
-
-        sql_query = data_frame.computation
-        assert sql_query is not None
-
-        # Collect all data frame names (both regular DFs and those that will become CTEs)
-        # These should be excluded from SDM column mapping rewrites
-        data_frame_names: set[str] = set()
-        for df in self._iter_recursive_data_frames():
-            data_frame_names.add(df.name)
-        for df in sql_computation_data_frames:
-            data_frame_names.add(df.name)
-
-        name_to_cte_ast: dict[str, Any] = {}
-        target_dialect = data_frame.sql_dialect  # The dialect we're targeting for the final SQL
-
-        for df in sql_computation_data_frames:
-            # Use sqlglot directly to parse and format the SQL for the target dialect
-            if df.computation is None:
-                raise PlatformHTTPError(
-                    error_code=ErrorCode.PRECONDITION_FAILED,
-                    message=f"SQL computation data frame has no computation: {df.name}",
-                )
-            expressions = sqlglot.parse(df.computation, dialect=df.sql_dialect)
-            if len(expressions) != 1:
-                raise PlatformHTTPError(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message=(
-                        f"SQL query must be a single expression. Found: {len(expressions)} "
-                        f"SQL query: {df.computation!r}"
-                    ),
-                )
-            if expressions[0] is None:
-                raise PlatformHTTPError(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message=f"SQL query is not a valid expression. Found: {expressions[0]} "
-                    f"SQL query: {df.computation!r}",
-                )
-
-            cte_sql_ast = expressions[0]
-
-            # Transpile to target dialect if there's a mismatch
-            # This prevents sqlglot from generating invalid SQL during final emission
-            if df.sql_dialect != target_dialect:
-                logger.info(
-                    "Transpiling nested data frame SQL to target dialect",
-                    df_name=df.name,
-                    source_dialect=df.sql_dialect,
-                    target_dialect=target_dialect,
-                )
-                try:
-                    # Transpile by emitting with target dialect, then re-parsing
-                    transpiled_sql = cte_sql_ast.sql(dialect=target_dialect)
-                    cte_sql_ast = sqlglot.parse_one(transpiled_sql, dialect=target_dialect)
-                except Exception as e:
-                    logger.error(
-                        "Failed to transpile nested data frame SQL to target dialect",
-                        df_name=df.name,
-                        source_dialect=df.sql_dialect,
-                        target_dialect=target_dialect,
-                        error=str(e),
-                    )
-                    raise PlatformHTTPError(
-                        error_code=ErrorCode.BAD_REQUEST,
-                        message=(
-                            f"Cannot transpile data frame '{df.name}' from dialect "
-                            f"'{df.sql_dialect}' to '{target_dialect}'. "
-                            f"Error: {e}"
-                        ),
-                    ) from e
-
-            # Now apply transformations with consistent target dialect
-            cte_sql_ast = update_table_names(cte_sql_ast, logical_table_name_to_actual_table_name)
-            cte_sql_ast = update_column_table_qualifiers(cte_sql_ast, logical_table_name_to_actual_table_name)
-            cte_sql_ast = update_column_references(
-                cte_sql_ast,
-                table_name_to_column_names_to_expr,
-                logical_table_name_to_actual_table_name,
-                data_frame_names,
-            )
-            name_to_cte_ast[df.name] = cte_sql_ast
-
-        ctes = build_ctes(name_to_cte_ast=name_to_cte_ast)
-        main_sql_ast = sqlglot.parse_one(sql_query, dialect=data_frame.sql_dialect)
-        main_sql_ast = update_table_names(main_sql_ast, logical_table_name_to_actual_table_name)
-        main_sql_ast = update_column_table_qualifiers(main_sql_ast, logical_table_name_to_actual_table_name)
-        main_sql_ast = update_column_references(
-            main_sql_ast,
-            table_name_to_column_names_to_expr,
-            logical_table_name_to_actual_table_name,
-            data_frame_names,
-        )
-        main_sql_ast = update_with_clause(main_sql_ast, ctes)
-        full_sql_query_str = main_sql_ast.sql(dialect=data_frame.sql_dialect, pretty=True)
-        return full_sql_query_str
-
     async def _resolve_sql_with_connection(
         self,
         kernel: "DataFramesKernel",
         data_frame: "PlatformDataFrame",
         con: "AsyncIbisConnection",
     ) -> "DataNodeResult":
-        import asyncio
-        from collections.abc import Coroutine
-        from typing import Any
+        """Execute SQL query using appropriate strategy based on data source type.
 
-        from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
-        from agent_platform.core.errors.responses import ErrorCode
-        from agent_platform.server.data_frames.data_node import (
-            DataNodeFromIbisResult,
-            DataNodeResult,
-        )
+        Routes to either:
+        - DatabaseQueryExecutor: For queries against database tables (Postgres/Snowflake/etc.)
+        - FileBasedQueryExecutor: For queries against CSV/Excel files (DuckDB dialect) - FALLBACK
 
-        # Collect in-memory and file data frames initially (those never have deps and
-        # must be created in-memory for ibis to be able to use them).
-        name_to_node: dict[str, DataNodeResult] = {}
-        name_to_coro: dict[str, Coroutine[Any, Any, DataNodeResult]] = {}
+        FileBasedQueryExecutor is used as fallback for edge cases where dialect is None
+        or not explicitly handled by other strategies.
+        """
+        from agent_platform.server.data_frames.database_query_executor import DatabaseQueryExecutor
+        from agent_platform.server.data_frames.file_based_query_executor import FileBasedQueryExecutor
 
-        sql_query = data_frame.computation
-        assert sql_query
+        # Try DatabaseQueryExecutor first for explicit database dialects
+        db_strategy = DatabaseQueryExecutor()
+        if db_strategy.can_handle(data_frame, self):
+            return await db_strategy.execute(kernel, data_frame, con, self)
 
-        # These will become CTEs in the SQL query
-        sql_computation_data_frames = [df for df in self._iter_recursive_sql_computation_data_frames()]
-
-        for df in self._iter_recursive_data_frames():
-            # These need to be materialized as tables in duckdb
-            assert df.input_id_type in ("in_memory", "file")
-            name_to_coro[df.name] = kernel.resolve_data_frame(df)
-
-        logical_table_name_to_actual_table_name: dict[str, str] = {}
-        # Track column mappings per table: {table_name: {logical_col: physical_expr}}
-        table_name_to_column_names_to_expr: dict[str, dict[str, str]] = {}
-
-        df_source: DataFrameSource
-        for df_source in self._iter_recursive_data_frame_sources():
-            if df_source.source_type == "semantic_data_model":
-                if df_source.base_table is not None:
-                    # Store column mappings if available
-                    if df_source.logical_column_names_to_expr and df_source.logical_table_name:
-                        table_name_to_column_names_to_expr[df_source.logical_table_name] = (
-                            df_source.logical_column_names_to_expr
-                        )
-                        logger.info(
-                            "Collected column mappings for SDM table",
-                            table_name=df_source.logical_table_name,
-                            num_mappings=len(df_source.logical_column_names_to_expr),
-                            mappings=df_source.logical_column_names_to_expr,
-                        )
-                    elif df_source.logical_table_name:
-                        logger.warning(
-                            "No column mappings available for SDM table",
-                            table_name=df_source.logical_table_name,
-                        )
-
-                    if df_source.base_table.get("file_reference") is not None:
-                        assert df_source.logical_table_name is not None
-                        name_to_coro[df_source.logical_table_name] = kernel._resolve_file_data_source(df_source)
-                    elif df_source.base_table.get("data_connection_id") is not None:
-                        assert df_source.logical_table_name is not None
-                        base_table = df_source.base_table
-                        if not base_table:
-                            logger.critical(f"Base table is None for semantic data model. df_source: {df_source}")
-                            continue
-                        actual_table_name = base_table.get("table")
-                        if not actual_table_name:
-                            logger.critical(
-                                f"Actual table name is None for semantic data model. df_source: {df_source}"
-                            )
-                            continue
-                        schema = base_table.get("schema")
-                        if schema:
-                            actual_table_name = f"{schema}.{actual_table_name}"
-                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = actual_table_name
-                    else:
-                        assert df_source.logical_table_name is not None
-                        base_table = df_source.base_table
-                        if not base_table:
-                            logger.critical(f"Base table is None for semantic data model. df_source: {df_source}")
-                            continue
-                        data_frame_name = base_table.get("table")
-                        if not data_frame_name:
-                            logger.critical(f"'table' name is None for semantic data model. df_source: {df_source}")
-                            continue
-                        # Get the data frame by name from the thread
-                        name_to_data_frame = await kernel._get_name_to_data_frame()
-                        if data_frame_name not in name_to_data_frame:
-                            raise PlatformHTTPError(
-                                error_code=ErrorCode.NOT_FOUND,
-                                message=f"Data frame '{data_frame_name}' referenced in semantic data model "
-                                f"not found in thread {kernel._tid}",
-                            )
-                        df = name_to_data_frame[data_frame_name]
-                        # Resolve the data frame and map logical table name to actual data frame name
-                        name_to_coro[data_frame_name] = kernel.resolve_data_frame(df)
-                        # Map logical table name to actual data frame name for SQL queries
-                        logical_table_name_to_actual_table_name[df_source.logical_table_name] = data_frame_name
-
-        if name_to_coro:
-            if con.name != "duckdb":
-                raise PlatformHTTPError(
-                    error_code=ErrorCode.BAD_REQUEST,
-                    message=(
-                        f"Only duckdb is supported for materializing in-memory, file and "
-                        f"computed data frames. Current backend: {con.name}"
-                    ),
-                )
-
-        results = await asyncio.gather(*name_to_coro.values())
-        for variable_name, result in zip(name_to_coro.keys(), results, strict=True):
-            name_to_node[variable_name] = result
-
-        # Fill in what came from in-memory and file data frames
-        # (we should be in duck db in this case, so, we can just create the
-        # tables directly).
-
-        for variable_name, node in name_to_node.items():
-            await con.create_table(variable_name, node.to_ibis())
-
-        # Now, we need to go on to the computation (deps should be in order already).
-        # We have to add preconditions as:
-        # WITH df AS (
-        #   {dep_sql_query}
-        # ),
-        # df2 AS (
-        #   {dep_sql_query}
-        # )
-        full_sql_query_str = self._build_full_sql_query(
-            data_frame,
-            sql_computation_data_frames,
-            logical_table_name_to_actual_table_name,
-            table_name_to_column_names_to_expr,
-        )
-
-        # To get the one referencing the logical table names, build it again but with empty mappings.
-        full_sql_query_logical_str = self._build_full_sql_query(
-            data_frame,
-            sql_computation_data_frames,
-            logical_table_name_to_actual_table_name={},
-            table_name_to_column_names_to_expr={},
-        )
-
-        try:
-            result = await con.sql(full_sql_query_str, dialect=data_frame.sql_dialect)
-
-            df = DataNodeFromIbisResult(
-                data_frame,
-                result,
-                full_sql_query_str=full_sql_query_str,
-                full_sql_query_logical_str=full_sql_query_logical_str,
-            )
-            return df
-        except Exception as e:
-            error_msg = str(e)
-
-            # Make errors more actionable by adding context
-            enhanced_error = error_msg
-
-            # Column not found errors - guide LLM to check SDM
-            column_not_found = "column" in error_msg.lower() and (
-                "does not exist" in error_msg.lower() or "not found" in error_msg.lower()
-            )
-            if column_not_found:
-                enhanced_error += (
-                    "\n\nAction: Check the column names in the semantic data model. "
-                    "The column name might be different than expected. "
-                    "Review the available columns and their data types in the table definition."
-                )
-
-            # Set-returning function errors - guide to LATERAL JOIN (PostgreSQL-specific)
-            elif (
-                "set-returning function" in error_msg.lower()
-                and "aggregate" in error_msg.lower()
-                and data_frame.sql_dialect == "postgres"
-            ):
-                enhanced_error += (
-                    "\n\nAction: Use LATERAL JOIN to unnest the array before aggregation. "
-                    "Pattern: FROM table t, LATERAL (SELECT AGG(field) "
-                    "FROM json_array_elements(...) x) AS agg"
-                )
-
-            logger.error(
-                "Error executing SQL computation",
-                error=error_msg,
-                data_frame_name=data_frame.name,
-                sql_query=sql_query,
-                full_sql_query_str=full_sql_query_str,
-                full_sql_query_logical_str=full_sql_query_logical_str,
-                logical_table_name_to_actual_table_name=logical_table_name_to_actual_table_name,
-                enhanced_error=enhanced_error,
-            )
-
-            raise PlatformError(message=f"Error executing SQL query: {enhanced_error}") from e
+        # Fallback to FileBasedQueryExecutor (handles DuckDB and edge cases)
+        file_strategy = FileBasedQueryExecutor()
+        return await file_strategy.execute(kernel, data_frame, con, self)
 
 
 class DataFramesKernel:
@@ -715,9 +477,13 @@ class DataFramesKernel:
 
         return dependencies
 
-    async def _resolve_file_data_source(self, data_source: "DataFrameSource") -> "DataNodeResult":
+    async def _resolve_file_data_source(self, data_source: "DataFrameSource", table_name: str) -> "DataNodeResult":
         """
         A data frame source must be used to resolve contents from the semantic data model.
+
+        Args:
+            data_source: The DataFrameSource with base_table info
+            table_name: The table name from the SDM (used as the data frame name)
         """
         import datetime
         import uuid
@@ -733,9 +499,6 @@ class DataFramesKernel:
             base_table_info: BaseTable | None = typing.cast(BaseTable | None, data_source.base_table)
             if base_table_info is None:
                 raise PlatformError(message=f"Data source info is None for data source: {data_source}")
-            logical_table_name = data_source.logical_table_name
-            if logical_table_name is None:
-                raise PlatformError(message=f"Logical table name is None for data source: {data_source}")
 
             file_reference = base_table_info.get("file_reference")
             if file_reference is not None:
@@ -748,7 +511,7 @@ class DataFramesKernel:
                     num_columns=0,
                     column_headers=[],
                     columns={},
-                    name=logical_table_name,
+                    name=table_name,
                     input_id_type="file",
                     file_id=file_reference.get("file_id"),
                     file_ref=file_reference.get("file_ref"),
@@ -878,70 +641,91 @@ class DataFramesKernel:
                 message=f"Unsupported input_id_type: {data_frame.input_id_type}",
             )
 
-    async def execute_sql_returning_row_count(
+    def _get_required_backends_from_sources(
         self,
-        sql_query: str,
         computation_input_sources: "dict[str, DataFrameSource]",
-        dialect: str,
-    ) -> int:
-        """Execute a SQL query and return the number of rows affected.
+    ) -> set["SupportedIbisBackends"]:
+        """Get required backends from computation input sources.
 
-        This method is for SQL statements that return a row count rather than
-        a result set (e.g., INSERT/UPDATE/DELETE without RETURNING, CREATE TABLE, etc.).
-        It uses raw_sql() to execute the query directly.
+        Simple helper to determine which backend(s) are needed to execute a query
+        based on the data sources. Used by DML execution where we don't need
+        table name or column mappings.
 
         Args:
-            sql_query: The SQL query to execute
-            computation_input_sources: Sources for table resolution (from SDM)
-            dialect: The resolved SQL dialect
+            computation_input_sources: Sources mapping from _prepare_sql_execution
 
         Returns:
-            Number of rows affected by the statement
+            Set of backends needed for execution
         """
-        import sqlglot
-
-        from agent_platform.core.data_frames.data_frames import DataFrameSource
-        from agent_platform.core.errors.base import PlatformError
         from agent_platform.server.data_frames.data_node import (
             DUCK_DB_BACKEND,
             SupportedIbisBackends,
             make_data_connection_backend,
         )
-        from agent_platform.server.data_frames.sql_manipulation import (
-            update_column_references,
-            update_column_table_qualifiers,
-            update_table_names,
+
+        required_backends: set[SupportedIbisBackends] = set()
+
+        # Check each semantic data model source for its backend
+        for source in computation_input_sources.values():
+            if source.source_type == "semantic_data_model" and source.base_table is not None:
+                data_connection_id = source.base_table.get("data_connection_id")
+                if data_connection_id:
+                    required_backends.add(make_data_connection_backend(data_connection_id))
+                else:
+                    # File reference or data frame reference - use duckdb
+                    required_backends.add(DUCK_DB_BACKEND)
+
+        # Default to duckdb if no backends found (e.g., "SELECT 1")
+        if not required_backends:
+            required_backends.add(DUCK_DB_BACKEND)
+
+        return required_backends
+
+    def _build_table_mappings_from_sources(
+        self,
+        computation_input_sources: "dict[str, DataFrameSource]",
+    ) -> tuple[dict[str, str], dict[str, dict[str, str]], set["SupportedIbisBackends"]]:
+        """Build table name and column mappings from computation input sources.
+
+        This helper extracts common logic for mapping SDM table names to physical names
+        and building column expression mappings. Used by both query execution and DML operations.
+
+        Args:
+            computation_input_sources: Sources mapping (table_name -> DataFrameSource)
+
+        Returns:
+            Tuple of:
+            - table_name_to_expr: Mapping from SDM table names to actual physical names
+            - table_name_to_column_names_to_expr: Column mappings per table
+            - required_backends: Set of backends needed for execution
+        """
+        from agent_platform.server.data_frames.data_node import (
+            DUCK_DB_BACKEND,
+            SupportedIbisBackends,
+            make_data_connection_backend,
         )
 
-        # Build table name mappings and column mappings from computation_input_sources
-        logical_table_name_to_actual_table_name: dict[str, str] = {}
+        table_name_to_expr: dict[str, str] = {}
         table_name_to_column_names_to_expr: dict[str, dict[str, str]] = {}
         required_backends: set[SupportedIbisBackends] = set()
 
-        df_source: DataFrameSource
-        sdm_sources = [
-            s
-            for s in computation_input_sources.values()
-            if s.source_type == "semantic_data_model" and s.base_table is not None
-        ]
-        for df_source in sdm_sources:
-            assert df_source.base_table is not None  # filtered above
+        # Iterate over computation_input_sources with both keys (table names) and values
+        for table_name, df_source in computation_input_sources.items():
+            if df_source.source_type != "semantic_data_model" or df_source.base_table is None:
+                continue
 
             # Store column mappings if available
-            if df_source.logical_column_names_to_expr and df_source.logical_table_name:
-                table_name_to_column_names_to_expr[df_source.logical_table_name] = (
-                    df_source.logical_column_names_to_expr
-                )
+            if df_source.column_names_to_expr:
+                table_name_to_column_names_to_expr[table_name] = df_source.column_names_to_expr
 
             if df_source.base_table.get("data_connection_id") is not None:
-                assert df_source.logical_table_name is not None
                 base_table = df_source.base_table
                 actual_table_name = base_table.get("table")
                 if actual_table_name:
                     schema = base_table.get("schema")
                     if schema:
                         actual_table_name = f"{schema}.{actual_table_name}"
-                    logical_table_name_to_actual_table_name[df_source.logical_table_name] = actual_table_name
+                    table_name_to_expr[table_name] = actual_table_name
 
                 data_connection_id = base_table.get("data_connection_id")
                 if data_connection_id:
@@ -954,11 +738,42 @@ class DataFramesKernel:
         if not required_backends:
             required_backends.add(DUCK_DB_BACKEND)
 
-        # For row count operations, we only support single backend
+        return table_name_to_expr, table_name_to_column_names_to_expr, required_backends
+
+    async def execute_sql_returning_row_count(
+        self,
+        sql_query: str,
+        computation_input_sources: "dict[str, DataFrameSource]",
+        dialect: str,
+    ) -> int:
+        """Execute a DML query and return the number of rows affected.
+
+        This method is for DML statements (INSERT/UPDATE/DELETE) that return a row count.
+        DML queries are only supported against database tables, not file-based tables.
+        No transformations are applied - the LLM generates queries with physical table/column names.
+
+        Args:
+            sql_query: The SQL DML query to execute
+            computation_input_sources: Sources for backend resolution (from SDM)
+            dialect: The resolved SQL dialect
+
+        Returns:
+            Number of rows affected by the statement
+
+        Raises:
+            PlatformError: If multiple backends required or execution fails
+        """
+        from agent_platform.core.errors.base import PlatformError
+
+        # Determine which backend to use based on data sources
+        # For DML, we only need backend resolution (no table/column mapping needed)
+        required_backends = self._get_required_backends_from_sources(computation_input_sources)
+
+        # DML operations require a single backend (no federation)
         if len(required_backends) != 1:
             raise PlatformError(
-                message=f"Unable to execute SQL: multiple backends required: {required_backends}. "
-                "Federation not supported for row count operations."
+                message=f"Unable to execute DML query: multiple backends required: {required_backends}. "
+                "Federation not supported for DML operations."
             )
 
         use_backend = required_backends.pop()
@@ -966,27 +781,15 @@ class DataFramesKernel:
         # Get the connection
         con = await use_backend.create_connection(self._storage)
 
-        # Transform the SQL query with table name and column mappings
-        # Parse and transform SQL
-        sql_ast = sqlglot.parse_one(sql_query, dialect=dialect)
-        sql_ast = update_table_names(sql_ast, logical_table_name_to_actual_table_name)
-        sql_ast = update_column_table_qualifiers(sql_ast, logical_table_name_to_actual_table_name)
-        sql_ast = update_column_references(
-            sql_ast,
-            table_name_to_column_names_to_expr,
-            logical_table_name_to_actual_table_name,
-            data_frame_names=set(),  # No data frames to exclude
-        )
-        full_sql_query_str = sql_ast.sql(dialect=dialect, pretty=True)
-
-        # Execute DML and return row count
+        # Execute DML directly - no transformations needed for database tables
+        # The LLM generates queries with correct physical table/column names
         try:
-            return await con.execute_dml(full_sql_query_str)
+            return await con.execute_dml(sql_query)
         except Exception as e:
             logger.error(
-                "Error executing SQL for row count",
+                "Error executing DML query",
                 error=str(e),
                 sql_query=sql_query,
-                full_sql_query_str=full_sql_query_str,
+                dialect=dialect,
             )
-            raise PlatformError(message=f"Error executing SQL query: {e}") from e
+            raise PlatformError(message=f"Error executing DML query: {e}") from e

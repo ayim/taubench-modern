@@ -1,0 +1,14 @@
+{
+  "columns": [
+    "person_name",
+    "country",
+    "time_in_status"
+  ],
+  "rows": [
+    [
+      "John Smith",
+      "United States",
+      120
+    ]
+  ]
+}

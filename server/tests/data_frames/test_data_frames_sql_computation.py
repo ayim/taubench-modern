@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from agent_platform.core.errors.base import PlatformError
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from server.tests.storage_fixtures import *  # noqa: F403
 
 if typing.TYPE_CHECKING:
@@ -289,7 +290,7 @@ async def test_create_data_frame_from_sql_computation():
         base_storage,
         new_data_frame_name,
         sql_query,
-        dialect="postgres",
+        dialect="duckdb",
         description=description,
     )
 
@@ -300,7 +301,7 @@ async def test_create_data_frame_from_sql_computation():
     assert storage_stub.data_frames[-1].name == new_data_frame_name
 
     assert result.platform_data_frame.num_rows == 1
-    assert result.platform_data_frame.sql_dialect == "postgres"
+    assert result.platform_data_frame.sql_dialect == "duckdb"
 
     loaded = json.loads(typing.cast(bytes, await result.slice(offset=0, limit=1, output_format="json")))
     assert loaded == [{"col1": 1, "col2": 4}]
@@ -398,6 +399,7 @@ async def test_create_data_frame_from_sql_computation_with_null_data_csv(
         dialect="duckdb",
         description=description,
     )
+    assert storage_stub.data_frames[-1].name == new_data_frame_name
     sliced = typing.cast(Table, await data_node.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced.model_dump(), indent=2), basename="sliced-table-csv")
 
@@ -444,6 +446,7 @@ async def test_create_data_frame_from_sql_computation_with_dates(datadir: Path, 
         dialect="duckdb",
         description=description,
     )
+    assert storage_stub.data_frames[-1].name == new_data_frame_name
     sliced = typing.cast(Table, await data_node.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced.model_dump(), indent=2), basename="sliced-table")
 
@@ -503,6 +506,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
         dialect="duckdb",
         description=description,
     )
+    assert storage_stub.data_frames[-1].name == new_data_frame_name
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte")
@@ -526,6 +530,7 @@ async def test_create_data_frame_from_sql_computation_with_cte(file_regression):
         dialect="duckdb",
         description=description,
     )
+    assert storage_stub.data_frames[-1].name == new_data_frame_name
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=1, output_format="table"))
     file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-cte-2")
@@ -642,7 +647,7 @@ class _DataFramesChecker:
         name: str,
         sql_query: str,
         description: str,
-        dialect: str = "duckdb",
+        dialect: str | None = "duckdb",
         semantic_data_model_name: str | None = None,
     ) -> "DataNodeResult":
         from agent_platform.server.data_frames.data_frames_from_computation import (
@@ -750,18 +755,6 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
         data_connection_id=data_connection.id,
     )
 
-    # Ok, a basic model was created, let's change the logical name of the table
-    tables = generated_model.semantic_model.tables or []
-    if not tables:
-        raise Exception("No tables found in the semantic data model")
-    for table in tables:
-        name = table.get("name")
-        if not name:
-            raise Exception("No name found in the table")
-
-        if name == "artificial_intelligence_number_training_datapoints":
-            table["name"] = "ai_training_datapoints"
-
     semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
         semantic_data_model_id=None,
         semantic_model=generated_model.semantic_model,
@@ -780,13 +773,129 @@ async def test_create_data_frame_from_sql_computation_with_semantic_data_model(
 
     result = await dfs_checker.create_data_frame_from_sql_computation_api(
         "test_data_frame",
-        "SELECT * FROM ai_training_datapoints",
+        "SELECT * FROM artificial_intelligence_number_training_datapoints",
         description="Test data frame",
         semantic_data_model_name=semantic_data_model_name,
+        dialect="sqlite",
     )
+
+    # Verify data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "test_data_frame"
 
     sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))
     file_regression.check(json.dumps(sliced_table.model_dump(), indent=2), basename="sliced-table-semantic-data-model")
+
+
+@pytest.mark.asyncio
+async def test_create_data_frame_from_sql_computation_with_file_based_semantic_data_model(
+    file_regression, dfs_checker: _DataFramesChecker, datadir: Path
+):
+    """Test SDM with file-based data - tests FileBasedQueryExecutor and logical-to-physical translation.
+
+    This test verifies that:
+    1. FileBasedQueryExecutor is used for file-based SDMs
+    2. Logical-to-physical column translation works correctly
+    3. Physical column names with spaces/special chars are quoted properly
+       (e.g., "Full Name", "Time in status (minutes)")
+    """
+    from sema4ai.actions import Table
+
+    # Generate CSV programmatically (per Python Guidelines §7.4 - Test Data Management)
+    # Physical headers: "Full Name", "Country Name", "Time in status (minutes)"
+    csv_contents = b"""Full Name,Country Name,Time in status (minutes)
+John Smith,United States,120
+Maria Garcia,Spain,45
+Ahmed Hassan,Egypt,90
+"""
+
+    # Upload file to storage
+    uploaded_file = await dfs_checker.model_creator.obtain_sample_file(
+        file_content=csv_contents,
+        file_name="people_data.csv",
+        mime_type="text/csv",
+        owner=dfs_checker.thread,
+    )
+
+    # Create semantic data model with logical-to-physical column mappings
+    # Physical CSV headers: "Full Name", "Country Name", "Time in status (minutes)"
+    # Logical names: "person_name", "country", "time_in_status"
+    semantic_model = SemanticDataModel(
+        name="people_semantic_model",
+        description="People data with complex column names",
+        tables=[
+            {
+                "name": "people",
+                "base_table": {
+                    "table": "data_frame_people_data",
+                    "file_reference": {
+                        "thread_id": dfs_checker.tid,
+                        "file_ref": uploaded_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {
+                        "name": "person_name",  # Logical name
+                        "expr": "Full Name",  # Physical CSV header with space
+                        "data_type": "string",
+                        "description": "Person's full name",
+                    },
+                    {
+                        "name": "country",  # Logical name
+                        "expr": "Country Name",  # Physical CSV header with space
+                        "data_type": "string",
+                        "description": "Country",
+                    },
+                ],
+                "facts": [
+                    {
+                        "name": "time_in_status",  # Logical name
+                        "expr": "Time in status (minutes)",  # Physical header with spaces, parens, and SQL keyword "in"
+                        "data_type": "integer",
+                        "description": "Time spent in status",
+                    },
+                ],
+            }
+        ],
+    )
+
+    # Save semantic data model
+    semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[],
+        file_references=[(dfs_checker.tid, uploaded_file.file_ref)],
+    )
+
+    # Assign to agent
+    await dfs_checker.model_creator.storage.set_agent_semantic_data_models(
+        agent_id=dfs_checker.agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    # Query using LOGICAL column names - system should translate to physical CSV headers
+    result = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "test_file_query",
+        "SELECT person_name, country, time_in_status FROM people WHERE country = 'United States'",
+        description="Test file-based SDM with translation",
+        semantic_data_model_name="people_semantic_model",
+        dialect="duckdb",
+    )
+
+    # Verify data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "test_file_query"
+
+    sliced_table = typing.cast(Table, await result.slice(offset=0, limit=10, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table.model_dump(), indent=2),
+        basename="sliced-table-file-based-semantic-data-model",
+    )
+
+    # Verify logical column names in result and correct data
+    assert len(sliced_table.rows) == 1
+    assert sliced_table.rows[0] == ["John Smith", "United States", 120]
 
 
 async def check(
@@ -899,3 +1008,279 @@ async def test_create_data_frame_from_dual(file_regression):
     # and ignore that table, but then it'll fail just a bit later as duckdb doesn't support it.
     with pytest.raises(PlatformError, match="not found"):
         await check("SELECT 1 FROM DUAL", file_regression, dialect="oracle")
+
+
+@pytest.mark.asyncio
+async def test_query_on_db_dataframe_then_query_on_result_sqlite(
+    file_regression, dfs_checker: _DataFramesChecker, resources_dir
+):
+    """Test creating a dataframe from sqlite DB, then querying that dataframe.
+
+    This verifies Fix 1 (dialect determination) and Fix 2 (CTE building in DatabaseQueryExecutor):
+    1. First query runs on database → creates dataframe with dialect="sqlite"
+    2. Second query references that dataframe → should build CTE and execute in sqlite
+    """
+    from sema4ai.actions import Table
+
+    # Create a data connection to sqlite database
+    db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+    data_connection = await dfs_checker.model_creator.obtain_sample_data_connection(db_file_path=db_file_path)
+
+    # Inspect and create semantic data model
+    inspect_response = await dfs_checker.inspect_data_connection(data_connection.id)
+    tables_info = dfs_checker.convert_inspect_response_to_tables_info(inspect_response)
+
+    generated_model = await dfs_checker.generate_semantic_data_model(
+        tables_info=tables_info,
+        data_connection_id=data_connection.id,
+    )
+
+    semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=generated_model.semantic_model,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    # Assign to agent
+    await dfs_checker.model_creator.storage.set_agent_semantic_data_models(
+        agent_id=dfs_checker.agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    semantic_data_model_name = generated_model.semantic_model.name
+
+    # Step 1: Create dataframe by running query on database (sqlite)
+    first_df = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "first_dataframe_from_db",
+        "SELECT * FROM artificial_intelligence_number_training_datapoints LIMIT 5",
+        description="First dataframe from DB query",
+        semantic_data_model_name=semantic_data_model_name,
+        dialect="sqlite",
+    )
+
+    # Verify first data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "first_dataframe_from_db"
+
+    sliced_table = typing.cast(Table, await first_df.slice(offset=0, limit=5, output_format="table"))
+    assert len(sliced_table.rows) > 0
+
+    # Step 2: Create dataframe by querying the first dataframe
+    # This should detect dialect from first_df and build a CTE
+    second_df = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "second_dataframe_from_first",
+        "SELECT * FROM first_dataframe_from_db LIMIT 3",
+        description="Second dataframe from first dataframe",
+        dialect=None,  # Should be inferred from first_dataframe_from_db
+    )
+
+    # Verify second data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "second_dataframe_from_first"
+
+    sliced_table_2 = typing.cast(Table, await second_df.slice(offset=0, limit=3, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table_2.model_dump(), indent=2),
+        basename="sliced-table-query-on-db-dataframe",
+    )
+    assert len(sliced_table_2.rows) <= 3
+
+
+@pytest.mark.asyncio
+async def test_query_on_file_dataframe_then_query_on_result(
+    file_regression, dfs_checker: _DataFramesChecker, datadir: Path
+):
+    """Test creating a dataframe from file (CSV), then querying that dataframe.
+
+    This tests that FileBasedQueryExecutor properly builds CTEs for nested dataframes:
+    1. First query runs on file → creates dataframe with dialect="duckdb"
+    2. Second query references that dataframe → should build CTE in DuckDB
+    """
+    from sema4ai.actions import Table
+
+    # Generate CSV programmatically (per Python Guidelines §7.4 - Test Data Management)
+    csv_contents = b"""Full Name,Country Name,Time in status (minutes)
+John Smith,United States,120
+Maria Garcia,Spain,45
+Ahmed Hassan,Egypt,90
+"""
+
+    # Upload file to storage
+    uploaded_file = await dfs_checker.model_creator.obtain_sample_file(
+        file_content=csv_contents,
+        file_name="people_data.csv",
+        mime_type="text/csv",
+        owner=dfs_checker.thread,
+    )
+
+    # Create semantic data model with the CSV file
+    semantic_model = SemanticDataModel(
+        name="people_file_semantic_model",
+        description="People data from CSV file",
+        tables=[
+            {
+                "name": "people",
+                "base_table": {
+                    "table": "data_frame_people_data",
+                    "file_reference": {
+                        "thread_id": dfs_checker.tid,
+                        "file_ref": uploaded_file.file_ref,
+                        "sheet_name": None,
+                    },
+                },
+                "dimensions": [
+                    {
+                        "name": "person_name",
+                        "expr": "Full Name",
+                        "data_type": "string",
+                        "description": "Person's full name",
+                    },
+                    {
+                        "name": "country",
+                        "expr": "Country Name",
+                        "data_type": "string",
+                        "description": "Country",
+                    },
+                ],
+                "facts": [
+                    {
+                        "name": "time_in_status",
+                        "expr": "Time in status (minutes)",
+                        "data_type": "integer",
+                        "description": "Time spent in status",
+                    },
+                ],
+            }
+        ],
+    )
+
+    semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=semantic_model,
+        data_connection_ids=[],
+        file_references=[(dfs_checker.tid, uploaded_file.file_ref)],
+    )
+
+    # Assign to agent
+    await dfs_checker.model_creator.storage.set_agent_semantic_data_models(
+        agent_id=dfs_checker.agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    # Step 1: Create dataframe by running query on file
+    first_df = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "first_dataframe_from_file",
+        "SELECT person_name, country, time_in_status FROM people",
+        description="First dataframe from file query",
+        semantic_data_model_name="people_file_semantic_model",
+        dialect="duckdb",
+    )
+
+    # Verify first data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "first_dataframe_from_file"
+
+    sliced_table = typing.cast(Table, await first_df.slice(offset=0, limit=10, output_format="table"))
+    assert len(sliced_table.rows) > 0
+
+    # Step 2: Create dataframe by querying the first dataframe
+    second_df = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "second_dataframe_from_first_file",
+        "SELECT * FROM first_dataframe_from_file WHERE country = 'United States'",
+        description="Second dataframe from first file-based dataframe",
+        dialect=None,  # Should be inferred from first_dataframe_from_file
+    )
+
+    # Verify second data frame was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "second_dataframe_from_first_file"
+
+    sliced_table_2 = typing.cast(Table, await second_df.slice(offset=0, limit=10, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table_2.model_dump(), indent=2),
+        basename="sliced-table-query-on-file-dataframe",
+    )
+    assert len(sliced_table_2.rows) == 1
+
+
+@pytest.mark.asyncio
+async def test_nested_sql_computation_dependencies(file_regression, dfs_checker: _DataFramesChecker, resources_dir):
+    """Test multiple levels of nested sql_computation dataframes.
+
+    This verifies that deeply nested CTEs are built correctly:
+    DF1 (from DB) → DF2 (from DF1) → DF3 (from DF2)
+
+    Final SQL should have nested CTEs in correct order.
+    """
+    from sema4ai.actions import Table
+
+    # Setup database connection and SDM
+    db_file_path = resources_dir / "data_frames" / "combined_data.sqlite"
+    data_connection = await dfs_checker.model_creator.obtain_sample_data_connection(db_file_path=db_file_path)
+
+    inspect_response = await dfs_checker.inspect_data_connection(data_connection.id)
+    tables_info = dfs_checker.convert_inspect_response_to_tables_info(inspect_response)
+
+    generated_model = await dfs_checker.generate_semantic_data_model(
+        tables_info=tables_info,
+        data_connection_id=data_connection.id,
+    )
+
+    semantic_data_model_id = await dfs_checker.model_creator.storage.set_semantic_data_model(
+        semantic_data_model_id=None,
+        semantic_model=generated_model.semantic_model,
+        data_connection_ids=[data_connection.id],
+        file_references=[],
+    )
+
+    await dfs_checker.model_creator.storage.set_agent_semantic_data_models(
+        agent_id=dfs_checker.agent.agent_id,
+        semantic_data_model_ids=[semantic_data_model_id],
+    )
+
+    semantic_data_model_name = generated_model.semantic_model.name
+
+    # Step 1: Create DF1 from database
+    await dfs_checker.create_data_frame_from_sql_computation_api(
+        "df1_from_db",
+        "SELECT * FROM artificial_intelligence_number_training_datapoints LIMIT 10",
+        description="DF1 from database",
+        semantic_data_model_name=semantic_data_model_name,
+        dialect="sqlite",
+    )
+
+    # Verify DF1 was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "df1_from_db"
+
+    # Step 2: Create DF2 from DF1
+    await dfs_checker.create_data_frame_from_sql_computation_api(
+        "df2_from_df1",
+        "SELECT * FROM df1_from_db LIMIT 7",
+        description="DF2 from DF1",
+        dialect=None,  # Inferred
+    )
+
+    # Verify DF2 was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "df2_from_df1"
+
+    # Step 3: Create DF3 from DF2
+    df3 = await dfs_checker.create_data_frame_from_sql_computation_api(
+        "df3_from_df2",
+        "SELECT * FROM df2_from_df1 LIMIT 5",
+        description="DF3 from DF2",
+        dialect=None,  # Inferred
+    )
+
+    # Verify DF3 was created in storage
+    data_frames = await dfs_checker.model_creator.storage.list_data_frames(dfs_checker.tid)
+    assert data_frames[-1].name == "df3_from_df2"
+
+    sliced_table = typing.cast(Table, await df3.slice(offset=0, limit=5, output_format="table"))
+    file_regression.check(
+        json.dumps(sliced_table.model_dump(), indent=2),
+        basename="sliced-table-nested-ctes",
+    )
+    assert len(sliced_table.rows) == 5

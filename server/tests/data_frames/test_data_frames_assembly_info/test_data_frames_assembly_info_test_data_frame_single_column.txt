@@ -10,6 +10,7 @@
 #### SQL Query:
 
     SELECT Category FROM test_data_frame
+#### SQL Dialect: duckdb
 
 ## Dependencies
 

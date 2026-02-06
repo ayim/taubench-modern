@@ -285,7 +285,6 @@ async def test_data_frames_assembly_info_with_database_connection(
                     "table": "customers",
                     "data_connection_id": dc.id,
                 },
-                logical_table_name="customers",
             ),
         },
         parquet_contents=None,

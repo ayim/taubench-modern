@@ -24,20 +24,63 @@ if typing.TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def extract_column_name_to_expr(table: "LogicalTable") -> dict[str, str]:
-    """Extract a mapping of logical column names to their physical SQL expressions from a
-    logical table in a semantic data model.
+def _quote_identifier_if_needed(identifier: str, dialect: str = "duckdb") -> str:
+    """Quote an SQL identifier if needed, using dialect-specific quoting.
+
+    Identifiers need quoting if they:
+    - Contain spaces
+    - Contain special characters (anything other than alphanumeric and underscore)
+    - Start with a digit
 
     Args:
-        table: A LogicalTable dict containing dimensions, facts, time_dimensions, and metrics.
+        identifier: The SQL identifier to check and quote if needed
+        dialect: The SQL dialect to use for quoting (default: "duckdb")
 
     Returns:
-        A dict mapping logical column names to their physical SQL expressions.
-        Example: {"customer_name": "first_name || ' ' || last_name", "revenue": "amount"}
+        The identifier, quoted if necessary using dialect-specific quotes
+    """
+    from sqlglot import exp
+
+    # Check if identifier contains only alphanumeric characters and underscores
+    # and doesn't start with a digit
+    if identifier and identifier.replace("_", "").isalnum() and not identifier[0].isdigit():
+        return identifier
+
+    # Needs quoting - use sqlglot to do dialect-specific quoting
+    # Create an identifier node and convert to SQL with proper quoting
+    identifier_node = exp.Identifier(this=identifier, quoted=True)
+    return identifier_node.sql(dialect=dialect)
+
+
+def extract_column_name_to_expr(table: "LogicalTable", dialect: str = "duckdb") -> dict[str, str]:
+    """Extract a mapping of column names to their physical SQL expressions from a
+    table in a semantic data model.
+
+    Physical expressions for dimensions, facts, and time_dimensions are conditionally quoted
+    based on whether they contain special characters, spaces, or SQL keywords.
+    Simple alphanumeric identifiers (e.g., "amount", "customer_id") are not quoted.
+    Complex identifiers (e.g., "Time in status (minutes)", "Customer Name") are quoted using
+    dialect-specific quoting.
+    Metrics are not quoted since they can contain complex SQL expressions (e.g., SUM(amount)).
+
+    Args:
+        table: A Table dict containing dimensions, facts, time_dimensions, and metrics.
+        dialect: The SQL dialect to use for quoting identifiers (default: "duckdb")
+
+    Returns:
+        A dict mapping column names to their physical SQL expressions.
+        Example (for duckdb/postgres with double quotes):
+            "customer_name": "customer_id",  # Simple identifier, no quotes
+            "customer_display": '"Customer Name"',  # Has space, quoted
+            "time_in_status": '"Time in status (minutes)"',  # Has spaces and parens, quoted
+            "total_revenue": "SUM(amount)"  # Metric expression, never quoted
+        Example (for mysql with backticks):
+            "customer_name": "customer_id",  # Simple identifier, no quotes
+            "customer_display": "`Customer Name`",  # Has space, quoted with backticks
     """
     from agent_platform.core.semantic_data_model.types import CATEGORIES
 
-    logical_column_name_to_expr: dict[str, str] = {}
+    column_name_to_expr: dict[str, str] = {}
 
     # Iterate through all column types (dimensions, facts, time_dimensions, metrics)
     for category in CATEGORIES:
@@ -47,9 +90,9 @@ def extract_column_name_to_expr(table: "LogicalTable") -> dict[str, str]:
                 name = column_def.get("name")
                 expr = column_def.get("expr")
                 if name and expr:
-                    logical_column_name_to_expr[name] = expr
+                    column_name_to_expr[name] = _quote_identifier_if_needed(expr, dialect)
 
-    return logical_column_name_to_expr
+    return column_name_to_expr
 
 
 async def _get_tables_from_specific_sdm(
@@ -63,7 +106,7 @@ async def _get_tables_from_specific_sdm(
         semantic_data_model_name: The name of the semantic data model to use
 
     Returns:
-        A dict mapping table names to their LogicalTable info
+        A dict mapping table names to their Table info
 
     Raises:
         PlatformError: If the semantic data model is not found
@@ -132,7 +175,7 @@ async def _get_tables_from_data_frames_and_sdms(
     Returns:
         A tuple of:
         - table_name_to_table_info: Dict mapping table names to
-          LogicalTable info
+          Table info
         - table_name_to_sdm_name: Dict mapping table names to their
           semantic data model names
         - computation_input_sources: Dict mapping table names to
@@ -196,30 +239,27 @@ async def _process_tables_and_get_dialect(
     dialect: str | None,
     semantic_data_model_name: str | None,
 ) -> str | None:
-    """Process tables from semantic data models and determine the SQL
-    dialect.
+    """Process tables from semantic data models and determine the SQL dialect.
 
-    Note: Dialect is only set when processing semantic data model tables,
-    not when all sources are existing data frames.
+    The dialect is determined from:
+    1. Explicit dialect parameter (if provided)
+    2. Dialects from referenced data frames
+    3. Dialects from data connections in semantic data model tables
+
+    If multiple different dialects are found, duckdb is used for federation.
 
     Args:
         data_frames_kernel: The data frames kernel instance
-        required_table_names: Set of table names required (modified in
-            place)
-        table_name_to_table_info: Dict mapping table names to
-            LogicalTable info
-        table_name_to_sdm_name: Dict mapping table names to their SDM
-            names
-        computation_input_sources: Dict to populate with DataFrameSource
-            objects (modified in place)
+        required_table_names: Set of table names required (modified in place)
+        table_name_to_table_info: Dict mapping table names to Table info
+        table_name_to_sdm_name: Dict mapping table names to their SDM names
+        computation_input_sources: Dict to populate with DataFrameSource objects (modified in place)
         dialects_found: Set of dialects found (modified in place)
         dialect: The SQL dialect (if already specified)
-        semantic_data_model_name: The semantic data model name (if
-            specified)
+        semantic_data_model_name: The semantic data model name (if specified)
 
     Returns:
-        The determined SQL dialect (or None if no semantic data model
-        tables were processed)
+        The determined SQL dialect (or None if no sources provide a dialect)
 
     Raises:
         PlatformError: If required tables are not found
@@ -238,15 +278,24 @@ async def _process_tables_and_get_dialect(
         table_info = table_name_to_table_info.get(name)
         if table_info:
             base_table: BaseTable | None = table_info.get("base_table")
+            is_data_connection = False
             if base_table is not None:
                 data_connection_id = base_table.get("data_connection_id")
                 if data_connection_id is not None:
                     data_connection_ids.add(data_connection_id)
+                    is_data_connection = True
                 elif base_table.get("file_reference") is not None:
                     dialects_found.add("duckdb")
 
-            # Extract column mappings from the logical table
-            logical_column_names_to_expr = extract_column_name_to_expr(table_info)
+            # Skip column mapping extraction only for data connections (use physical DB names directly).
+            # For file-based tables: KEEP mappings - CSV headers are physical names like "Project Milestone ID",
+            # while SDM column names are SQL-friendly like "project_milestone_id".
+            # File-based tables use DuckDB dialect for quoting.
+            if is_data_connection:
+                column_names_to_expr = None
+            else:
+                # File-based tables use DuckDB
+                column_names_to_expr = extract_column_name_to_expr(table_info, dialect="duckdb")
 
             # Use provided semantic_data_model_name if set, otherwise
             # use the mapped name
@@ -258,24 +307,27 @@ async def _process_tables_and_get_dialect(
                 source_type="semantic_data_model",
                 semantic_data_model_name=sdm_name_for_source,
                 base_table=base_table,
-                logical_table_name=table_info.get("name"),
-                logical_column_names_to_expr=(logical_column_names_to_expr if logical_column_names_to_expr else None),
+                column_names_to_expr=(column_names_to_expr if column_names_to_expr else None),
             )
             required_table_names.remove(name)
             processed_sdm_tables = True
 
     # Determine the dialect if not already specified
-    # Only set dialect when processing semantic data model tables
-    if not dialect and processed_sdm_tables:
-        if data_connection_ids:
+    if not dialect:
+        # Add dialects from data connections when processing SDM tables
+        if processed_sdm_tables and data_connection_ids:
             data_connections = await data_frames_kernel.get_data_connections(data_connection_ids)
-            dialects_found.update(data_connection.engine for data_connection in data_connections)
+            dialects_found.update(
+                data_connection.engine for data_connection in data_connections if data_connection.engine is not None
+            )
 
+        # Determine dialect based on what was found (from dataframes OR SDM tables)
         if len(dialects_found) == 1:
             dialect = dialects_found.pop()
-        else:
+        elif len(dialects_found) > 1:
             # Multiple dialects found, use duckdb for federation.
             dialect = "duckdb"
+        # If dialects_found is empty and no dialect was specified, dialect remains None
 
     return dialect
 
@@ -451,65 +503,20 @@ async def create_data_frame_from_sql_computation_api(
 
     from agent_platform.core.data_frames.data_frames import (
         DATAFRAMES_LLM_SAMPLE_ROWS_LIMIT,
-        DataFrameSource,
         PlatformDataFrame,
     )
-    from agent_platform.core.errors.base import PlatformError
     from agent_platform.server.data_frames.data_node import DataNodeResult
-    from agent_platform.server.data_frames.sql_manipulation import (
-        extract_variable_names_required_from_sql_computation,
-        validate_sql_query,
+
+    # Prepare for execution (validate SQL, resolve tables) using shared helper
+    computation_input_sources, dialect = await _prepare_sql_execution(
+        data_frames_kernel=data_frames_kernel,
+        sql_query=sql_query,
+        dialect=dialect,
+        semantic_data_model_name=semantic_data_model_name,
+        allow_mutate=allow_mutate,
     )
-
-    sql_ast = validate_sql_query(sql_query, dialect, allow_mutate=allow_mutate)
-
-    required_table_names: set[str] = extract_variable_names_required_from_sql_computation(sql_ast)
 
     thread = await data_frames_kernel.get_thread()
-    all_data_frames = await data_frames_kernel.list_data_frames()
-
-    # Step 1 & 2: Get table info based on whether semantic_data_model_name is provided
-    if semantic_data_model_name is not None:
-        table_name_to_table_info = await _get_tables_from_specific_sdm(
-            data_frames_kernel,
-            semantic_data_model_name,
-        )
-        table_name_to_sdm_name: dict[str, str] = {}
-        computation_input_sources: dict[str, DataFrameSource] = {}
-        dialects_found: set[str] = set()
-    else:
-        (
-            table_name_to_table_info,
-            table_name_to_sdm_name,
-            computation_input_sources,
-            dialects_found,
-        ) = await _get_tables_from_data_frames_and_sdms(
-            data_frames_kernel,
-            all_data_frames,
-            required_table_names,
-        )
-
-    # Step 3: Process tables and determine dialect
-    dialect = await _process_tables_and_get_dialect(
-        data_frames_kernel,
-        required_table_names,
-        table_name_to_table_info,
-        table_name_to_sdm_name,
-        computation_input_sources,
-        dialects_found,
-        dialect,
-        semantic_data_model_name,
-    )
-
-    if required_table_names:
-        raise PlatformError(
-            message=(
-                f"Data frame(s) or Semantic Data Model table(s) with name(s) {required_table_names!r} not found.\n"
-                f"Available data frames in thread: {[df.name for df in all_data_frames]}\n"
-                f"Available Semantic Data Model tables: {list(table_name_to_table_info.keys())}\n"
-                f"Expected SQL to be compatible with: {dialect}"
-            )
-        )
 
     # Create the new data frame
     data_frame = PlatformDataFrame(

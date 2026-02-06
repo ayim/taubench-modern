@@ -30,12 +30,15 @@ class DataFrameSource:
     base_table: BaseTable | None = None
     """The base table information of the semantic data model."""
 
-    logical_table_name: str | None = None
-    """The name of the logical table (when a semantic data model is used)."""
+    column_names_to_expr: dict[str, str] | None = None
+    """Column mappings from column names defined in the semantic data model to
+    their corresponding physical SQL expressions (for file-based SDM tables only).
 
-    logical_column_names_to_expr: dict[str, str] | None = None
-    """Column mappings from logical column names defined in the semantic data model to
-    their corresponding physical SQL expressions in the database.
+    For database tables, this should be None/empty as physical column names are used directly.
+    For file-based tables (CSV/Excel), this maps user-friendly SQL names to actual file headers.
+
+    Note: Previously named 'logical_column_names_to_expr'. The model_validate() method
+    supports reading both old and new field names from the database.
     """
 
     def __post_init__(self) -> None:
@@ -44,6 +47,11 @@ class DataFrameSource:
         assert_literal_value_valid(self, "source_type")
 
     def model_dump(self) -> dict:
+        """Serialize to database format.
+
+        Note: The logical table name is stored as the dict key in computation_input_sources,
+        not as a field in DataFrameSource itself.
+        """
         ret: dict = {"source_type": self.source_type}
 
         if self.source_id is not None:
@@ -55,21 +63,27 @@ class DataFrameSource:
         if self.base_table is not None:
             ret["base_table"] = self.base_table
 
-        if self.logical_table_name is not None:
-            ret["logical_table_name"] = self.logical_table_name
-
-        if self.logical_column_names_to_expr is not None:
-            ret["logical_column_names_to_expr"] = self.logical_column_names_to_expr
+        if self.column_names_to_expr is not None:
+            ret["column_names_to_expr"] = self.column_names_to_expr
 
         return ret
 
     @classmethod
     def model_validate(cls, data: dict) -> "DataFrameSource":
+        """Deserialize from database format, supporting legacy field names.
+
+        Note: Old data may contain table_name or logical_table_name fields, but these are
+        ignored since the table name is stored as the dict key in computation_input_sources.
+        """
         source_id = data.get("source_id")
         semantic_data_model_name = data.get("semantic_data_model_name")
         base_table = data.get("base_table")
-        logical_table_name = data.get("logical_table_name")
-        logical_column_names_to_expr = data.get("logical_column_names_to_expr")
+
+        # Support both new and old field names for backward compatibility
+        # Note: table_name is no longer stored in DataFrameSource, but we still read it
+        # from old data for validation purposes
+        column_names_to_expr = data.get("column_names_to_expr") or data.get("logical_column_names_to_expr")
+
         source_type = data["source_type"]
 
         if source_type == "data_frame":
@@ -77,8 +91,8 @@ class DataFrameSource:
                 raise KeyError("source_id must be set when source_type is data_frame")
 
         elif source_type == "semantic_data_model":
-            if not base_table or not logical_table_name:
-                raise KeyError("base_table and logical_table_name must be set when source_type is semantic_data_model")
+            if not base_table:
+                raise KeyError("base_table must be set when source_type is semantic_data_model")
         else:
             raise ValueError(
                 f"Invalid value for 'source_type': {source_type!r}. "
@@ -90,8 +104,7 @@ class DataFrameSource:
             source_id=source_id,
             semantic_data_model_name=semantic_data_model_name,
             base_table=base_table,
-            logical_table_name=logical_table_name,
-            logical_column_names_to_expr=logical_column_names_to_expr,
+            column_names_to_expr=column_names_to_expr,
         )
 
 

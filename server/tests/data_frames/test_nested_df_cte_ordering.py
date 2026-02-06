@@ -132,6 +132,7 @@ def test_iter_recursive_sql_computation_data_frames_multi_level():
 def test_build_full_sql_query_nested_df_order():
     """Test that _build_full_sql_query generates CTEs in dependency-first order."""
     from agent_platform.server.data_frames.data_frames_kernel import Dependencies
+    from agent_platform.server.data_frames.query_execution_base import build_sql_query_with_ctes
 
     # Create nested structure
     grandchild_df = create_sql_data_frame("grandchild_df", "SELECT 1 AS id, 'data' AS value")
@@ -148,12 +149,10 @@ def test_build_full_sql_query_nested_df_order():
     # Get SQL computation data frames
     sql_computation_dfs = list(main_deps._iter_recursive_sql_computation_data_frames())
 
-    # Build the full SQL query
-    full_sql = main_deps._build_full_sql_query(
+    # Build the SQL query with CTEs
+    full_sql = build_sql_query_with_ctes(
         main_df,
         sql_computation_dfs,
-        logical_table_name_to_actual_table_name={},
-        table_name_to_column_names_to_expr={},
     )
 
     # Verify the SQL structure
@@ -183,6 +182,7 @@ def test_build_full_sql_query_nested_df_order():
 def test_build_full_sql_query_executes_without_forward_reference():
     """Test that generated SQL with nested DFs actually executes in DuckDB."""
     from agent_platform.server.data_frames.data_frames_kernel import Dependencies
+    from agent_platform.server.data_frames.query_execution_base import build_sql_query_with_ctes
 
     # Create realistic nested structure similar to the log
     grandchild_df = create_sql_data_frame(
@@ -227,12 +227,10 @@ def test_build_full_sql_query_executes_without_forward_reference():
     # Get SQL computation data frames
     sql_computation_dfs = list(main_deps._iter_recursive_sql_computation_data_frames())
 
-    # Build the full SQL query
-    full_sql = main_deps._build_full_sql_query(
+    # Build the SQL query with CTEs
+    full_sql = build_sql_query_with_ctes(
         main_df,
         sql_computation_dfs,
-        logical_table_name_to_actual_table_name={},
-        table_name_to_column_names_to_expr={},
     )
 
     # Try to execute the SQL in DuckDB to ensure it works

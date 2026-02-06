@@ -15,6 +15,7 @@ Another data frame (description)
 #### SQL Query:
 
     SELECT * FROM test_data_frame_single_column
+#### SQL Dialect: duckdb
 
 ## Dependencies
 
@@ -30,6 +31,7 @@ Another data frame (description)
 #### SQL Query:
 
     SELECT Category FROM test_data_frame
+#### SQL Dialect: duckdb
 
 ## Data Frame: `test_data_frame`
 
