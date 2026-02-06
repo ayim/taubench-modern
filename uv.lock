@@ -208,8 +208,8 @@ dev = [
 requires-dist = [
     { name = "aiobotocore", marker = "extra == 'platforms-all'", specifier = ">=2.24.2,<3.0.0" },
     { name = "aiobotocore", marker = "extra == 'platforms-aws'", specifier = ">=2.24.2,<3.0.0" },
-    { name = "anthropic", marker = "extra == 'platforms-all'", specifier = ">=0.66.0,<1.0.0" },
-    { name = "anthropic", marker = "extra == 'platforms-anthropic'", specifier = ">=0.66.0,<1.0.0" },
+    { name = "anthropic", marker = "extra == 'platforms-all'", specifier = ">=0.77.0,<1.0.0" },
+    { name = "anthropic", marker = "extra == 'platforms-anthropic'", specifier = ">=0.77.0,<1.0.0" },
     { name = "anyio", specifier = ">=4.10.0,>4.11.0" },
     { name = "boto3", marker = "extra == 'platforms-all'", specifier = ">=1.40.15,<2.0.0" },
     { name = "boto3", marker = "extra == 'platforms-aws'", specifier = ">=1.40.15,<2.0.0" },
@@ -504,20 +504,21 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.66.0"
+version = "0.77.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "distro" },
+    { name = "docstring-parser" },
     { name = "httpx" },
     { name = "jiter" },
     { name = "pydantic" },
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fa/50/daa51c035e6a941f7b8034705796c7643443a85f5381cb41a797757fc6d3/anthropic-0.66.0.tar.gz", hash = "sha256:5aa8b18da57dc27d83fc1d82c9fb860977e5adfae3e0c215d7ab2ebd70afb9cb", size = 436933, upload-time = "2025-09-03T14:55:40.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/61/50aef0587acd9dd8bf1b8b7fd7fbb25ba4c6ec5387a6ffc195a697951fcc/anthropic-0.77.1.tar.gz", hash = "sha256:a19d78ff6fff9e05d211e3a936051cd5b9462f0eac043d2d45b2372f455d11cd", size = 504691, upload-time = "2026-02-03T17:44:22.667Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/6a/d4ec7de9cc88b9a39c74dab1db259203b29b17fc564ecd1f92991678bd1e/anthropic-0.66.0-py3-none-any.whl", hash = "sha256:67b8cd4486f3cdd09211598dc5325cc8e4e349c106a03041231d551603551c06", size = 308035, upload-time = "2025-09-03T14:55:39.109Z" },
+    { url = "https://files.pythonhosted.org/packages/2b/54/e83babf9833547c5548b4e25230ef3d62492e45925b0d104a43e501918a0/anthropic-0.77.1-py3-none-any.whl", hash = "sha256:76fd6f2ab36033a5294d58182a5f712dab9573c3a54413a275ecdf29e727c1e0", size = 397856, upload-time = "2026-02-03T17:44:20.962Z" },
 ]
 
 [[package]]
@@ -998,6 +999,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/91/9b/4a2ea29aeba62471211598dac5d96825bb49348fa07e906ea930394a83ce/docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c", size = 117834, upload-time = "2024-05-23T11:13:57.216Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/26/57c6fb270950d476074c087527a558ccb6f4436657314bfb6cdf484114c4/docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0", size = 147774, upload-time = "2024-05-23T11:13:55.01Z" },
+]
+
+[[package]]
+name = "docstring-parser"
+version = "0.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/9d/c3b43da9515bd270df0f80548d9944e389870713cc1fe2b8fb35fe2bcefd/docstring_parser-0.17.0.tar.gz", hash = "sha256:583de4a309722b3315439bb31d64ba3eebada841f2e2cee23b99df001434c912", size = 27442, upload-time = "2025-07-21T07:35:01.868Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/e2/2537ebcff11c1ee1ff17d8d0b6f4db75873e3b0fb32c2d4a2ee31ecb310a/docstring_parser-0.17.0-py3-none-any.whl", hash = "sha256:cf2569abd23dce8099b300f9b4fa8191e9582dda731fd533daf54c4551658708", size = 36896, upload-time = "2025-07-21T07:35:00.684Z" },
 ]
 
 [[package]]

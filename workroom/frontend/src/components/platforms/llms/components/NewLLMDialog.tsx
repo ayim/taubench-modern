@@ -3,11 +3,12 @@ import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from 
 import { FC, useMemo, useState } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
-import { beautifyLabel } from '~/lib/utils';
+import { beautifyLabel, normalizeAzureEndpointUrl } from '~/lib/utils';
 import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
 import { VertexServiceAccountUploadField } from './VertexServiceAccountUploadField';
 import {
   AZURE_MODEL_VALUES,
+  AZURE_FOUNDRY_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   GROQ_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
@@ -15,7 +16,9 @@ import {
   Platform,
   createOrUpdateLLMFormSchema,
   getGroqProviderForModel,
+  getAzureFoundryModelFamily,
   isPlatformValue,
+  parseModelValue,
   type CreateOrUpdateLLMFormSchema,
 } from './llmSchemas';
 
@@ -41,15 +44,20 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
   const mutation = useCreateLLMMutation();
 
   const modelItems = useMemo(() => {
-    const makeItems = (values: readonly string[]) =>
+    const makeItems = (values: readonly string[], optgroupOverride?: string) =>
       values.map((modelValue) => {
         const [providerPrefix] = modelValue.split(':');
-        return { optgroup: providerPrefix.toUpperCase(), value: modelValue, label: beautifyLabel(modelValue) };
+        return {
+          optgroup: optgroupOverride ?? providerPrefix.toUpperCase(),
+          value: modelValue,
+          label: beautifyLabel(modelValue),
+        };
       });
 
     return [
       ...makeItems(OPENAI_MODEL_VALUES),
       ...makeItems(AZURE_MODEL_VALUES),
+      ...makeItems(AZURE_FOUNDRY_MODEL_VALUES, 'AZURE FOUNDRY'),
       ...makeItems(BEDROCK_MODEL_VALUES),
       ...makeItems(GROQ_MODEL_VALUES),
       ...makeItems(GOOGLE_MODEL_VALUES),
@@ -58,23 +66,31 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
 
   const onSubmit = form.handleSubmit((values) => {
     const modelValue = String(values.model);
-    const [platformRaw, modelIdRaw] = modelValue.split(':');
-    const platform = isPlatformValue(platformRaw ?? '') ? platformRaw : selectedPlatform;
-    const modelId = modelIdRaw ?? modelValue;
+    const { platform, modelId, provider: parsedProvider } = parseModelValue(modelValue, selectedPlatform);
+    let provider = parsedProvider;
+
     const credentials: Record<string, unknown> = {};
-    let provider: string | null = null;
+
     if (platform === 'openai' && values.apiKey) {
       credentials.openai_api_key = values.apiKey;
       provider = 'openai';
-    }
-    if (platform === 'azure') {
+    } else if (platform === 'azure') {
       if (values.apiKey) credentials.azure_api_key = values.apiKey;
       if (values.azure_endpoint_url) credentials.azure_endpoint_url = values.azure_endpoint_url;
       if (values.azure_api_version) credentials.azure_api_version = values.azure_api_version;
       if (values.azure_deployment_name) credentials.azure_deployment_name = values.azure_deployment_name;
       provider = 'openai';
-    }
-    if (platform === 'google') {
+    } else if (platform === 'azure_foundry') {
+      if (values.azure_foundry_endpoint_url)
+        credentials.endpoint_url = normalizeAzureEndpointUrl(values.azure_foundry_endpoint_url);
+      if (values.azure_foundry_api_key) credentials.api_key = values.azure_foundry_api_key;
+      if (values.azure_foundry_deployment_name) credentials.deployment_name = values.azure_foundry_deployment_name;
+      if (values.azure_foundry_api_version) credentials.azure_foundry_api_version = values.azure_foundry_api_version;
+      // Provider comes from the parsed model value for azure_foundry
+      if (!provider) {
+        provider = getAzureFoundryModelFamily(modelValue) ?? 'anthropic';
+      }
+    } else if (platform === 'google') {
       if (values.google_api_key) credentials.google_api_key = values.google_api_key;
       if (typeof values.google_use_vertex_ai === 'boolean')
         credentials.google_use_vertex_ai = values.google_use_vertex_ai;
@@ -85,16 +101,14 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
           credentials.google_vertex_service_account_json = values.google_vertex_service_account_json;
       }
       provider = 'google';
-    }
-    if (platform === 'bedrock') {
+    } else if (platform === 'bedrock') {
       if (values.aws_access_key_id) credentials.aws_access_key_id = values.aws_access_key_id;
       if (values.aws_secret_access_key) credentials.aws_secret_access_key = values.aws_secret_access_key;
       if (values.region_name) credentials.region_name = values.region_name;
       // This logic was a bit messed up: _provider_ is anthropic, not bedrock
       // bedrock is a platform
       provider = 'anthropic';
-    }
-    if (platform === 'groq') {
+    } else if (platform === 'groq') {
       if (values.apiKey) credentials.groq_api_key = values.apiKey;
       provider = getGroqProviderForModel(modelValue) ?? null;
     }
@@ -164,10 +178,15 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                     value={String(field.value)}
                     onChange={(selectedModel) => {
                       field.onChange(selectedModel);
-                      const [platformPrefix] = String(selectedModel).split(':');
-                      if (isPlatformValue(platformPrefix)) {
-                        setSelectedPlatform(platformPrefix);
-                        form.setValue('platform', platformPrefix);
+                      const modelStr = String(selectedModel);
+                      const parts = modelStr.split(':');
+                      // Handle triple-segment format for azure_foundry
+                      if (parts[0] === 'azure_foundry') {
+                        setSelectedPlatform('azure_foundry');
+                        form.setValue('platform', 'azure_foundry');
+                      } else if (isPlatformValue(parts[0])) {
+                        setSelectedPlatform(parts[0] as Platform);
+                        form.setValue('platform', parts[0] as Platform);
                       }
                     }}
                   />
@@ -261,6 +280,30 @@ export const NewLLMDialog: FC<Props> = ({ open, onClose }) => {
                     error={form.formState.errors.azure_deployment_name?.message}
                   />
                   <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
+                </Box>
+              )}
+
+              {selectedPlatform === 'azure_foundry' && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input
+                    label="Endpoint URL"
+                    placeholder="https://my-resource.services.ai.azure.com"
+                    {...form.register('azure_foundry_endpoint_url')}
+                    error={form.formState.errors.azure_foundry_endpoint_url?.message}
+                  />
+                  <InputControlled fieldName="azure_foundry_api_key" label="API Key" type="password" />
+                  <Input
+                    label="Deployment Name"
+                    placeholder="claude-4-5-sonnet"
+                    {...form.register('azure_foundry_deployment_name')}
+                    error={form.formState.errors.azure_foundry_deployment_name?.message}
+                  />
+                  <Input
+                    label="API Version (OpenAI only)"
+                    placeholder="2024-12-01-preview"
+                    {...form.register('azure_foundry_api_version')}
+                    error={form.formState.errors.azure_foundry_api_version?.message}
+                  />
                 </Box>
               )}
 

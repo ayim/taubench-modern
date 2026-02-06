@@ -24,7 +24,76 @@ export const OPENAI_MODEL_VALUES = [
   'openai:gpt-4-1-mini',
   'openai:gpt-4o',
 ] as const;
-export const AZURE_MODEL_VALUES = ['azure:azure-openai-service'] as const;
+export const AZURE_MODEL_VALUES = [
+  'azure:gpt-5-2-xhigh',
+  'azure:gpt-5-2-high',
+  'azure:gpt-5-2-medium',
+  'azure:gpt-5-2-low',
+  'azure:gpt-5-2-none',
+  'azure:gpt-5-1-codex-max-xhigh',
+  'azure:gpt-5-1-codex-max-high',
+  'azure:gpt-5-1-codex-max-medium',
+  'azure:gpt-5-1-codex-max-low',
+  'azure:gpt-5-high',
+  'azure:gpt-5-medium',
+  'azure:gpt-5-low',
+  'azure:gpt-5-minimal',
+  'azure:o4-mini-high',
+  'azure:o3-high',
+  'azure:o3-low',
+  'azure:gpt-4-1',
+  'azure:gpt-4-1-mini',
+  'azure:gpt-4o',
+] as const;
+export const AZURE_FOUNDRY_MODEL_VALUES = [
+  // Azure Foundry - OpenAI models
+  'azure_foundry:openai:gpt-4o',
+  'azure_foundry:openai:gpt-4o-mini',
+  // Azure Foundry - Anthropic Claude models
+  'azure_foundry:anthropic:claude-4-5-opus-thinking-high',
+  'azure_foundry:anthropic:claude-4-5-opus-thinking-medium',
+  'azure_foundry:anthropic:claude-4-5-opus-thinking-low',
+  'azure_foundry:anthropic:claude-4-5-opus',
+  'azure_foundry:anthropic:claude-4-5-sonnet-thinking-high',
+  'azure_foundry:anthropic:claude-4-5-sonnet-thinking-medium',
+  'azure_foundry:anthropic:claude-4-5-sonnet-thinking-low',
+  'azure_foundry:anthropic:claude-4-5-sonnet',
+  'azure_foundry:anthropic:claude-4-5-haiku-thinking-high',
+  'azure_foundry:anthropic:claude-4-5-haiku-thinking-medium',
+  'azure_foundry:anthropic:claude-4-5-haiku-thinking-low',
+  'azure_foundry:anthropic:claude-4-5-haiku',
+] as const;
+
+export type AzureFoundryModelFamily = 'openai' | 'anthropic';
+
+export const getAzureFoundryModelFamily = (value: string): AzureFoundryModelFamily => {
+  // Format: azure_foundry:family:model
+  const parts = value.split(':');
+  if (parts.length === 3 && parts[0] === 'azure_foundry') {
+    const family = parts[1];
+    if (family === 'openai' || family === 'anthropic') {
+      return family;
+    }
+  }
+  throw new Error(`Invalid Azure Foundry model value: ${value}`);
+};
+
+export const getAzureFoundryModelId = (value: string): string | undefined => {
+  // Format: azure_foundry:family:model
+  const parts = value.split(':');
+  if (parts.length === 3 && parts[0] === 'azure_foundry') {
+    return parts[2];
+  }
+  return undefined;
+};
+
+export const getModelFamilyFromPlatform = (models: Record<string, string[]>): string | undefined => {
+  // Check the models object for the family
+  if ('anthropic' in models) return 'anthropic';
+  if ('openai' in models) return 'openai';
+  return undefined;
+};
+
 export const BEDROCK_MODEL_VALUES = [
   'bedrock:claude-4-5-opus-thinking-high',
   'bedrock:claude-4-5-opus-thinking-medium',
@@ -89,20 +158,65 @@ export const getGroqProviderForModel = (value: string): string | undefined => {
 type AllPlatformParameters =
   | components['schemas']['OpenAIPlatformParameters']
   | components['schemas']['AzureOpenAIPlatformParameters']
+  | components['schemas']['AzureFoundryPlatformParameters']
   | components['schemas']['BedrockPlatformParameters']
   | components['schemas']['GroqPlatformParameters']
   | components['schemas']['GooglePlatformParameters'];
 
-export type Platform = Extract<AllPlatformParameters['kind'], 'openai' | 'azure' | 'bedrock' | 'groq' | 'google'>;
+export type Platform = Extract<
+  AllPlatformParameters['kind'],
+  'openai' | 'azure' | 'azure_foundry' | 'bedrock' | 'groq' | 'google'
+>;
 
-export const PLATFORMS = ['openai', 'azure', 'bedrock', 'groq', 'google'] as const satisfies readonly Platform[];
+export type UIPlatform = Platform | 'azure_foundry_ui';
+
+export const PLATFORMS = [
+  'openai',
+  'azure',
+  'azure_foundry',
+  'bedrock',
+  'groq',
+  'google',
+] as const satisfies readonly Platform[];
+
+export const UI_PLATFORMS: readonly UIPlatform[] = ['openai', 'azure_foundry_ui', 'bedrock', 'groq', 'google'] as const;
+
+export const UI_PLATFORM_VALUES = [...PLATFORMS, 'azure_foundry_ui'] as const;
 
 export const isPlatformValue = (value: string): value is Platform => {
   return PLATFORMS.includes(value as Platform);
 };
+
+/**
+ * Parses a model value string and extracts platform, model ID, and provider information.
+ * Handles both standard two-segment format (platform:model) and triple-segment format (azure_foundry:family:model).
+ */
+export const parseModelValue = (
+  modelValue: string,
+  fallbackPlatform: Platform,
+): { platform: Platform; modelId: string; provider: string | null } => {
+  const parts = modelValue.split(':');
+
+  // Handle triple-segment format for azure_foundry (azure_foundry:family:model)
+  if (parts[0] === 'azure_foundry' && parts.length === 3) {
+    return {
+      platform: 'azure_foundry',
+      modelId: parts[2],
+      provider: parts[1], // family (e.g., 'anthropic')
+    };
+  }
+
+  // Standard two-segment format (platform:model)
+  const [platformRaw, modelIdRaw] = parts;
+  const platform = isPlatformValue(platformRaw ?? '') ? (platformRaw as Platform) : fallbackPlatform;
+  const modelId = modelIdRaw ?? modelValue;
+
+  return { platform, modelId, provider: null };
+};
+
 // TODO: [fix-type] Backend returns string | null for fields that are required when editing
 const baseLLMSchema = z.object({
-  platform: z.enum(PLATFORMS),
+  platform: z.enum(UI_PLATFORM_VALUES),
   validateLLM: z.boolean(),
   name: z.string().min(1),
   model: z.string().min(1),
@@ -110,6 +224,10 @@ const baseLLMSchema = z.object({
   azure_endpoint_url: z.string().url('Must be a valid URL').nullable().optional(),
   azure_api_version: z.string().nullable().optional(),
   azure_deployment_name: z.string().nullable().optional(),
+  azure_foundry_endpoint_url: z.string().nullable().optional(),
+  azure_foundry_api_key: z.string().nullable().optional(),
+  azure_foundry_deployment_name: z.string().nullable().optional(),
+  azure_foundry_api_version: z.string().nullable().optional(),
   aws_access_key_id: z.string().nullable().optional(),
   aws_secret_access_key: z.string().nullable().optional(),
   region_name: z.string().nullable().optional(),
@@ -150,6 +268,45 @@ const validateGoogleVertexRequirements = (values: BaseLLMFormValues, ctx: z.Refi
   }
 };
 
+const validateAzureFoundryRequirements = (values: BaseLLMFormValues, ctx: z.RefinementCtx) => {
+  if (values.platform !== 'azure_foundry' && values.platform !== 'azure_foundry_ui') return;
+
+  if (!values.azure_foundry_endpoint_url) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['azure_foundry_endpoint_url'],
+      message: 'Endpoint URL is required',
+    });
+  }
+
+  if (!values.azure_foundry_deployment_name) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['azure_foundry_deployment_name'],
+      message: 'Deployment name is required',
+    });
+  }
+
+  if (!values.azure_foundry_api_key) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['azure_foundry_api_key'],
+      message: 'API key is required',
+    });
+  }
+
+  // api_version is required for OpenAI family models
+  const modelValue = values.model;
+  const parts = modelValue.split(':');
+  if (parts[0] === 'azure_foundry' && parts[1] === 'openai' && !values.azure_foundry_api_version) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['azure_foundry_api_version'],
+      message: 'API version is required for OpenAI models',
+    });
+  }
+};
+
 export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
   if (values.platform === 'openai') {
     if (!values.apiKey) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['apiKey'], message: 'API key is required' });
@@ -162,6 +319,9 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['azure_api_version'], message: 'Required' });
     if (!values.azure_deployment_name)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['azure_deployment_name'], message: 'Required' });
+  }
+  if (values.platform === 'azure_foundry' || values.platform === 'azure_foundry_ui') {
+    validateAzureFoundryRequirements(values, ctx);
   }
   if (values.platform === 'bedrock') {
     if (!values.aws_access_key_id)
@@ -184,6 +344,7 @@ export const createOrUpdateLLMFormSchema = baseLLMSchema.superRefine((values, ct
 // TODO: [fix-type] Use strictEditLLMSchema once backend guarantees non-null values for editing
 export const editLLMFormSchema = baseLLMSchema.superRefine((values, ctx) => {
   validateGoogleVertexRequirements(values, ctx);
+  validateAzureFoundryRequirements(values, ctx);
 });
 
 export type CreateOrUpdateLLMFormSchema = z.infer<typeof createOrUpdateLLMFormSchema>;

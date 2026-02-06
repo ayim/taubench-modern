@@ -650,6 +650,37 @@ class UpsertAgentPayload:
             *self.platform_configs,
         ]
 
+    def _handle_legacy_model_azure_foundry(self):
+        """Handle backward compatibility for 'model' field with Azure Foundry."""
+        if not self.model or "provider" not in self.model:
+            return
+        if self.model["provider"] != "Azure Foundry":
+            return
+
+        params_to_keep = [
+            "endpoint_url",
+            "api_key",
+            "deployment_name",
+            "model",
+        ]
+        params = {
+            "api_key": "UNSET",
+        }
+        if "config" in self.model:
+            for param in params_to_keep:
+                if param in self.model["config"]:
+                    params[param] = self.model["config"][param]
+
+        self.platform_configs = [
+            {
+                "kind": "azure_foundry",
+                **params,
+                "models": self._legacy_model_dict_to_allowlist(self.model),
+            },
+            *self.platform_configs,
+        ]
+        self.model = None
+
     def _handle_legacy_model(self):
         """Handle backward compatibility for 'model' field."""
         if self.model:
@@ -659,6 +690,7 @@ class UpsertAgentPayload:
 
             self._handle_legacy_model_openai()
             self._handle_legacy_model_azure()
+            self._handle_legacy_model_azure_foundry()
             self._handle_legacy_model_ollama()
             self._handle_legacy_model_anthropic()
             self._handle_legacy_model_bedrock()

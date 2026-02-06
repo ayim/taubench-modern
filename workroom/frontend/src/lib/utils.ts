@@ -105,7 +105,10 @@ export const getAllowedModelFromPlatform = (platform: ListPlatformsResponse[numb
 };
 
 export const beautifyLabel = (value: string): string => {
-  const id = value.split(':')[1] || value;
+  // Handle triple-segment format (azure_foundry:family:model)
+  const parts = value.split(':');
+  const id = parts.length === 3 ? parts[2] : parts[1] || value;
+
   return (
     id
       .replace(/-/g, ' ')
@@ -129,6 +132,23 @@ export const beautifyLabel = (value: string): string => {
       .replace(/\b(\d) (\d)\b/g, '$1.$2')
       .replace(/\b(\w)/g, (m) => m.toUpperCase())
   );
+};
+
+/**
+ * Normalizes an Azure endpoint URL by stripping path components.
+ * This is useful when users provide a full deployment URL instead of just the base endpoint.
+ *
+ * @example
+ * normalizeAzureEndpointUrl('https://my-resource.openai.azure.com/openai/deployments/gpt-4')
+ * // Returns: 'https://my-resource.openai.azure.com'
+ */
+export const normalizeAzureEndpointUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return url;
+  }
 };
 
 export const joinURL = (...parts: Array<string>): string => {

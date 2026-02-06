@@ -130,6 +130,7 @@ class PlatformModelConfigs(Configuration):
     platforms_to_default_model: dict[str, str] = field(
         default_factory=lambda: {
             "azure": "azure/openai/gpt-5-medium",
+            "azure_foundry": "azure_foundry/anthropic/claude-4-5-sonnet",
             "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
             "cortex": "cortex/anthropic/claude-3-5-sonnet",
             "openai": "openai/openai/gpt-5-medium",
@@ -265,6 +266,19 @@ class PlatformModelConfigs(Configuration):
             "groq/moonshotai/kimi-k2",
             "groq/openai/gpt-oss-120b",
             "groq/openai/gpt-oss-20b",
+            # Azure Foundry (Anthropic Claude models via Azure)
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+            "azure_foundry/anthropic/claude-4-5-opus",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+            "azure_foundry/anthropic/claude-4-5-sonnet",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+            "azure_foundry/anthropic/claude-4-5-haiku",
         ],
         metadata=FieldMetadata(
             description="A mapping of model names to their platform IDs.",
@@ -419,6 +433,19 @@ class PlatformModelConfigs(Configuration):
             # Reducto (has no date/version pinning!?)
             "reducto/reducto/reducto-standard-parse": "standard:parse",
             "reducto/reducto/reducto-standard-extract": "standard:extract",
+            # Azure Foundry (Anthropic Claude models via Azure)
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude-4-5-opus",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude-4-5-opus",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude-4-5-opus",
+            "azure_foundry/anthropic/claude-4-5-opus": "claude-4-5-opus",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude-4-5-sonnet",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude-4-5-sonnet",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude-4-5-sonnet",
+            "azure_foundry/anthropic/claude-4-5-sonnet": "claude-4-5-sonnet",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude-4-5-haiku",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude-4-5-haiku",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude-4-5-haiku",
+            "azure_foundry/anthropic/claude-4-5-haiku": "claude-4-5-haiku",
         },
         metadata=FieldMetadata(
             description="A mapping of model names to their provider-specific model IDs.",
@@ -572,6 +599,19 @@ class PlatformModelConfigs(Configuration):
             # Reducto (has no date/version pinning!?)
             "reducto/reducto/reducto-standard-parse": "reducto",
             "reducto/reducto/reducto-standard-extract": "reducto",
+            # Azure Foundry (Anthropic Claude models via Azure)
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude",
+            "azure_foundry/anthropic/claude-4-5-opus": "claude",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude",
+            "azure_foundry/anthropic/claude-4-5-sonnet": "claude",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude",
+            "azure_foundry/anthropic/claude-4-5-haiku": "claude",
         },
         metadata=FieldMetadata(
             description="A mapping of model names to their families.",
@@ -725,6 +765,19 @@ class PlatformModelConfigs(Configuration):
             # Reducto
             "reducto/reducto/reducto-standard-parse": "document-processor",
             "reducto/reducto/reducto-standard-extract": "document-processor",
+            # Azure Foundry (Anthropic Claude models via Azure)
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "llm",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "llm",
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "llm",
+            "azure_foundry/anthropic/claude-4-5-opus": "llm",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "llm",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "llm",
+            "azure_foundry/anthropic/claude-4-5-sonnet": "llm",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "llm",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "llm",
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "llm",
+            "azure_foundry/anthropic/claude-4-5-haiku": "llm",
         },
         metadata=FieldMetadata(
             description="A mapping of model names to their types.",
@@ -884,6 +937,19 @@ class PlatformModelConfigs(Configuration):
             # Reducto (these are kinda weird... effectively unlimited)
             "reducto/reducto/reducto-standard-parse": 10_000_000,
             "reducto/reducto/reducto-standard-extract": 10_000_000,
+            # Azure Foundry (Anthropic Claude models via Azure)
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high": 200_000,
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": 200_000,
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low": 200_000,
+            "azure_foundry/anthropic/claude-4-5-opus": 200_000,
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": 200_000,
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": 200_000,
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": 200_000,
+            "azure_foundry/anthropic/claude-4-5-sonnet": 200_000,
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": 200_000,
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": 200_000,
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": 200_000,
+            "azure_foundry/anthropic/claude-4-5-haiku": 200_000,
         },
         metadata=FieldMetadata(
             description="A mapping of model names to their context window sizes.",
@@ -985,6 +1051,19 @@ class PlatformModelConfigs(Configuration):
             "groq/moonshotai/kimi-k2": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "groq/meta/llama-4-scout": list(DEFAULT_ARCHITECTURE_OVERRIDES),
             "groq/meta/llama-4-maverick": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            # Azure Foundry
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-opus-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-opus": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-sonnet": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": list(DEFAULT_ARCHITECTURE_OVERRIDES),
+            "azure_foundry/anthropic/claude-4-5-haiku": list(DEFAULT_ARCHITECTURE_OVERRIDES),
         },
         metadata=FieldMetadata(
             description="A mapping of model IDs to the architectures they require to be used with.",

@@ -3825,6 +3825,7 @@ export interface components {
         | components['schemas']['LiteLLMPlatformParameters']
         | components['schemas']['OpenAIPlatformParameters']
         | components['schemas']['AzureOpenAIPlatformParameters']
+        | components['schemas']['AzureFoundryPlatformParameters']
         | components['schemas']['GooglePlatformParameters']
         | components['schemas']['GroqPlatformParameters']
         | components['schemas']['ReductoPlatformParameters']
@@ -4570,6 +4571,76 @@ export interface components {
       | 'none'
       | 'oauth2-client-credentials'
       | 'oauth2-authorization-code';
+    /** AzureFoundryPlatformParameters */
+    AzureFoundryPlatformParameters: {
+      /**
+       * Kind
+       * @description The kind of platform parameters.
+       * @default azure_foundry
+       * @constant
+       */
+      kind: 'azure_foundry';
+      /**
+       * Name
+       * @description The name of the platform parameters.
+       * @default
+       */
+      name: string;
+      /**
+       * Alias
+       * @description Optional display alias for the platform parameters.
+       */
+      alias?: string | null;
+      /**
+       * Description
+       * @description The description of the platform parameters.
+       */
+      description?: string | null;
+      /**
+       * Models
+       * @description Allow list of provider -> models mapping (e.g. {'openai': ['gpt-4-1', 'o3']})
+       */
+      models?: {
+        [key: string]: string[];
+      } | null;
+      /**
+       * Created At
+       * Format: date-time
+       * @description The time at which the platform parameters were created.
+       */
+      created_at?: string;
+      /**
+       * Updated At
+       * Format: date-time
+       * @description The time at which the platform parameters were last updated.
+       */
+      updated_at?: string;
+      /**
+       * Platform Id
+       * @description The unique identifier of the platform.
+       */
+      platform_id: string;
+      /**
+       * Endpoint Url
+       * @description The full Azure AI Foundry endpoint URL.
+       */
+      endpoint_url?: string | null;
+      /**
+       * Api Key
+       * @description API key for Azure AI Foundry authentication.
+       */
+      api_key?: string | null;
+      /**
+       * Deployment Name
+       * @description The deployment name for the model in Azure AI Foundry.
+       */
+      deployment_name?: string | null;
+      /**
+       * Model
+       * @description The model identifier.
+       */
+      model?: string | null;
+    };
     /** AzureOpenAIEmbeddingModel */
     AzureOpenAIEmbeddingModel: {
       /** Model Name */
@@ -12084,6 +12155,7 @@ export interface components {
      * @default {
      *       "platforms_to_default_model": {
      *         "azure": "azure/openai/gpt-5-medium",
+     *         "azure_foundry": "azure_foundry/anthropic/claude-4-5-sonnet",
      *         "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
      *         "cortex": "cortex/anthropic/claude-3-5-sonnet",
      *         "openai": "openai/openai/gpt-5-medium",
@@ -12191,7 +12263,19 @@ export interface components {
      *         "groq/meta/llama-4-maverick",
      *         "groq/moonshotai/kimi-k2",
      *         "groq/openai/gpt-oss-120b",
-     *         "groq/openai/gpt-oss-20b"
+     *         "groq/openai/gpt-oss-20b",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku"
      *       ],
      *       "models_to_platform_specific_model_ids": {
      *         "azure/openai/gpt-5-2-xhigh": "gpt-5.2",
@@ -12328,7 +12412,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b": "openai/gpt-oss-20b",
      *         "reducto/reducto/reducto-standard-parse": "standard:parse",
-     *         "reducto/reducto/reducto-standard-extract": "standard:extract"
+     *         "reducto/reducto/reducto-standard-extract": "standard:extract",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "claude-4-5-haiku"
      *       },
      *       "models_to_families": {
      *         "azure/openai/gpt-5-2-xhigh": "openai-gpt",
@@ -12465,7 +12561,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "openai",
      *         "groq/openai/gpt-oss-20b": "openai",
      *         "reducto/reducto/reducto-standard-parse": "reducto",
-     *         "reducto/reducto/reducto-standard-extract": "reducto"
+     *         "reducto/reducto/reducto-standard-extract": "reducto",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "claude"
      *       },
      *       "models_to_model_types": {
      *         "azure/openai/gpt-5-2-xhigh": "llm",
@@ -12602,7 +12710,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "llm",
      *         "groq/openai/gpt-oss-20b": "llm",
      *         "reducto/reducto/reducto-standard-parse": "document-processor",
-     *         "reducto/reducto/reducto-standard-extract": "document-processor"
+     *         "reducto/reducto/reducto-standard-extract": "document-processor",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "llm"
      *       },
      *       "models_to_context_window_sizes": {
      *         "azure/openai/gpt-5-2-xhigh": 400000,
@@ -12739,7 +12859,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": 128000,
      *         "groq/openai/gpt-oss-20b": 128000,
      *         "reducto/reducto/reducto-standard-parse": 10000000,
-     *         "reducto/reducto/reducto-standard-extract": 10000000
+     *         "reducto/reducto/reducto-standard-extract": 10000000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku": 200000
      *       },
      *       "models_to_architecture_overrides": {
      *         "azure/openai/gpt-5-2-xhigh": [
@@ -13153,6 +13285,66 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "groq/meta/llama-4-maverick": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -13162,6 +13354,7 @@ export interface components {
      * @example {
      *       "platforms_to_default_model": {
      *         "azure": "azure/openai/gpt-5-medium",
+     *         "azure_foundry": "azure_foundry/anthropic/claude-4-5-sonnet",
      *         "bedrock": "bedrock/anthropic/claude-4-sonnet-thinking-medium",
      *         "cortex": "cortex/anthropic/claude-3-5-sonnet",
      *         "openai": "openai/openai/gpt-5-medium",
@@ -13269,7 +13462,19 @@ export interface components {
      *         "groq/meta/llama-4-maverick",
      *         "groq/moonshotai/kimi-k2",
      *         "groq/openai/gpt-oss-120b",
-     *         "groq/openai/gpt-oss-20b"
+     *         "groq/openai/gpt-oss-20b",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku"
      *       ],
      *       "models_to_platform_specific_model_ids": {
      *         "azure/openai/gpt-5-2-xhigh": "gpt-5.2",
@@ -13406,7 +13611,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "openai/gpt-oss-120b",
      *         "groq/openai/gpt-oss-20b": "openai/gpt-oss-20b",
      *         "reducto/reducto/reducto-standard-parse": "standard:parse",
-     *         "reducto/reducto/reducto-standard-extract": "standard:extract"
+     *         "reducto/reducto/reducto-standard-extract": "standard:extract",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "claude-4-5-haiku"
      *       },
      *       "models_to_families": {
      *         "azure/openai/gpt-5-2-xhigh": "openai-gpt",
@@ -13543,7 +13760,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "openai",
      *         "groq/openai/gpt-oss-20b": "openai",
      *         "reducto/reducto/reducto-standard-parse": "reducto",
-     *         "reducto/reducto/reducto-standard-extract": "reducto"
+     *         "reducto/reducto/reducto-standard-extract": "reducto",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "claude",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "claude"
      *       },
      *       "models_to_model_types": {
      *         "azure/openai/gpt-5-2-xhigh": "llm",
@@ -13680,7 +13909,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": "llm",
      *         "groq/openai/gpt-oss-20b": "llm",
      *         "reducto/reducto/reducto-standard-parse": "document-processor",
-     *         "reducto/reducto/reducto-standard-extract": "document-processor"
+     *         "reducto/reducto/reducto-standard-extract": "document-processor",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-opus": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": "llm",
+     *         "azure_foundry/anthropic/claude-4-5-haiku": "llm"
      *       },
      *       "models_to_context_window_sizes": {
      *         "azure/openai/gpt-5-2-xhigh": 400000,
@@ -13817,7 +14058,19 @@ export interface components {
      *         "groq/openai/gpt-oss-120b": 128000,
      *         "groq/openai/gpt-oss-20b": 128000,
      *         "reducto/reducto/reducto-standard-parse": 10000000,
-     *         "reducto/reducto/reducto-standard-extract": 10000000
+     *         "reducto/reducto/reducto-standard-extract": 10000000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-opus": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": 200000,
+     *         "azure_foundry/anthropic/claude-4-5-haiku": 200000
      *       },
      *       "models_to_architecture_overrides": {
      *         "azure/openai/gpt-5-2-xhigh": [
@@ -14231,6 +14484,66 @@ export interface components {
      *           "agent_platform.architectures.experimental_3==2.0.0"
      *         ],
      *         "groq/meta/llama-4-maverick": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-opus": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-sonnet": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low": [
+     *           "agent_platform.architectures.experimental_1==2.0.0",
+     *           "agent_platform.architectures.experimental_2==2.0.0",
+     *           "agent_platform.architectures.experimental_3==2.0.0"
+     *         ],
+     *         "azure_foundry/anthropic/claude-4-5-haiku": [
      *           "agent_platform.architectures.experimental_1==2.0.0",
      *           "agent_platform.architectures.experimental_2==2.0.0",
      *           "agent_platform.architectures.experimental_3==2.0.0"
@@ -14300,6 +14613,7 @@ export interface components {
      */
     PlatformId:
       | 'azure'
+      | 'azure_foundry'
       | 'bedrock'
       | 'cortex'
       | 'google'
@@ -14328,6 +14642,7 @@ export interface components {
      */
     PlatformProviderId:
       | 'azure/openai'
+      | 'azure_foundry/anthropic'
       | 'bedrock/amazon'
       | 'bedrock/anthropic'
       | 'bedrock/cohere'
@@ -14374,6 +14689,18 @@ export interface components {
       | 'azure/openai/o4-mini-low'
       | 'azure/openai/text-embedding-3-large'
       | 'azure/openai/text-embedding-3-small'
+      | 'azure_foundry/anthropic/claude-4-5-haiku'
+      | 'azure_foundry/anthropic/claude-4-5-haiku-thinking-high'
+      | 'azure_foundry/anthropic/claude-4-5-haiku-thinking-low'
+      | 'azure_foundry/anthropic/claude-4-5-haiku-thinking-medium'
+      | 'azure_foundry/anthropic/claude-4-5-opus'
+      | 'azure_foundry/anthropic/claude-4-5-opus-thinking-high'
+      | 'azure_foundry/anthropic/claude-4-5-opus-thinking-low'
+      | 'azure_foundry/anthropic/claude-4-5-opus-thinking-medium'
+      | 'azure_foundry/anthropic/claude-4-5-sonnet'
+      | 'azure_foundry/anthropic/claude-4-5-sonnet-thinking-high'
+      | 'azure_foundry/anthropic/claude-4-5-sonnet-thinking-low'
+      | 'azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium'
       | 'bedrock/amazon/titan-embed-text-v1'
       | 'bedrock/amazon/titan-embed-text-v2'
       | 'bedrock/anthropic/claude-3-5-haiku'
@@ -14489,6 +14816,9 @@ export interface components {
      *       "azure": [
      *         "openai"
      *       ],
+     *       "azure_foundry": [
+     *         "anthropic"
+     *       ],
      *       "bedrock": [
      *         "amazon",
      *         "anthropic",
@@ -14522,6 +14852,9 @@ export interface components {
      *       "azure": [
      *         "openai"
      *       ],
+     *       "azure_foundry": [
+     *         "anthropic"
+     *       ],
      *       "bedrock": [
      *         "amazon",
      *         "anthropic",
@@ -14554,6 +14887,7 @@ export interface components {
      */
     PlatformProviders: {
       azure: components['schemas']['ProviderId'][];
+      azure_foundry: components['schemas']['ProviderId'][];
       bedrock: components['schemas']['ProviderId'][];
       cortex: components['schemas']['ProviderId'][];
       google: components['schemas']['ProviderId'][];
@@ -14592,6 +14926,20 @@ export interface components {
      *         "azure/openai/o4-mini-low",
      *         "azure/openai/text-embedding-3-large",
      *         "azure/openai/text-embedding-3-small"
+     *       ],
+     *       "azure_foundry": [
+     *         "azure_foundry/anthropic/claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *       ],
      *       "bedrock": [
      *         "bedrock/amazon/titan-embed-text-v1",
@@ -14744,6 +15092,20 @@ export interface components {
      *         "azure/openai/o4-mini-low",
      *         "azure/openai/text-embedding-3-large",
      *         "azure/openai/text-embedding-3-small"
+     *       ],
+     *       "azure_foundry": [
+     *         "azure_foundry/anthropic/claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *       ],
      *       "bedrock": [
      *         "bedrock/amazon/titan-embed-text-v1",
@@ -14871,6 +15233,7 @@ export interface components {
      */
     PlatformModelsByPlatform: {
       azure: components['schemas']['GenericModelId'][];
+      azure_foundry: components['schemas']['GenericModelId'][];
       bedrock: components['schemas']['GenericModelId'][];
       cortex: components['schemas']['GenericModelId'][];
       google: components['schemas']['GenericModelId'][];
@@ -14909,6 +15272,20 @@ export interface components {
      *         "azure/openai/o4-mini-low",
      *         "azure/openai/text-embedding-3-large",
      *         "azure/openai/text-embedding-3-small"
+     *       ],
+     *       "azure_foundry/anthropic": [
+     *         "azure_foundry/anthropic/claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *       ],
      *       "bedrock/amazon": [
      *         "bedrock/amazon/titan-embed-text-v1",
@@ -15078,6 +15455,20 @@ export interface components {
      *         "azure/openai/o4-mini-low",
      *         "azure/openai/text-embedding-3-large",
      *         "azure/openai/text-embedding-3-small"
+     *       ],
+     *       "azure_foundry/anthropic": [
+     *         "azure_foundry/anthropic/claude-4-5-haiku",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-opus",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *         "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *       ],
      *       "bedrock/amazon": [
      *         "bedrock/amazon/titan-embed-text-v1",
@@ -15222,6 +15613,7 @@ export interface components {
      */
     PlatformModelsByPlatformProvider: {
       'azure/openai': components['schemas']['GenericModelId'][];
+      'azure_foundry/anthropic': components['schemas']['GenericModelId'][];
       'bedrock/amazon': components['schemas']['GenericModelId'][];
       'bedrock/anthropic': components['schemas']['GenericModelId'][];
       'bedrock/cohere': components['schemas']['GenericModelId'][];
@@ -15243,6 +15635,7 @@ export interface components {
      * @default {
      *       "platforms": [
      *         "azure",
+     *         "azure_foundry",
      *         "bedrock",
      *         "cortex",
      *         "google",
@@ -15265,6 +15658,7 @@ export interface components {
      *       ],
      *       "platform_provider_ids": [
      *         "azure/openai",
+     *         "azure_foundry/anthropic",
      *         "bedrock/amazon",
      *         "bedrock/anthropic",
      *         "bedrock/cohere",
@@ -15284,6 +15678,9 @@ export interface components {
      *       "providers_by_platform": {
      *         "azure": [
      *           "openai"
+     *         ],
+     *         "azure_foundry": [
+     *           "anthropic"
      *         ],
      *         "bedrock": [
      *           "amazon",
@@ -15342,6 +15739,20 @@ export interface components {
      *           "azure/openai/o4-mini-low",
      *           "azure/openai/text-embedding-3-large",
      *           "azure/openai/text-embedding-3-small"
+     *         ],
+     *         "azure_foundry": [
+     *           "azure_foundry/anthropic/claude-4-5-haiku",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-opus",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *         ],
      *         "bedrock": [
      *           "bedrock/amazon/titan-embed-text-v1",
@@ -15494,6 +15905,20 @@ export interface components {
      *           "azure/openai/o4-mini-low",
      *           "azure/openai/text-embedding-3-large",
      *           "azure/openai/text-embedding-3-small"
+     *         ],
+     *         "azure_foundry/anthropic": [
+     *           "azure_foundry/anthropic/claude-4-5-haiku",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-opus",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *         ],
      *         "bedrock/amazon": [
      *           "bedrock/amazon/titan-embed-text-v1",
@@ -15639,6 +16064,7 @@ export interface components {
      * @example {
      *       "platforms": [
      *         "azure",
+     *         "azure_foundry",
      *         "bedrock",
      *         "cortex",
      *         "google",
@@ -15661,6 +16087,7 @@ export interface components {
      *       ],
      *       "platform_provider_ids": [
      *         "azure/openai",
+     *         "azure_foundry/anthropic",
      *         "bedrock/amazon",
      *         "bedrock/anthropic",
      *         "bedrock/cohere",
@@ -15680,6 +16107,9 @@ export interface components {
      *       "providers_by_platform": {
      *         "azure": [
      *           "openai"
+     *         ],
+     *         "azure_foundry": [
+     *           "anthropic"
      *         ],
      *         "bedrock": [
      *           "amazon",
@@ -15738,6 +16168,20 @@ export interface components {
      *           "azure/openai/o4-mini-low",
      *           "azure/openai/text-embedding-3-large",
      *           "azure/openai/text-embedding-3-small"
+     *         ],
+     *         "azure_foundry": [
+     *           "azure_foundry/anthropic/claude-4-5-haiku",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-opus",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *         ],
      *         "bedrock": [
      *           "bedrock/amazon/titan-embed-text-v1",
@@ -15890,6 +16334,20 @@ export interface components {
      *           "azure/openai/o4-mini-low",
      *           "azure/openai/text-embedding-3-large",
      *           "azure/openai/text-embedding-3-small"
+     *         ],
+     *         "azure_foundry/anthropic": [
+     *           "azure_foundry/anthropic/claude-4-5-haiku",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-haiku-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-opus",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-opus-thinking-medium",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-high",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-low",
+     *           "azure_foundry/anthropic/claude-4-5-sonnet-thinking-medium"
      *         ],
      *         "bedrock/amazon": [
      *           "bedrock/amazon/titan-embed-text-v1",
@@ -20444,6 +20902,7 @@ export interface operations {
             | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['AzureFoundryPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
             | components['schemas']['GroqPlatformParameters']
             | components['schemas']['ReductoPlatformParameters']
@@ -20477,6 +20936,7 @@ export interface operations {
             | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['AzureFoundryPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
             | components['schemas']['GroqPlatformParameters']
             | components['schemas']['ReductoPlatformParameters'];
@@ -20516,6 +20976,7 @@ export interface operations {
             | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['AzureFoundryPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
             | components['schemas']['GroqPlatformParameters']
             | components['schemas']['ReductoPlatformParameters'];
@@ -20559,6 +21020,7 @@ export interface operations {
             | components['schemas']['LiteLLMPlatformParameters']
             | components['schemas']['OpenAIPlatformParameters']
             | components['schemas']['AzureOpenAIPlatformParameters']
+            | components['schemas']['AzureFoundryPlatformParameters']
             | components['schemas']['GooglePlatformParameters']
             | components['schemas']['GroqPlatformParameters']
             | components['schemas']['ReductoPlatformParameters'];

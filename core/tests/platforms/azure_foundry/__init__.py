@@ -1,0 +1,1 @@
+# Azure Foundry platform tests

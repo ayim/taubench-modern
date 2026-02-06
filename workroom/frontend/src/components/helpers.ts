@@ -43,6 +43,7 @@ export const getLLMProviderIcon = (provider: LLMProvider): IconType | undefined 
     case 'openai':
       return IconOpenAI;
     case 'azure':
+    case 'azure_foundry':
       return IconAzure;
     case 'bedrock':
       return IconBedrock;

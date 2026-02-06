@@ -6,17 +6,19 @@ import { Controller, FormProvider, useForm } from 'react-hook-form';
 import { InputControlled } from '~/components/InputControlled';
 import {
   AZURE_MODEL_VALUES,
+  AZURE_FOUNDRY_MODEL_VALUES,
   BEDROCK_MODEL_VALUES,
   GROQ_MODEL_VALUES,
   GOOGLE_MODEL_VALUES,
   OPENAI_MODEL_VALUES,
   editLLMFormSchema,
   getGroqProviderForModel,
+  getAzureFoundryModelFamily,
   type EditLLMFormSchema,
   type Platform,
 } from '~/components/platforms/llms/components/llmSchemas';
 import { VertexServiceAccountUploadField } from '~/components/platforms/llms/components/VertexServiceAccountUploadField';
-import { beautifyLabel, getAllowedModelFromPlatform } from '~/lib/utils';
+import { beautifyLabel, getAllowedModelFromPlatform, normalizeAzureEndpointUrl } from '~/lib/utils';
 import { type PlatformForEditing } from '~/queries/agent-interface-patches';
 import { useUpdateLLMMutation, type GetPlatformResponse, type UpdatePlatformBody } from '~/queries/platforms';
 
@@ -34,13 +36,26 @@ type GooglePlatformExtras = {
   google_vertex_service_account_json?: string | null;
 };
 
+type AzureFoundryPlatformExtras = {
+  endpoint_url?: string | null;
+  api_key?: { value?: string } | null;
+  deployment_name?: string | null;
+};
+
 export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdated }) => {
   const { addSnackbar } = useSnackbar();
   const kind = platform.kind as Platform;
   const router = useRouter();
 
   const firstModel = getAllowedModelFromPlatform(platform);
-  const currentModel = firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
+  // For azure_foundry, construct the triple-segment format
+  const getCurrentModel = () => {
+    if (kind === 'azure_foundry') {
+      return `azure_foundry:anthropic:${firstModel}`;
+    }
+    return firstModel ? `${kind}:${firstModel}` : `${kind}:unknown`;
+  };
+  const currentModel = getCurrentModel();
 
   const platformConfig = useMemo(() => {
     const base = { name: platform.name, platform: kind, model: currentModel, validateLLM: true };
@@ -74,6 +89,14 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
         google_vertex_service_account_json:
           (platform as PlatformForEditing & GooglePlatformExtras).google_vertex_service_account_json ?? undefined,
       }),
+      ...(platform.kind === 'azure_foundry' && {
+        azure_foundry_endpoint_url:
+          (platform as PlatformForEditing & AzureFoundryPlatformExtras).endpoint_url ?? undefined,
+        azure_foundry_api_key:
+          (platform as PlatformForEditing & AzureFoundryPlatformExtras).api_key?.value ?? undefined,
+        azure_foundry_deployment_name:
+          (platform as PlatformForEditing & AzureFoundryPlatformExtras).deployment_name ?? undefined,
+      }),
     };
   }, [platform, kind, currentModel]);
 
@@ -88,6 +111,7 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
   }, [platformConfig, form]);
 
   const isAzure = kind === 'azure';
+  const isAzureFoundry = kind === 'azure_foundry';
   const isBedrock = kind === 'bedrock';
   const isGroq = kind === 'groq';
   const isGoogle = kind === 'google';
@@ -97,8 +121,15 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
 
   const onSubmit = form.handleSubmit((values) => {
     const modelValue = String(values.model);
-    const [, modelIdRaw] = modelValue.split(':');
-    const modelId = modelIdRaw ?? modelValue;
+    const parts = modelValue.split(':');
+
+    // Handle triple-segment format for azure_foundry (azure_foundry:family:model)
+    let modelId: string;
+    if (parts[0] === 'azure_foundry' && parts.length === 3) {
+      [, , modelId] = parts;
+    } else {
+      modelId = parts[1] ?? modelValue;
+    }
 
     const credentials: Record<string, unknown> = {};
     let provider: string | null = null;
@@ -109,6 +140,14 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
       if (values.azure_api_version) credentials.azure_api_version = values.azure_api_version;
       if (values.azure_deployment_name) credentials.azure_deployment_name = values.azure_deployment_name;
       provider = 'openai';
+    } else if (kind === 'azure_foundry') {
+      if (values.azure_foundry_endpoint_url)
+        credentials.endpoint_url = normalizeAzureEndpointUrl(values.azure_foundry_endpoint_url);
+      if (values.azure_foundry_api_key) credentials.api_key = values.azure_foundry_api_key;
+      if (values.azure_foundry_deployment_name) credentials.deployment_name = values.azure_foundry_deployment_name;
+      if (values.azure_foundry_api_version) credentials.azure_foundry_api_version = values.azure_foundry_api_version;
+      // Provider comes from the model value for azure_foundry
+      provider = getAzureFoundryModelFamily(modelValue) ?? 'anthropic';
     } else if (kind === 'bedrock') {
       if (values.aws_access_key_id) credentials.aws_access_key_id = values.aws_access_key_id;
       if (values.aws_secret_access_key) credentials.aws_secret_access_key = values.aws_secret_access_key;
@@ -131,8 +170,6 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
           credentials.google_vertex_service_account_json = values.google_vertex_service_account_json;
       }
       provider = 'google';
-    } else {
-      kind satisfies never;
     }
 
     if (!provider) {
@@ -170,12 +207,12 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
         .filter((modelValue) => modelValue.startsWith(`${kind}:`))
         .map((modelValue) => ({ value: modelValue, label: beautifyLabel(modelValue) }));
     if (kind === 'azure') return forPlatform(AZURE_MODEL_VALUES);
+    if (kind === 'azure_foundry') return forPlatform(AZURE_FOUNDRY_MODEL_VALUES);
     if (kind === 'bedrock') return forPlatform(BEDROCK_MODEL_VALUES);
     if (kind === 'openai') return forPlatform(OPENAI_MODEL_VALUES);
     if (kind === 'google') return forPlatform(GOOGLE_MODEL_VALUES);
     if (kind === 'groq') return forPlatform(GROQ_MODEL_VALUES);
 
-    kind satisfies never;
     return [];
   }, [kind]);
 
@@ -226,6 +263,30 @@ export const EditPlatformDialog: FC<Props> = ({ platform, open, onClose, onUpdat
                   <Input label="Azure API Version" {...form.register('azure_api_version')} />
                   <Input label="Azure Deployment Name" {...form.register('azure_deployment_name')} />
                   <InputControlled fieldName="apiKey" label="Azure API Key" type="password" />
+                </Box>
+              )}
+
+              {isAzureFoundry && (
+                <Box display="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <Input
+                    label="Endpoint URL"
+                    placeholder="https://my-resource.services.ai.azure.com"
+                    {...form.register('azure_foundry_endpoint_url')}
+                    error={form.formState.errors.azure_foundry_endpoint_url?.message}
+                  />
+                  <InputControlled fieldName="azure_foundry_api_key" label="API Key" type="password" />
+                  <Input
+                    label="Deployment Name"
+                    placeholder="claude-4-5-sonnet"
+                    {...form.register('azure_foundry_deployment_name')}
+                    error={form.formState.errors.azure_foundry_deployment_name?.message}
+                  />
+                  <Input
+                    label="API Version (OpenAI only)"
+                    placeholder="2024-12-01-preview"
+                    {...form.register('azure_foundry_api_version')}
+                    error={form.formState.errors.azure_foundry_api_version?.message}
+                  />
                 </Box>
               )}
 

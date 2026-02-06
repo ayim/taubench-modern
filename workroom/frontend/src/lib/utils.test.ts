@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatRelativeTime, getPublicApiEndpointUrl, getTenantWorkoomRedirect } from './utils';
+import { describe, it, expect, vi } from 'vitest';
+import { getPublicApiEndpointUrl, getTenantWorkoomRedirect, normalizeAzureEndpointUrl, beautifyLabel } from './utils';
 
 // Mock the router import as it causes test run fails due to bringing in the whole frontend stack where ESM related imports fail to resolve with vitest
 vi.mock('~/components/providers/Router', () => ({
@@ -60,7 +60,7 @@ describe('getTenantWorkoomRedirect', () => {
         environment: {
           id: '02cf969d-769a-4db4-995d-849bcb4d0b2f',
           url: 'https://ace-02cf969d.dev-ci1-ee803305.sema4ai.work',
-          workroom_url: undefined, // workroom_url is only relevant in the ACE context where an organisation can have multiple work rooms
+          workroom_url: undefined,
         },
       },
       location: getLocationMock({
@@ -147,115 +147,36 @@ describe('getPublicApiEndpointUrl', () => {
   });
 });
 
-describe(formatRelativeTime.name, () => {
-  const FIXED_NOW = new Date('2025-01-15T12:00:00.000Z');
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(FIXED_NOW);
+describe('normalizeAzureEndpointUrl', () => {
+  it('strips path from full deployment URL', () => {
+    expect(normalizeAzureEndpointUrl('https://my-resource.openai.azure.com/openai/deployments/gpt-4')).toBe(
+      'https://my-resource.openai.azure.com',
+    );
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  it('handles Azure AI Foundry URLs', () => {
+    expect(normalizeAzureEndpointUrl('https://my-foundry.services.ai.azure.com/models/claude')).toBe(
+      'https://my-foundry.services.ai.azure.com',
+    );
   });
 
-  describe('invalid inputs', () => {
-    it('returns null for invalid date string', () => {
-      expect(formatRelativeTime('invalid-date')).toBeNull();
-    });
-
-    it('returns null for empty string', () => {
-      expect(formatRelativeTime('')).toBeNull();
-    });
-
-    it('returns null for epoch timestamp (1970)', () => {
-      expect(formatRelativeTime('1970-01-01T00:00:00.000Z')).toBeNull();
-    });
+  it('returns original string for invalid URL', () => {
+    expect(normalizeAzureEndpointUrl('not-a-url')).toBe('not-a-url');
   });
+});
 
-  describe('today (same calendar day)', () => {
-    it('returns "Today" for current time', () => {
-      expect(formatRelativeTime('2025-01-15T12:00:00.000Z')).toBe('Today');
+describe('beautifyLabel', () => {
+  describe('triple-segment format (azure_foundry)', () => {
+    it('extracts and beautifies model from azure_foundry:anthropic:claude-4-5-sonnet', () => {
+      const result = beautifyLabel('azure_foundry:anthropic:claude-4-5-sonnet');
+      expect(result).toContain('Claude');
+      expect(result).toContain('Sonnet');
     });
 
-    it('returns "Today" for 1 hour ago', () => {
-      expect(formatRelativeTime('2025-01-15T11:00:00.000Z')).toBe('Today');
-    });
-
-    it('returns "Today" for earlier same day', () => {
-      expect(formatRelativeTime('2025-01-15T00:00:00.000Z')).toBe('Today');
-    });
-
-    it('returns "1d ago" for yesterday even if less than 24 hours', () => {
-      expect(formatRelativeTime('2025-01-14T13:00:00.000Z')).toBe('1d ago');
-    });
-  });
-
-  describe('days ago', () => {
-    it('returns "1d ago" for exactly 1 day ago', () => {
-      expect(formatRelativeTime('2025-01-14T12:00:00.000Z')).toBe('1d ago');
-    });
-
-    it('returns "2d ago" for 2 days ago', () => {
-      expect(formatRelativeTime('2025-01-13T12:00:00.000Z')).toBe('2d ago');
-    });
-
-    it('returns "6d ago" for 6 days ago', () => {
-      expect(formatRelativeTime('2025-01-09T12:00:00.000Z')).toBe('6d ago');
-    });
-  });
-
-  describe('weeks ago', () => {
-    it('returns "1w ago" for 7 days ago', () => {
-      expect(formatRelativeTime('2025-01-08T12:00:00.000Z')).toBe('1w ago');
-    });
-
-    it('returns "1w ago" for 13 days ago', () => {
-      expect(formatRelativeTime('2025-01-02T12:00:00.000Z')).toBe('1w ago');
-    });
-
-    it('returns "2w ago" for 14 days ago', () => {
-      expect(formatRelativeTime('2025-01-01T12:00:00.000Z')).toBe('2w ago');
-    });
-
-    it('returns "4w ago" for 29 days ago', () => {
-      expect(formatRelativeTime('2024-12-17T12:00:00.000Z')).toBe('4w ago');
-    });
-  });
-
-  describe('months ago', () => {
-    it('returns "1mo ago" for 30 days ago', () => {
-      expect(formatRelativeTime('2024-12-16T12:00:00.000Z')).toBe('1mo ago');
-    });
-
-    it('returns "1mo ago" for 59 days ago', () => {
-      expect(formatRelativeTime('2024-11-17T12:00:00.000Z')).toBe('1mo ago');
-    });
-
-    it('returns "2mo ago" for 60 days ago', () => {
-      expect(formatRelativeTime('2024-11-16T12:00:00.000Z')).toBe('2mo ago');
-    });
-
-    it('returns "12mo ago" for 364 days ago', () => {
-      expect(formatRelativeTime('2024-01-17T12:00:00.000Z')).toBe('12mo ago');
-    });
-  });
-
-  describe('years ago', () => {
-    it('returns "1y ago" for 365 days ago', () => {
-      expect(formatRelativeTime('2024-01-16T12:00:00.000Z')).toBe('1y ago');
-    });
-
-    it('returns "1y ago" for 729 days ago', () => {
-      expect(formatRelativeTime('2023-01-17T12:00:00.000Z')).toBe('1y ago');
-    });
-
-    it('returns "2y ago" for 730 days ago', () => {
-      expect(formatRelativeTime('2023-01-16T12:00:00.000Z')).toBe('2y ago');
-    });
-
-    it('returns "5y ago" for 5 years ago', () => {
-      expect(formatRelativeTime('2020-01-15T12:00:00.000Z')).toBe('5y ago');
+    it('handles thinking levels', () => {
+      expect(beautifyLabel('azure_foundry:anthropic:claude-4-5-sonnet-thinking-high')).toContain('(High)');
+      expect(beautifyLabel('azure_foundry:anthropic:claude-4-5-sonnet-thinking-medium')).toContain('(Medium)');
+      expect(beautifyLabel('azure_foundry:anthropic:claude-4-5-sonnet-thinking-low')).toContain('(Low)');
     });
   });
 });

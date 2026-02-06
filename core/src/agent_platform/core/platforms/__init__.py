@@ -2,6 +2,10 @@ from agent_platform.core.platforms.azure import (
     AzureOpenAIClient,
     AzureOpenAIPlatformParameters,
 )
+from agent_platform.core.platforms.azure_foundry import (
+    AzureFoundryClient,
+    AzureFoundryPlatformParameters,
+)
 from agent_platform.core.platforms.base import PlatformClient
 from agent_platform.core.platforms.bedrock import (
     BedrockClient,
@@ -35,6 +39,7 @@ AnyPlatformParameters = (
     | LiteLLMPlatformParameters
     | OpenAIPlatformParameters
     | AzureOpenAIPlatformParameters
+    | AzureFoundryPlatformParameters
     | GooglePlatformParameters
     | GroqPlatformParameters
     | ReductoPlatformParameters
@@ -42,6 +47,8 @@ AnyPlatformParameters = (
 
 __all__ = [
     "AnyPlatformParameters",
+    "AzureFoundryClient",
+    "AzureFoundryPlatformParameters",
     "AzureOpenAIClient",
     "BedrockClient",
     "CortexClient",

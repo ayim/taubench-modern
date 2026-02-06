@@ -3,6 +3,7 @@ from agent_platform.core.platforms import AnyPlatformParameters
 _KIND_TO_PROVIDER: dict[str, str] = {
     "openai": "OpenAI",
     "azure": "Azure",
+    "azure_foundry": "Azure Foundry",
     "cortex": "Snowflake Cortex AI",
     "bedrock": "Amazon",
     "groq": "Groq",
@@ -14,6 +15,7 @@ _KIND_TO_PROVIDER: dict[str, str] = {
 _KIND_TO_LEGACY_MODEL: dict[str, str] = {
     "openai": "gpt-4o",
     "azure": "gpt-4o",
+    "azure_foundry": "claude-4-5-sonnet",
     "cortex": "claude-3-5-sonnet",
     "bedrock": "anthropic.claude-3-5-sonnet-20240620-v1:0",
     "groq": "unknown",
@@ -25,6 +27,7 @@ _KIND_TO_LEGACY_MODEL: dict[str, str] = {
 SENSITIVE_KEYS: list[str] = [
     "openai_api_key",
     "azure_api_key",
+    "api_key",
     "google_api_key",
     "groq_api_key",
     "anthropic_api_key",
