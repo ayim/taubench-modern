@@ -1,4 +1,5 @@
 import { createContext, FC } from 'react';
+import { FieldError, FieldErrors } from 'react-hook-form';
 import z from 'zod';
 
 import { SemanticModel } from '~/queries/semanticData';
@@ -27,6 +28,9 @@ export const DataConnectionFormContext = createContext<{
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setForceModelRegeneration: (force: boolean) => void;
   onSubmit: () => void;
+  validationErrors: string[];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setValidationErrors: (errors: string[]) => void;
 }>({
   databaseInspectionState: {
     isLoading: false,
@@ -38,6 +42,8 @@ export const DataConnectionFormContext = createContext<{
   onSubmit: () => {},
   forceModelRegeneration: false,
   setForceModelRegeneration: () => {},
+  validationErrors: [],
+  setValidationErrors: () => {},
 });
 
 export const DataConnectionFormSchema = z.object({
@@ -176,9 +182,143 @@ export const hasDataSelectionChanged = (payload: DataConnectionFormSchema) => {
   return dataSelectionAdded || dataSelectionRemoved;
 };
 
-export const hasModelChanged = (currentPaylaod: DataConnectionFormSchema, semanticModel: SemanticModel) => {
+export const hasModelChanged = (currentPayload: DataConnectionFormSchema, semanticModel: SemanticModel): boolean => {
   const previousPayload = semanticModelToFormSchema(semanticModel);
-  return JSON.stringify(previousPayload) !== JSON.stringify(currentPaylaod);
+  return JSON.stringify(previousPayload) !== JSON.stringify(currentPayload);
+};
+
+const isFieldError = (error: unknown): error is FieldError => {
+  return error !== null && typeof error === 'object' && 'message' in error;
+};
+
+/**
+ * Recursively extract error messages from nested error objects, retaining the context
+ * of the field hierarchy.
+ */
+const extractNestedErrors = (errorObj: unknown, prefix: string, messages: string[]): void => {
+  if (!errorObj || typeof errorObj !== 'object') return;
+
+  if (isFieldError(errorObj)) {
+    messages.push(`${prefix}: ${errorObj.message}`);
+    return;
+  }
+
+  if (Array.isArray(errorObj)) {
+    errorObj.forEach((item, index) => {
+      if (item) {
+        extractNestedErrors(item, `${prefix}[${index + 1}]`, messages);
+      }
+    });
+    return;
+  }
+
+  Object.entries(errorObj as Record<string, unknown>).forEach(([key, value]) => {
+    if (value) {
+      const newPrefix = prefix ? `${prefix}.${key}` : key;
+      extractNestedErrors(value, newPrefix, messages);
+    }
+  });
+};
+
+/**
+ * Format SDM form validation errors into user-friendly messages for snackbar display.
+ */
+export const formatSDMValidationErrors = (
+  errors: FieldErrors<DataConnectionFormSchema>,
+  getFieldValue: <T>(path: string) => T,
+): string[] => {
+  const messages: string[] = [];
+
+  // Simple top-level fields
+  if (errors.name?.message) {
+    messages.push(`Name: ${errors.name.message}`);
+  }
+  if (errors.description?.message) {
+    messages.push(`Description: ${errors.description.message}`);
+  }
+  if (errors.dataConnectionId?.message) {
+    messages.push(`Data Connection: ${errors.dataConnectionId.message}`);
+  }
+  if (errors.dataConnectionName?.message) {
+    messages.push(`Data Connection Name: ${errors.dataConnectionName.message}`);
+  }
+  if (errors.fileRefId?.message) {
+    messages.push(`File Reference: ${errors.fileRefId.message}`);
+  }
+  if (errors.relationships) {
+    if (isFieldError(errors.relationships)) {
+      messages.push(`Relationships: ${errors.relationships.message}`);
+    } else if (Array.isArray(errors.relationships)) {
+      errors.relationships.forEach((relError, index) => {
+        if (!relError) return;
+        const relName = getFieldValue<string>(`relationships.${index}.name`) || `Relationship ${index + 1}`;
+        Object.entries(relError).forEach(([field, fieldError]) => {
+          if (isFieldError(fieldError)) {
+            messages.push(`${relName}.${field}: ${fieldError.message}`);
+          }
+        });
+      });
+    }
+  }
+
+  // Verified queries array
+  const vqErrors = errors.verifiedQueries;
+  if (vqErrors && Array.isArray(vqErrors)) {
+    vqErrors.forEach((vqError, index) => {
+      if (!vqError) return;
+      const queryName = getFieldValue<string>(`verifiedQueries.${index}.name`) || `Query ${index + 1}`;
+
+      if (vqError.name?.message) messages.push(`${queryName}: ${vqError.name.message}`);
+      if (vqError.sql?.message) messages.push(`${queryName}: ${vqError.sql.message}`);
+      if (vqError.nlq?.message) messages.push(`${queryName}: ${vqError.nlq.message}`);
+      if (isFieldError(vqError.sql_errors)) messages.push(`${queryName}: ${vqError.sql_errors.message}`);
+      if (isFieldError(vqError.nlq_errors)) messages.push(`${queryName}: ${vqError.nlq_errors.message}`);
+      if (isFieldError(vqError.name_errors)) messages.push(`${queryName}: ${vqError.name_errors.message}`);
+      if (isFieldError(vqError.parameter_errors)) messages.push(`${queryName}: ${vqError.parameter_errors.message}`);
+    });
+  }
+
+  // Data selection array
+  const dsErrors = errors.dataSelection;
+  if (dsErrors && Array.isArray(dsErrors)) {
+    dsErrors.forEach((dsError, index) => {
+      if (!dsError) return;
+      const tableName = getFieldValue<string>(`dataSelection.${index}.name`) || `Table ${index + 1}`;
+
+      if (dsError.name?.message) {
+        messages.push(`${tableName}: ${dsError.name.message}`);
+      }
+
+      const colErrors = dsError.columns;
+      if (colErrors && Array.isArray(colErrors)) {
+        colErrors.forEach((colError, colIndex) => {
+          if (!colError) return;
+          const colName =
+            getFieldValue<string>(`dataSelection.${index}.columns.${colIndex}.name`) || `Column ${colIndex + 1}`;
+
+          if (colError.name?.message) messages.push(`${tableName}.${colName}: ${colError.name.message}`);
+          if (colError.data_type?.message) messages.push(`${tableName}.${colName}: ${colError.data_type.message}`);
+        });
+      }
+    });
+  }
+
+  // Tables array - use recursive extraction for deeply nested errors
+  const tablesErrors = errors.tables;
+  if (tablesErrors && Array.isArray(tablesErrors)) {
+    tablesErrors.forEach((tableError, index) => {
+      if (!tableError) return;
+      const tableName = getFieldValue<string>(`tables.${index}.name`) || `Table ${index + 1}`;
+      extractNestedErrors(tableError, tableName, messages);
+    });
+  }
+
+  // Fallback if no specific messages but errors exist
+  if (messages.length === 0 && Object.keys(errors).length > 0) {
+    messages.push(`Validation failed for: ${Object.keys(errors).join(', ')}`);
+  }
+
+  return messages;
 };
 
 export const tablesToDataSelection = (

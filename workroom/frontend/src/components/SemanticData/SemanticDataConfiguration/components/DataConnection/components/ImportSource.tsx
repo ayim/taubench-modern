@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
+import { Box, Button, Dialog, Dropzone, Link, Typography, useSnackbar } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 import { parse as yamlParse } from 'yaml';
 
@@ -13,12 +13,13 @@ import {
   hasDataFrameReferences,
   requiresDataConnection,
 } from '../../form';
+import { ValidationErrorBanner } from '../../ValidationErrorBanner';
 import { DataConnectionSelect } from './DataConnectionSelect';
 
 export const ImportSource: ConfigurationStepView = ({ onClose }) => {
   const { addSnackbar } = useSnackbar();
   const { reset, watch } = useFormContext<DataConnectionFormSchema>();
-  const { onSubmit } = useContext(DataConnectionFormContext);
+  const { onSubmit, validationErrors } = useContext(DataConnectionFormContext);
   const state = watch();
 
   const onDrop = async (files: File[]) => {
@@ -59,6 +60,11 @@ export const ImportSource: ConfigurationStepView = ({ onClose }) => {
   return (
     <>
       <Dialog.Content maxWidth={768}>
+        {validationErrors.length > 0 && (
+          <Box mb="$24">
+            <ValidationErrorBanner errors={validationErrors} />
+          </Box>
+        )}
         {!requiresDataConnectionStep && (
           <>
             <Typography variant="display-medium" mb="$12">

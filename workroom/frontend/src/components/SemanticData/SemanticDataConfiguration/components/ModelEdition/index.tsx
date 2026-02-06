@@ -6,6 +6,7 @@ import { Box, Button, Dialog, Typography, Link, Banner, Tabs } from '@sema4ai/co
 import { RenameDialog } from '~/components/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '~/lib/constants';
 import { ConfigurationStep, ConfigurationStepView, DataConnectionFormContext, DataConnectionFormSchema } from '../form';
+import { ValidationErrorBanner } from '../ValidationErrorBanner';
 import { TableTree } from './components/TableTree';
 import { ModelScore } from './components/ModelScore';
 import { VerifiedQueriesTable } from './components/VerifiedQueriesTable';
@@ -20,7 +21,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 
-  const { databaseInspectionState } = useContext(DataConnectionFormContext);
+  const { databaseInspectionState, validationErrors } = useContext(DataConnectionFormContext);
 
   const onToggleRenameDialog = () => {
     setIsRenameDialogOpen(!isRenameDialogOpen);
@@ -57,6 +58,7 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
               }
             />
           )}
+          {validationErrors.length > 0 && <ValidationErrorBanner errors={validationErrors} />}
           <Box display="flex" flexDirection={['column', 'column', 'column', 'row']} gap="$8" mb="$16" width="100%">
             <Box display="flex" flexDirection="column" gap="$8">
               <Box display="flex" alignItems="center" gap="$8">

@@ -98,7 +98,8 @@ export const SemanticModel = z.object({
   description: z.string(),
   tables: z.array(
     z.object({
-      id: z.string(),
+      // Exported SDMs don't have an ID on tables.
+      id: z.string().optional(),
       name: z.string(),
       base_table: z.object({
         data_connection_id: z.string().optional(),
