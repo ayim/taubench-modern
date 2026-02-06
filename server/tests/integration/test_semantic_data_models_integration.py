@@ -6,6 +6,8 @@ import os
 import pytest
 from structlog import get_logger
 
+from agent_platform.core.payloads.semantic_data_model_payloads import GenerateSemanticDataModelResponse
+
 logger = get_logger(__name__)
 
 
@@ -1935,6 +1937,60 @@ def test_no_description_allows_llm_generated_description(base_url_agent_server_s
         actual_description = generated_model.semantic_model.description
         assert actual_description is not None, "Expected LLM to generate a description when user provides none"
         assert len(actual_description) > 0, "Expected non-empty description from LLM"
+
+
+@pytest.mark.integration
+def test_generate_sdm_with_schemas(base_url_agent_server):
+    """Test that generating SDM with Schemas only."""
+    from urllib.parse import urljoin
+
+    import requests
+    from agent_platform.orchestrator.agent_server_client import AgentServerClient
+
+    from agent_platform.core.payloads.semantic_data_model_payloads import GenerateSemanticDataModelPayload
+    from agent_platform.core.semantic_data_model.types import Schema
+
+    with AgentServerClient(base_url_agent_server) as agent_client:
+        agent_id = agent_client.create_agent_and_return_agent_id(
+            action_packages=[],
+            platform_configs=[
+                {
+                    "kind": "openai",
+                    "openai_api_key": "unused",
+                    "models": {"openai": ["gpt-4-1"]},
+                },
+            ],
+        )
+        thread_id = agent_client.create_thread_and_return_thread_id(agent_id)
+
+        expected = Schema(
+            name="TestSchema",
+            description="A test schema",
+            json_schema={"type": "object", "properties": {"my_id": {"type": "string"}}},
+        )
+        generate_payload = GenerateSemanticDataModelPayload(
+            name="test_model",
+            description="Test model",
+            data_connections_info=[],
+            files_info=[],
+            schemas=[expected],
+            thread_id=thread_id,
+        )
+
+        base_url = urljoin(base_url_agent_server + "/", "api/v2")
+        url = urljoin(base_url + "/", "semantic-data-models/generate")
+        response = requests.post(url, json=generate_payload.model_dump(mode="json"))
+
+        assert response.ok, f"generating SDM with schemas only failed, got {response.status_code}: {response.text}"
+        generate_resp = GenerateSemanticDataModelResponse.model_validate(response.json())
+        assert generate_resp.semantic_model is not None
+        assert generate_resp.semantic_model.name == "test_model"
+        assert len(generate_resp.semantic_model.tables) == 0
+
+        assert generate_resp.semantic_model.schemas is not None, "Did not receive schemas in SDM response"
+        assert len(generate_resp.semantic_model.schemas) == 1
+        actual_schema = generate_resp.semantic_model.schemas[0]
+        assert actual_schema == expected
 
 
 @pytest.mark.integration

@@ -41,19 +41,31 @@ def build_sdm_post_create_summary(
     Returns:
         A short multi-sentence summary suitable for a chat message.
     """
-    sdm_dict = _normalize_sdm_dict(semantic_model)
-    tables = sdm_dict.get("tables") or []
-    relationships = sdm_dict.get("relationships") or []
-    table_count = len(tables)
-    relationship_count = len(relationships)
+    table_count = len(semantic_model.tables)
+    relationship_count = len(semantic_model.relationships or [])
+    schema_count = len(semantic_model.schemas or [])
 
     table_label = "table" if table_count == 1 else "tables"
     relationship_label = "relationship" if relationship_count == 1 else "relationships"
+    schema_label = "schema" if schema_count == 1 else "schemas"
+
+    inclusions = []
+    if table_count > 0:
+        inclusions.append(f"{table_count} {table_label}")
+    if relationship_count > 0:
+        inclusions.append(f"{relationship_count} {relationship_label}")
+    if schema_count > 0:
+        inclusions.append(f"{schema_count} {schema_label}")
+
+    if len(inclusions) <= 2:
+        details = " and ".join(inclusions)
+    else:
+        details = ", ".join(inclusions[:-1]) + ", and " + inclusions[-1]
 
     summary_lines = [
         f'Created a Semantic Data Model called "{model_name}".',
-        f"It includes {table_count} {table_label} and {relationship_count} {relationship_label}.",
-        "Ask a question about your data.",
+        f"It includes {details}.",
+        "Ask a question about your data!",
     ]
     return " ".join(summary_lines)
 
@@ -210,24 +222,27 @@ async def add_sdm_post_create_messages(
     summary = build_sdm_post_create_summary(model, model_name)
 
     quick_options = None
-    try:
-        questions = await build_sdm_suggested_questions(
-            model,
-            model_name,
-            user=user,
-            storage=storage,
-            thread_id=thread_id,
-        )
-        quick_options = _build_quick_options_markdown(questions)
-    except (PlatformHTTPError, ValueError, OpenAIError, httpx.HTTPError, TimeoutError) as exc:
-        logger.warning(
-            "Failed to build SDM suggested questions",
-            user_id=user.user_id,
-            thread_id=thread_id,
-            semantic_data_model_id=semantic_data_model_id,
-            exc_info=True,
-            error_type=type(exc).__name__,
-        )
+
+    # Only generate questions if the SDM has tables.
+    if model.tables:
+        try:
+            questions = await build_sdm_suggested_questions(
+                model,
+                model_name,
+                user=user,
+                storage=storage,
+                thread_id=thread_id,
+            )
+            quick_options = _build_quick_options_markdown(questions)
+        except (PlatformHTTPError, ValueError, OpenAIError, httpx.HTTPError, TimeoutError) as exc:
+            logger.warning(
+                "Failed to build SDM suggested questions",
+                user_id=user.user_id,
+                thread_id=thread_id,
+                semantic_data_model_id=semantic_data_model_id,
+                exc_info=True,
+                error_type=type(exc).__name__,
+            )
 
     agent_text = summary if quick_options is None else f"{summary}\n\n{quick_options}"
     agent_message = ThreadMessage(

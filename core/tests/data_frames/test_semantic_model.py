@@ -229,7 +229,7 @@ def test_semantic_model_validation_empty_tables():
 
     references = validate_semantic_model_payload_and_extract_references(semantic_model)
     assert len(references.errors) == 1
-    assert "'tables' must be specified (and not empty)" in references.errors[0]
+    assert "'tables' or 'schemas' must be specified (and not empty)" in references.errors[0]
 
 
 def test_semantic_model_validation_missing_table_name():

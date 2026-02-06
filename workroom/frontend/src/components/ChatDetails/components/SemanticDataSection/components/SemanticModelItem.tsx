@@ -131,6 +131,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
         modelId: model.id,
         dataSelection: [],
         shouldRegenerateModel: false,
+        schemas: model.schemas ?? [],
       },
       {
         onSuccess: () => {

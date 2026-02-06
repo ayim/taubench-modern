@@ -114,9 +114,12 @@ def validate_semantic_model_payload_and_extract_references(
         references.semantic_data_model_with_errors = SemanticDataModel.model_validate(sdm_dict)
         return references
 
-    if "tables" not in sdm_dict or sdm_dict.get("tables") is None:
+    # Allow SDMs with schemas but no tables - only error if both are missing/None
+    tables_missing = "tables" not in sdm_dict or sdm_dict.get("tables") is None
+    schemas_missing = "schemas" not in sdm_dict or sdm_dict.get("schemas") is None
+    if tables_missing and schemas_missing:
         error = ValidationMessage(
-            message="'tables' must be specified in the semantic data model.",
+            message="'tables' or 'schemas' must be specified in the semantic data model.",
             level=ValidationMessageLevel.ERROR,
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )
@@ -126,9 +129,11 @@ def validate_semantic_model_payload_and_extract_references(
         return references
 
     semantic_data_model_tables = sdm_dict.get("tables", [])
-    if not semantic_data_model_tables:
+    semantic_data_model_schemas = sdm_dict.get("schemas", [])
+    # Allow SDMs with schemas but no tables (schema-based SDMs)
+    if not semantic_data_model_tables and not semantic_data_model_schemas:
         error = ValidationMessage(
-            message="'tables' must be specified (and not empty) in the semantic data model.",
+            message="'tables' or 'schemas' must be specified (and not empty) in the semantic data model.",
             level=ValidationMessageLevel.ERROR,
             kind=ValidationMessageKind.SEMANTIC_MODEL_MISSING_REQUIRED_FIELD,
         )

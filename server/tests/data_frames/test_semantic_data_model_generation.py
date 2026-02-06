@@ -106,6 +106,7 @@ async def test_generate_semantic_data_model_with_data_connection(data_regression
         description="Test semantic model",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
         include_metadata=False,
     )
 
@@ -148,6 +149,7 @@ async def test_generate_semantic_data_model_with_file(data_regression):
         description="File-based semantic model",
         data_connections_info=[],
         files_info=[file_info],
+        schemas=[],
         include_metadata=False,
     )
 
@@ -188,6 +190,7 @@ async def test_generate_semantic_data_model_with_numeric_columns(data_regression
         description="Model with numeric columns",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
         include_metadata=False,
     )
 
@@ -228,6 +231,7 @@ async def test_generate_semantic_data_model_with_time_columns(data_regression, m
         description="Model with time columns",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
         include_metadata=False,
     )
 
@@ -295,6 +299,7 @@ async def test_generate_semantic_data_model_with_metadata(mock_storage):
         description="Test semantic model",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
         include_metadata=True,
     )
 
@@ -351,6 +356,7 @@ async def test_generate_semantic_data_model_with_metadata(mock_storage):
         description="Test semantic model without metadata",
         data_connections_info=[data_connection_info_no_inspect],
         files_info=[],
+        schemas=[],
         include_metadata=False,
     )
 
@@ -447,6 +453,7 @@ async def test_generate_semantic_data_model_with_file_metadata():
         description="File-based semantic model",
         data_connections_info=[],
         files_info=[file_info],
+        schemas=[],
         include_metadata=True,
     )
 

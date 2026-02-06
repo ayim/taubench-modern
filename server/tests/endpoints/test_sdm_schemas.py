@@ -478,3 +478,30 @@ class TestDeleteSdmWithSchemas:
 
         with pytest.raises(PlatformHTTPError):
             await storage.get_semantic_data_model(sdm_id)
+
+
+class TestValidateJsonSchema:
+    """Tests for POST /api/v2/semantic-data-models/schemas/validate"""
+
+    def test_valid_schema_returns_is_valid_true(self, client: TestClient):
+        """Valid JSON schema returns is_valid=True with no errors."""
+        response = client.post(
+            "/api/v2/semantic-data-models/schemas/validate",
+            json={"json_schema": {"type": "object", "properties": {"name": {"type": "string"}}}},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["is_valid"] is True
+        assert body["errors"] == []
+
+    def test_invalid_schema_returns_errors(self, client: TestClient):
+        """Invalid JSON schema returns is_valid=False with error details."""
+        response = client.post(
+            "/api/v2/semantic-data-models/schemas/validate",
+            json={"json_schema": {"type": "not-a-real-type"}},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["is_valid"] is False
+        assert len(body["errors"]) > 0
+        assert body["errors"][0]["message"]

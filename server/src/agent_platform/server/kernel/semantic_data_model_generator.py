@@ -24,6 +24,7 @@ from agent_platform.core.semantic_data_model.types import (
     InputDataConnectionSnapshot,
     LogicalTable,
     SampleValue,
+    Schema,
     SemanticDataModel,
     SemanticDataModelMetadata,
     TimeDimension,
@@ -69,6 +70,7 @@ class SemanticDataModelGenerator:
         description: str | None,
         data_connections_info: list[DataConnectionInfo],
         files_info: list[FileInfo],
+        schemas: list[Schema],
         include_metadata: bool = True,
     ) -> SemanticDataModel:
         """Generate a semantic data model from data connections and files.
@@ -105,6 +107,7 @@ class SemanticDataModelGenerator:
             "name": name,
             "description": description,
             "tables": tables,
+            "schemas": schemas,
         }
 
         # Auto-detect relationships from FK metadata

@@ -11,6 +11,7 @@ from agent_platform.core.payloads.data_connection import (
     DataConnectionsInspectResponse,
 )
 from agent_platform.core.semantic_data_model.types import (
+    Schema,
     SemanticDataModel,
     ValidationMessage,
     VerifiedQuery,
@@ -129,6 +130,9 @@ class GenerateSemanticDataModelPayload(BaseModel):
     description: str | None
     data_connections_info: list[DataConnectionInfo]
     files_info: list[FileInfo]
+    schemas: list[Schema] = Field(
+        default_factory=list,
+    )
     agent_id: str | None = None
     thread_id: str = Field(
         ...,

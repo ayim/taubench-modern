@@ -3454,6 +3454,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v2/semantic-data-models/schemas/validate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Validate Json Schema
+     * @description Validate a JSON schema using CustomDraft202012Validator.
+     *
+     *     This endpoint validates that a JSON schema is well-formed according to
+     *     JSON Schema Draft 2020-12 and also validates custom annotation keywords
+     *     (synonyms, sample_values) used by the semantic data model.
+     *
+     *     Args:
+     *         payload: Contains the json_schema to validate
+     *         user: Authenticated user
+     *
+     *     Returns:
+     *         ValidateJsonSchemaResponse: Contains is_valid flag and list of errors if invalid
+     */
+    post: operations['validate_json_schema_semantic_data_models_schemas_validate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/metrics': {
     parameters: {
       query?: never;
@@ -6271,6 +6302,8 @@ export interface components {
       data_connections_info: components['schemas']['DataConnectionInfo'][];
       /** Files Info */
       files_info: components['schemas']['FileInfo'][];
+      /** Schemas */
+      schemas?: components['schemas']['Schema'][];
       /** Agent Id */
       agent_id?: string | null;
       /**
@@ -9551,6 +9584,19 @@ export interface components {
       /** @description If present, this schema can be populated via document extraction. */
       document_extraction?: components['schemas']['DocumentExtraction'] | null;
     };
+    /** SchemaValidationError */
+    SchemaValidationError: {
+      /**
+       * Path
+       * @description The JSON path where the error occurred.
+       */
+      path: string;
+      /**
+       * Message
+       * @description A descriptive message about the validation error.
+       */
+      message: string;
+    };
     /** SecretString */
     SecretString: {
       /**
@@ -11366,6 +11412,29 @@ export interface components {
        * @description OpenTelemetry span ID (16-char hex) of the thread span.
        */
       parent_span_id?: string | null;
+    };
+    /** ValidateJsonSchemaPayload */
+    ValidateJsonSchemaPayload: {
+      /**
+       * Json Schema
+       * @description The JSON schema to be validated.
+       */
+      json_schema: {
+        [key: string]: unknown;
+      };
+    };
+    /** ValidateJsonSchemaResponse */
+    ValidateJsonSchemaResponse: {
+      /**
+       * Is Valid
+       * @description Indicates whether the JSON schema is valid.
+       */
+      is_valid: boolean;
+      /**
+       * Errors
+       * @description List of validation errors if the schema is invalid.
+       */
+      errors?: components['schemas']['SchemaValidationError'][];
     };
     /** ValidateSemanticDataModelPayload */
     ValidateSemanticDataModelPayload: {
@@ -22856,6 +22925,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['VerifyVerifiedQueryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  validate_json_schema_semantic_data_models_schemas_validate_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ValidateJsonSchemaPayload'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ValidateJsonSchemaResponse'];
         };
       };
       /** @description Validation Error */

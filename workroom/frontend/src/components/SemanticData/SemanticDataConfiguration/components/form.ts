@@ -2,7 +2,7 @@ import { createContext, FC } from 'react';
 import { FieldError, FieldErrors } from 'react-hook-form';
 import z from 'zod';
 
-import { SemanticModel } from '~/queries/semanticData';
+import { Schema, SemanticModel } from '~/queries/semanticData';
 import { InspectedTableInfo } from '~/queries/dataConnections';
 import { getTableDimensions } from '../../../../lib/SemanticDataModels';
 
@@ -10,6 +10,8 @@ export enum DataSourceType {
   File = 'file',
   Database = 'database',
   Import = 'import',
+  // eslint-disable-next-line @typescript-eslint/no-shadow -- does not conflict with the imported Schema type
+  Schema = 'schema',
 }
 
 export type DatabaseInspectionState = {
@@ -46,6 +48,8 @@ export const DataConnectionFormContext = createContext<{
   setValidationErrors: () => {},
 });
 
+export type SchemaFormItem = z.infer<typeof Schema>;
+
 export const DataConnectionFormSchema = z.object({
   dataConnectionId: z.string().optional(),
   dataConnectionName: z.string().optional(),
@@ -69,14 +73,17 @@ export const DataConnectionFormSchema = z.object({
   tables: SemanticModel.shape.tables.optional(),
   relationships: SemanticModel.shape.relationships.optional(),
   verifiedQueries: SemanticModel.shape.verified_queries.optional(),
+  schemas: z.array(Schema),
 });
 
 export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
+  const firstTable = semanticModel.tables[0];
+
   return {
     name: semanticModel.name,
-    dataConnectionId: semanticModel.tables[0].base_table.data_connection_id,
-    dataConnectionName: semanticModel.tables[0].base_table.data_connection_name,
-    fileRefId: semanticModel.tables[0].base_table.file_reference?.file_ref,
+    dataConnectionId: firstTable?.base_table.data_connection_id,
+    dataConnectionName: firstTable?.base_table.data_connection_name,
+    fileRefId: firstTable?.base_table.file_reference?.file_ref,
     description: semanticModel.description,
     dataSelection: semanticModel.tables.map((table) => {
       return {
@@ -95,6 +102,7 @@ export const semanticModelToFormSchema = (semanticModel: SemanticModel) => {
     tables: semanticModel.tables,
     relationships: semanticModel.relationships,
     verifiedQueries: semanticModel.verified_queries,
+    schemas: semanticModel.schemas ?? [],
   } satisfies DataConnectionFormSchema;
 };
 
@@ -106,6 +114,7 @@ export const defaultFormDataValues: DataConnectionFormSchema = {
   name: undefined,
   dataSelection: [],
   tables: undefined,
+  schemas: [],
 };
 
 /**
@@ -141,6 +150,7 @@ export enum ConfigurationStep {
   SuccessImport = 6,
   Processing = 7,
   ImportWithErrors = 8,
+  SchemaEdition = 9,
 }
 
 type ConfigurationStepProps = {

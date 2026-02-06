@@ -1,5 +1,6 @@
 description: File-based semantic model
 name: file_model
+schemas: []
 tables:
 - base_table:
     file_reference:

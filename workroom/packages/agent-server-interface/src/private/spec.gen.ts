@@ -9783,6 +9783,48 @@ export const spec = {
         },
       },
     },
+    '/api/v2/semantic-data-models/schemas/validate': {
+      post: {
+        tags: ['semantic-data-models'],
+        summary: 'Validate Json Schema',
+        description:
+          'Validate a JSON schema using CustomDraft202012Validator.\n\nThis endpoint validates that a JSON schema is well-formed according to\nJSON Schema Draft 2020-12 and also validates custom annotation keywords\n(synonyms, sample_values) used by the semantic data model.\n\nArgs:\n    payload: Contains the json_schema to validate\n    user: Authenticated user\n\nReturns:\n    ValidateJsonSchemaResponse: Contains is_valid flag and list of errors if invalid',
+        operationId:
+          'validate_json_schema_semantic_data_models_schemas_validate_post',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/ValidateJsonSchemaPayload',
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ValidateJsonSchemaResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/metrics': {
       get: {
         tags: ['metrics'],
@@ -15488,6 +15530,13 @@ export const spec = {
             },
             type: 'array',
             title: 'Files Info',
+          },
+          schemas: {
+            items: {
+              $ref: '#/components/schemas/Schema',
+            },
+            type: 'array',
+            title: 'Schemas',
           },
           agent_id: {
             anyOf: [
@@ -22442,6 +22491,23 @@ export const spec = {
         description:
           'A schema defines the structure and validation rules for data.\n\nSchemas use JSON Schema format to define the expected structure of data,\nalong with optional validation rules and translations for internationalization.',
       },
+      SchemaValidationError: {
+        properties: {
+          path: {
+            type: 'string',
+            title: 'Path',
+            description: 'The JSON path where the error occurred.',
+          },
+          message: {
+            type: 'string',
+            title: 'Message',
+            description: 'A descriptive message about the validation error.',
+          },
+        },
+        type: 'object',
+        required: ['path', 'message'],
+        title: 'SchemaValidationError',
+      },
       SecretString: {
         properties: {
           value: {
@@ -26239,6 +26305,39 @@ export const spec = {
         type: 'object',
         required: ['agent_id', 'name'],
         title: 'UpsertThreadPayload',
+      },
+      ValidateJsonSchemaPayload: {
+        properties: {
+          json_schema: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Json Schema',
+            description: 'The JSON schema to be validated.',
+          },
+        },
+        type: 'object',
+        required: ['json_schema'],
+        title: 'ValidateJsonSchemaPayload',
+      },
+      ValidateJsonSchemaResponse: {
+        properties: {
+          is_valid: {
+            type: 'boolean',
+            title: 'Is Valid',
+            description: 'Indicates whether the JSON schema is valid.',
+          },
+          errors: {
+            items: {
+              $ref: '#/components/schemas/SchemaValidationError',
+            },
+            type: 'array',
+            title: 'Errors',
+            description: 'List of validation errors if the schema is invalid.',
+          },
+        },
+        type: 'object',
+        required: ['is_valid'],
+        title: 'ValidateJsonSchemaResponse',
       },
       ValidateSemanticDataModelPayload: {
         properties: {

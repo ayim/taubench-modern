@@ -228,6 +228,7 @@ function getRouteMap(): {
     'post /api/v2/threads/{tid}/data-frames/as-validated-query': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'post /api/v2/threads/{tid}/data-frames/save-as-validated-query': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'post /api/v2/semantic-data-models/verify-verified-query': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'post /api/v2/semantic-data-models/schemas/validate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
 
     'post /api/v2/semantic-data-models/generate': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/agents/{aid}/semantic-data-models': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

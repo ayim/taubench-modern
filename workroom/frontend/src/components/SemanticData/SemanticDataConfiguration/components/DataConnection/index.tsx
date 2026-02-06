@@ -1,11 +1,12 @@
 import { Button, Card, Dialog, Grid, Link, Typography } from '@sema4ai/components';
-import { IconDataAccess, IconDataModelImport, IconFileBrand } from '@sema4ai/icons/logos';
+import { IconDataAccess, IconDataModelImport, IconDocumentIntelligence, IconFileBrand } from '@sema4ai/icons/logos';
 
 import { EXTERNAL_LINKS } from '../../../../../lib/constants';
 import { ConfigurationStepView, DataSourceType } from '../form';
 import { DatabaseSource } from './components/DatabaseSource';
 import { FileSource } from './components/FileSource';
 import { ImportSource } from './components/ImportSource';
+import { SchemaSource } from './components/SchemaSource';
 
 type Props = {
   setDataSourceType: (dataSourceType: DataSourceType | undefined) => void;
@@ -26,6 +27,10 @@ export const DataConnection: ConfigurationStepView<Props> = ({
     return <FileSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
 
+  if (dataSourceType === DataSourceType.Schema) {
+    return <SchemaSource onClose={onClose} setActiveStep={setActiveStep} />;
+  }
+
   if (dataSourceType === DataSourceType.Import) {
     return <ImportSource onClose={onClose} setActiveStep={setActiveStep} />;
   }
@@ -44,7 +49,7 @@ export const DataConnection: ConfigurationStepView<Props> = ({
             Learn more
           </Link>
         </Typography>
-        <Grid columns={[1, 1, 3]} gap="$16">
+        <Grid columns={[1, 2, 4]} gap="$16">
           <Card
             onClick={() => setDataSourceType(DataSourceType.Database)}
             title="Connect to Database"
@@ -57,6 +62,13 @@ export const DataConnection: ConfigurationStepView<Props> = ({
             title="Upload Files"
             icon={IconFileBrand}
             description="Build a data model based on spreadsheets or CSV files. Choose the data your agent should understand when you upload similar files later."
+            as="button"
+          />
+          <Card
+            onClick={() => setDataSourceType(DataSourceType.Schema)}
+            title="Add Schemas"
+            icon={IconDocumentIntelligence}
+            description="Define JSON schemas to validate and structure data for your agent."
             as="button"
           />
           <Card

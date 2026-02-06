@@ -1,5 +1,6 @@
 import z from 'zod';
-import { SemanticModel } from '~/queries/semanticData';
+
+import { Schema } from '~/queries/semanticData';
 
 export const DataConnectionFormSchema = z.object({
   dataConnectionId: z.string().optional(),
@@ -21,9 +22,11 @@ export const DataConnectionFormSchema = z.object({
       ),
     }),
   ),
-  tables: SemanticModel.shape.tables.optional(),
-  relationships: SemanticModel.shape.relationships.optional(),
-  verifiedQueries: SemanticModel.shape.verified_queries.optional(),
+  // Using z.any() to avoid Zod 4 _zod property errors with shape references
+  tables: z.any().optional(),
+  relationships: z.any().optional(),
+  verifiedQueries: z.any().optional(),
+  schemas: z.array(Schema),
 });
 
 export type DataConnectionFormSchema = z.infer<typeof DataConnectionFormSchema>;

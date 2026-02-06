@@ -92,6 +92,29 @@ export const Relationship = z.object({
 });
 export type Relationship = z.infer<typeof Relationship>;
 
+export const Schema = z.object({
+  name: z.string(),
+  description: z.string(),
+  json_schema: z.record(z.string(), z.unknown()).catch({}),
+  validations: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+        jq_expression: z.string(),
+      }),
+    )
+    .optional(),
+  transformations: z
+    .array(
+      z.object({
+        target_schema_name: z.string(),
+        jq_expression: z.string(),
+      }),
+    )
+    .optional(),
+});
+
 export const SemanticModel = z.object({
   id: z.string(),
   name: z.string(),
@@ -123,6 +146,7 @@ export const SemanticModel = z.object({
       errors: z.array(ValidationMessage).optional(),
     }),
   ),
+  schemas: z.array(Schema).optional(),
   relationships: z.array(Relationship).optional(),
   verified_queries: z.array(VerifiedQuery).optional(),
   errors: z.array(ValidationMessage).optional(),
@@ -270,7 +294,7 @@ const semanticDataValidationQueryOptions = createSparQueryOptions<{ modelId: str
       }
 
       const validation = response.data.results.find((result) => result.semantic_data_model_id === modelId);
-      return validation?.semantic_data_model as SemanticModel;
+      return (validation?.semantic_data_model as SemanticModel) ?? null;
     },
   }),
 );
@@ -289,8 +313,20 @@ export const useCreateSemanticDataMutation = createSparMutation<
   }
 >()(({ agentAPIClient, queryClient }) => ({
   mutationFn: async (payload) => {
-    const tableData = payload.dataConnectionId
-      ? {
+    const hasSchemas = (payload.schemas ?? []).length > 0;
+    const hasTabularData = !!payload.dataConnectionId || !!payload.fileRefId;
+
+    if (!hasSchemas && !hasTabularData) {
+      throw new QueryError('At least one of data connection, file, or schemas must be provided', {
+        code: 'BAD_REQUEST',
+        resource: ResourceType.SemanticData,
+      });
+    }
+
+    // Build table data: data connections and files are mutually exclusive
+    const buildTableData = () => {
+      if (payload.dataConnectionId) {
+        return {
           data_connections_info: [
             {
               data_connection_id: payload.dataConnectionId,
@@ -298,8 +334,11 @@ export const useCreateSemanticDataMutation = createSparMutation<
             },
           ],
           files_info: [],
-        }
-      : {
+        };
+      }
+
+      if (payload.fileRefId) {
+        return {
           data_connections_info: [],
           files_info: [
             {
@@ -310,6 +349,12 @@ export const useCreateSemanticDataMutation = createSparMutation<
             },
           ],
         };
+      }
+
+      return { data_connections_info: [], files_info: [] };
+    };
+
+    const tableData = buildTableData();
 
     const generateResponse = await agentAPIClient.agentFetch('post', '/api/v2/semantic-data-models/generate', {
       body: {
@@ -317,6 +362,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
         description: payload.description || '',
         agent_id: payload.agentId,
         thread_id: payload.threadId,
+        schemas: payload.schemas ?? [],
         ...tableData,
       },
     });
@@ -418,6 +464,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
           description: payload.description || '',
           agent_id: payload.agentId,
           thread_id: payload.threadId,
+          schemas: payload.schemas ?? [],
           ...tableData,
           existing_semantic_data_model: {
             name: payload.name,
@@ -437,7 +484,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
       tables = generateResponse.data.semantic_model.tables as SemanticModel['tables'];
     }
 
-    tables = tables?.map((table) => {
+    tables = tables?.map((table: SemanticModel['tables'][number]) => {
       return {
         ...table,
         base_table: {
@@ -457,6 +504,7 @@ export const useUpdateSemanticDataModelMutation = createSparMutation<
           tables,
           relationships: payload.relationships,
           verified_queries: payload.verifiedQueries,
+          schemas: payload.schemas,
         },
       },
     });
@@ -554,7 +602,7 @@ export const useImportSemanticDataModelMutation = createSparMutation<
           name: payload.name || '',
           description: payload.description || '',
           tables:
-            payload.tables?.map((table) => ({
+            payload.tables?.map((table: SemanticModel['tables'][number]) => ({
               ...table,
               base_table: {
                 ...table.base_table,
@@ -646,3 +694,44 @@ const supportedSemanticDataEngineQueryOptions = createSparQueryOptions<object>()
 }));
 
 export const useSupportedSemanticDataEnginesQuery = createSparQuery(supportedSemanticDataEngineQueryOptions);
+
+/**
+ * Validate JSON Schema
+ */
+
+export const ValidateJsonSchemaPayload = z.object({
+  json_schema: z.record(z.string(), z.unknown()),
+});
+export type ValidateJsonSchemaPayload = z.infer<typeof ValidateJsonSchemaPayload>;
+
+export const SchemaValidationError = z.object({
+  path: z.string(),
+  message: z.string(),
+});
+export type SchemaValidationError = z.infer<typeof SchemaValidationError>;
+
+export const ValidateJsonSchemaResponse = z.object({
+  is_valid: z.boolean(),
+  errors: z.array(SchemaValidationError),
+});
+export type ValidateJsonSchemaResponse = z.infer<typeof ValidateJsonSchemaResponse>;
+
+export const useValidateJsonSchemaMutation = createSparMutation<Record<string, never>, ValidateJsonSchemaPayload>()(
+  ({ agentAPIClient }) => ({
+    mutationFn: async (payload) => {
+      const response = await agentAPIClient.agentFetch('post', '/api/v2/semantic-data-models/schemas/validate', {
+        params: {},
+        body: payload,
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to validate JSON schema', {
+          code: response.code,
+          resource: ResourceType.SemanticData,
+        });
+      }
+
+      return response.data as ValidateJsonSchemaResponse;
+    },
+  }),
+);

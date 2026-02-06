@@ -35,6 +35,7 @@ async def semantic_model() -> SemanticDataModel:
         description="Test semantic model",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
     )
 
 

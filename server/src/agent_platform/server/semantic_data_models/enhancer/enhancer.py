@@ -152,6 +152,10 @@ class SemanticDataModelEnhancer:
             create_strategy,
         )
 
+        # Don't bother enhaning if no tables are specified
+        if semantic_model.tables is None or len(semantic_model.tables) == 0:
+            return semantic_model
+
         logger.info("Starting semantic data model enhancement")
         initial_time = time.monotonic()
 

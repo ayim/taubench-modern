@@ -136,6 +136,21 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
             },
           },
         );
+      } else if (dataSourceType === DataSourceType.Schema) {
+        setActiveStep(ConfigurationStep.Processing);
+        createSemanticData(
+          { ...values, agentId, threadId },
+          {
+            onSuccess: (result) => {
+              setActiveStep(ConfigurationStep.SuccessCreation);
+              setModelId(result.semantic_data_model_id);
+            },
+            onError: (error) => {
+              setActiveStep(ConfigurationStep.DataConnection);
+              addSnackbar({ message: error.message, variant: 'danger' });
+            },
+          },
+        );
       } else if (dataSourceType === DataSourceType.Import) {
         setActiveStep(ConfigurationStep.Processing);
         await importSemanticDataModel(

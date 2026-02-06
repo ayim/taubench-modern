@@ -43,6 +43,11 @@ from agent_platform.core.semantic_data_model.types import (
     VerifiedQueryValidationContext,
 )
 from agent_platform.server.api.dependencies import StorageDependency
+from agent_platform.server.api.private_v2.sdm.models import (
+    SchemaValidationError,
+    ValidateJsonSchemaPayload,
+    ValidateJsonSchemaResponse,
+)
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.semantic_data_models.post_create_insights import (
     add_sdm_post_create_messages,
@@ -410,6 +415,7 @@ async def generate_semantic_data_model(
             description=payload.description,
             data_connections_info=payload.data_connections_info,
             files_info=payload.files_info,
+            schemas=payload.schemas,
         )
 
         enhance_model: bool = True
@@ -1347,3 +1353,43 @@ async def verify_verified_query(
         msg = f"Error verifying verified query: {e}"
         logger.exception(msg)
         raise PlatformHTTPError(error_code=ErrorCode.UNEXPECTED, message=msg) from e
+
+
+@router.post("/schemas/validate")
+async def validate_json_schema(
+    payload: ValidateJsonSchemaPayload,
+    user: AuthedUser,
+) -> ValidateJsonSchemaResponse:
+    """Validate a JSON schema using CustomDraft202012Validator.
+
+    This endpoint validates that a JSON schema is well-formed according to
+    JSON Schema Draft 2020-12 and also validates custom annotation keywords
+    (synonyms, sample_values) used by the semantic data model.
+
+    Args:
+        payload: Contains the json_schema to validate
+        user: Authenticated user
+
+    Returns:
+        ValidateJsonSchemaResponse: Contains is_valid flag and list of errors if invalid
+    """
+    from jsonschema.exceptions import SchemaError
+
+    from agent_platform.core.semantic_data_model.jsonschema import (
+        CustomDraft202012Validator,
+        SchemaAnnotationError,
+    )
+
+    try:
+        CustomDraft202012Validator.check_schema(payload.json_schema)
+        return ValidateJsonSchemaResponse(is_valid=True)
+    except SchemaError as e:
+        return ValidateJsonSchemaResponse(
+            is_valid=False,
+            errors=[SchemaValidationError(path=str(list(e.path)) if e.path else "", message=e.message)],
+        )
+    except SchemaAnnotationError as e:
+        return ValidateJsonSchemaResponse(
+            is_valid=False,
+            errors=[SchemaValidationError(path=str(list(err.schema_path)), message=err.message) for err in e.errors],
+        )

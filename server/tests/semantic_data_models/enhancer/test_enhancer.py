@@ -233,6 +233,7 @@ async def test_enhance_semantic_data_model_with_invalid_json_retry(mock_storage_
         description="Test semantic model",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
     )
 
     # Response without tool call - text response that should be rejected
@@ -336,6 +337,7 @@ async def test_enhance_semantic_data_model_with_tool_call(mock_storage_with_fk_i
         description="Test semantic model",
         data_connections_info=[data_connection_info],
         files_info=[],
+        schemas=[],
     )
     # Save the original table name for later comparison
     original_table_name = semantic_model.tables[0].get("name")
@@ -497,6 +499,7 @@ class TestGetDataConnectionTableNames:
             description="Test",
             data_connections_info=[data_connection_info],
             files_info=[],
+            schemas=[],
         )
         result = _get_data_connection_table_names(semantic_model)
         assert result == {"dc_table"}
@@ -537,6 +540,7 @@ class TestGetDataConnectionTableNames:
             description="Test",
             data_connections_info=[],
             files_info=[file_info],
+            schemas=[],
         )
         result = _get_data_connection_table_names(semantic_model)
         assert result == set()
@@ -583,6 +587,7 @@ class TestGetDataConnectionTableNames:
             description="Test",
             data_connections_info=[data_connection_info_1, data_connection_info_2],
             files_info=[file_info],
+            schemas=[],
         )
         result = _get_data_connection_table_names(semantic_model)
         assert result == {"cust_tbl", "ord_tbl"}
@@ -603,6 +608,7 @@ class TestGetDataConnectionTableNames:
             description="Test",
             data_connections_info=[],
             files_info=[],
+            schemas=[],
         )
         result = _get_data_connection_table_names(semantic_model)
         assert result == set()
@@ -645,6 +651,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             description="Test",
             data_connections_info=[data_connection_info],
             files_info=[],
+            schemas=[],
         )
         # After generation: LogicalTable.name = base_table.table = "sd_raw_tbl"
         # Simulate LLM changing the logical name to a friendly name
@@ -693,6 +700,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             description="Test",
             data_connections_info=[data_connection_info],
             files_info=[],
+            schemas=[],
         )
 
         # After generation: column.name = column.expr = physical name
@@ -747,6 +755,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             description="Test",
             data_connections_info=[data_connection_info],
             files_info=[],
+            schemas=[],
         )
 
         # Manually add a metric (generator doesn't create metrics automatically)
@@ -799,6 +808,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             description="Test",
             data_connections_info=[],
             files_info=[file_info],
+            schemas=[],
         )
 
         # LLM generates clean database-style logical names
@@ -854,6 +864,7 @@ class TestResetLogicalNamesToPhysicalForDataConnections:
             description="Test",
             data_connections_info=[data_connection_info],
             files_info=[file_info],
+            schemas=[],
         )
 
         # LLM generates friendly names for DC table, clean DB-style for file table
