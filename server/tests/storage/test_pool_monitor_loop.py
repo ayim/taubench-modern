@@ -1,18 +1,15 @@
 import asyncio
 
+from sqlalchemy.pool import QueuePool
 
-class _DummyPool:
+
+class _DummyPool(QueuePool):
     def __init__(self):
-        self._stats = "stats"
         self.requested_times = 0
-
-    def get_stats(self):
-        self.requested_times += 1
-        return self._stats
 
     def status(self):
         self.requested_times += 1
-        return self._stats
+        return "stats"
 
 
 class _DummyEngine:
