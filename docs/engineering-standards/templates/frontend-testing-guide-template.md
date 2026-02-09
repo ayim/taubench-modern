@@ -8,11 +8,11 @@
 
 ## Story-to-Test Mapping
 
-| Story | Test Type | Test File |
-| ----- | --------- | --------- |
-| A-1 | Component | `[Component].test.tsx` |
-| A-2 | Component + E2E | `[Component].test.tsx`, `[feature].spec.ts` |
-| B-1 | E2E | `[feature].spec.ts` |
+| Story | Test Type       | Test File                                   |
+| ----- | --------------- | ------------------------------------------- |
+| A-1   | Component       | `[Component].test.tsx`                      |
+| A-2   | Component + E2E | `[Component].test.tsx`, `[feature].spec.ts` |
+| B-1   | E2E             | `[feature].spec.ts`                         |
 
 ---
 
@@ -26,10 +26,10 @@ describe('[Component]', () => {
   it('should [test story A-1]', async () => {
     // Arrange
     render(<Component {...props} />);
-    
+
     // Act
     await userEvent.click(screen.getByRole('button', { name: /submit/i }));
-    
+
     // Assert
     expect(screen.getByText(/success/i)).toBeInTheDocument();
   });
@@ -46,10 +46,10 @@ import { test, expect } from '@playwright/test';
 test('should [test story B-1]', async ({ page }) => {
   // Navigate
   await page.goto('/feature');
-  
+
   // Interact
   await page.getByRole('button', { name: /action/i }).click();
-  
+
   // Assert
   await expect(page.getByText(/result/i)).toBeVisible();
 });

@@ -8,11 +8,11 @@
 
 ## Story-to-Test Mapping
 
-| Story | Test Type | Test File |
-| ----- | --------- | --------- |
-| A-1 | Unit | `test_[module].py::test_story_a1` |
-| A-2 | Unit + Integration | `test_[module].py::test_story_a2_*` |
-| B-1 | Integration | `test_[integration].py::test_story_b1` |
+| Story | Test Type          | Test File                              |
+| ----- | ------------------ | -------------------------------------- |
+| A-1   | Unit               | `test_[module].py::test_story_a1`      |
+| A-2   | Unit + Integration | `test_[module].py::test_story_a2_*`    |
+| B-1   | Integration        | `test_[integration].py::test_story_b1` |
 
 ---
 
@@ -25,10 +25,10 @@ async def test_story_a1_basic():
     """Test [what this story does]."""
     # Arrange
     input_data = {...}
-    
+
     # Act
     result = await function(input_data)
-    
+
     # Assert
     assert result.field == expected_value
 ```
@@ -52,10 +52,10 @@ async def test_story_b1_with_db(test_db):
     """Test [story] with real database."""
     # Arrange: Insert test data
     await test_db.execute("INSERT INTO ...")
-    
+
     # Act: Execute feature
     result = await feature_function()
-    
+
     # Assert: Verify database state
     rows = await test_db.fetch("SELECT * FROM ...")
     assert len(rows) == expected_count
@@ -69,9 +69,9 @@ async def test_story_b1_with_db(test_db):
 async def test_performance_target():
     """Verify < [X]ms latency target."""
     start = time.perf_counter()
-    
+
     result = await function(large_input)
-    
+
     elapsed_ms = (time.perf_counter() - start) * 1000
     assert elapsed_ms < target_ms
 ```

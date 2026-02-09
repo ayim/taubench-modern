@@ -52,7 +52,6 @@ Within a single SDM (i.e., within the same source/database), the linker **does n
 
 Cross-SDM connectivity (federation) is handled separately via **explicit cross-SDM relationship artifacts** (Phase 3), not by runtime inference.
 
-
 ### What Schema Linking IS
 
 - Selecting which tables/columns/schemas/fields are relevant to a question
@@ -71,17 +70,17 @@ Cross-SDM connectivity (federation) is handled separately via **explicit cross-S
 
 ### 1.1 Glossary
 
-| Term | Definition |
-|------|------------|
-| **Card** | A search-optimized document representing a schema element (table, column, metric). Indexed for BM25/embedding retrieval. Internal to the linker. |
-| **Schema Slice** | The output of the linker: a minimal set of physical tables, columns, and joins relevant to a question. |
-| **Membership Closure** | Adding tables that own selected columns. If column `orders.amount` is selected, table `orders` must be in the slice. |
-| **FK-Key Closure** | Adding columns required for joins. If `orders` and `customers` are joined on `customer_id`, both FK columns are added. |
-| **Metric Closure** | Adding tables/columns referenced by a selected metric's expression. If metric `total_revenue` = `SUM(orders.amount)`, table `orders` and column `amount` are added. |
-| **Connector Table** | A table added to enable joins between selected tables (e.g., a bridge table). |
-| **Connector Minimization** | Finding the smallest set of connector tables needed to make selected tables joinable. Implemented via greedy shortest-path attachment. |
-| **SDM** | Semantic Data Model. Contains logical names, descriptions, synonyms, relationships, and mappings to physical tables/columns. |
-| **Physical Reference** | The actual database identifier (e.g., `sales_dw.cust_mstr.cust_id`), as opposed to a logical/business name. |
+| Term                       | Definition                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Card**                   | A search-optimized document representing a schema element (table, column, metric). Indexed for BM25/embedding retrieval. Internal to the linker.                    |
+| **Schema Slice**           | The output of the linker: a minimal set of physical tables, columns, and joins relevant to a question.                                                              |
+| **Membership Closure**     | Adding tables that own selected columns. If column `orders.amount` is selected, table `orders` must be in the slice.                                                |
+| **FK-Key Closure**         | Adding columns required for joins. If `orders` and `customers` are joined on `customer_id`, both FK columns are added.                                              |
+| **Metric Closure**         | Adding tables/columns referenced by a selected metric's expression. If metric `total_revenue` = `SUM(orders.amount)`, table `orders` and column `amount` are added. |
+| **Connector Table**        | A table added to enable joins between selected tables (e.g., a bridge table).                                                                                       |
+| **Connector Minimization** | Finding the smallest set of connector tables needed to make selected tables joinable. Implemented via greedy shortest-path attachment.                              |
+| **SDM**                    | Semantic Data Model. Contains logical names, descriptions, synonyms, relationships, and mappings to physical tables/columns.                                        |
+| **Physical Reference**     | The actual database identifier (e.g., `sales_dw.cust_mstr.cust_id`), as opposed to a logical/business name.                                                         |
 
 ---
 
@@ -91,27 +90,27 @@ This spec uses a **hybrid approach**: deterministic algorithms where optimal, LL
 
 ### When to Use What
 
-| Task | Approach | Rationale |
-|------|----------|-----------|
-| **Card generation** | ⚙️ Deterministic | SDM provides all metadata needed |
-| **Query understanding** | 🤖 LLM | Semantic parsing beats regex |
-| **Retrieval** | ⚙️ Deterministic | BM25 + embeddings are fast & proven |
-| **Refinement/closure** | ⚙️ Deterministic | Graph algorithms are correct by definition |
-| **Join minimization** | ⚙️ Deterministic | Greedy shortest-path attachment (simple, deterministic; works well for small terminal sets) |
-| **Recovery/rewriting** | 🤖 LLM | Understands WHY linking failed |
-| **Ambiguity resolution** | 🤖 LLM | Reasons about interpretations |
-| **Policy filtering** | ⚙️ Deterministic | Security must be deterministic |
+| Task                     | Approach         | Rationale                                                                                   |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------------------------- |
+| **Card generation**      | ⚙️ Deterministic | SDM provides all metadata needed                                                            |
+| **Query understanding**  | 🤖 LLM           | Semantic parsing beats regex                                                                |
+| **Retrieval**            | ⚙️ Deterministic | BM25 + embeddings are fast & proven                                                         |
+| **Refinement/closure**   | ⚙️ Deterministic | Graph algorithms are correct by definition                                                  |
+| **Join minimization**    | ⚙️ Deterministic | Greedy shortest-path attachment (simple, deterministic; works well for small terminal sets) |
+| **Recovery/rewriting**   | 🤖 LLM           | Understands WHY linking failed                                                              |
+| **Ambiguity resolution** | 🤖 LLM           | Reasons about interpretations                                                               |
+| **Policy filtering**     | ⚙️ Deterministic | Security must be deterministic                                                              |
 
 ### Cost/Latency Tradeoffs
 
-| Component | Latency | LLM Calls | When Invoked |
-|-----------|---------|-----------|--------------|
-| Card generation | Offline | 0 | SDM update (deterministic) |
-| Query understanding | +200-500ms | 1 | Every request (Phase 2+) |
-| Retrieval (BM25+embed) | 50-200ms | 0 | Every request |
-| Refinement | 20-80ms | 0 | Every request |
-| Recovery loop | +500-1000ms | 1-2 | Only on low confidence (~10%) |
-| Ambiguity check | +300-500ms | 1 | Only when ambiguous (~15%) |
+| Component              | Latency     | LLM Calls | When Invoked                  |
+| ---------------------- | ----------- | --------- | ----------------------------- |
+| Card generation        | Offline     | 0         | SDM update (deterministic)    |
+| Query understanding    | +200-500ms  | 1         | Every request (Phase 2+)      |
+| Retrieval (BM25+embed) | 50-200ms    | 0         | Every request                 |
+| Refinement             | 20-80ms     | 0         | Every request                 |
+| Recovery loop          | +500-1000ms | 1-2       | Only on low confidence (~10%) |
+| Ambiguity check        | +300-500ms  | 1         | Only when ambiguous (~15%)    |
 
 **Typical request:** 1-2 LLM calls (query understanding + optional recovery)
 
@@ -119,17 +118,17 @@ This spec uses a **hybrid approach**: deterministic algorithms where optimal, LL
 
 ## 3. Research Foundation
 
-| Paper | Key Technique | Approach | Used In |
-|-------|---------------|----------|---------|
-| **RASL** (Amazon, 2025) | Componentized cards, two-stage retrieval | Deterministic | Epic A, D |
-| **LinkAlign** (EMNLP 2025) | Multi-round retrieval, query rewriting | 🤖 Agentic | Epic E |
-| **Rethinking Schema Linking** (2025) | Bidirectional retrieval, question augmentation | Hybrid | Epic D, E |
-| **SteinerSQL** (2025) | Steiner tree for join paths | Deterministic | Epic D |
-| **DBCopilot** (EDBT 2025) | Schema routing | Deterministic | Epic C |
-| **E-SQL** (2024) | Question enrichment | 🤖 Agentic | Epic E |
-| **CHESS** (2024) | Entity extraction, value matching | 🤖 Agentic | Epic E |
-| **DIN-SQL** (NeurIPS 2023) | Decomposition, self-correction | 🤖 Agentic | Epic E |
-| **IBM Schema Linking** | FK-path/key closure | Deterministic | Epic D |
+| Paper                                | Key Technique                                  | Approach      | Used In   |
+| ------------------------------------ | ---------------------------------------------- | ------------- | --------- |
+| **RASL** (Amazon, 2025)              | Componentized cards, two-stage retrieval       | Deterministic | Epic A, D |
+| **LinkAlign** (EMNLP 2025)           | Multi-round retrieval, query rewriting         | 🤖 Agentic    | Epic E    |
+| **Rethinking Schema Linking** (2025) | Bidirectional retrieval, question augmentation | Hybrid        | Epic D, E |
+| **SteinerSQL** (2025)                | Steiner tree for join paths                    | Deterministic | Epic D    |
+| **DBCopilot** (EDBT 2025)            | Schema routing                                 | Deterministic | Epic C    |
+| **E-SQL** (2024)                     | Question enrichment                            | 🤖 Agentic    | Epic E    |
+| **CHESS** (2024)                     | Entity extraction, value matching              | 🤖 Agentic    | Epic E    |
+| **DIN-SQL** (NeurIPS 2023)           | Decomposition, self-correction                 | 🤖 Agentic    | Epic E    |
+| **IBM Schema Linking**               | FK-path/key closure                            | Deterministic | Epic D    |
 
 ---
 
@@ -169,13 +168,13 @@ This spec uses a **hybrid approach**: deterministic algorithms where optimal, LL
 
 ### Infrastructure by Phase
 
-| Phase | Search | Vector DB | LLM Calls | Notes |
-|-------|--------|-----------|-----------|-------|
-| **1** | BM25 only | None | **0** (fully deterministic) | B-1 can be added here if needed |
-| **2** | BM25 + Embeddings | sqlite-vss / pgvector | 1-2 per request | |
-| **2.1** | Same | Same | Same | |
-| **3** | Same | Same | 1-3 per request | B-1 required if not done in Phase 1 |
-| **4** | Same | Same | Same | |
+| Phase   | Search            | Vector DB             | LLM Calls                   | Notes                               |
+| ------- | ----------------- | --------------------- | --------------------------- | ----------------------------------- |
+| **1**   | BM25 only         | None                  | **0** (fully deterministic) | B-1 can be added here if needed     |
+| **2**   | BM25 + Embeddings | sqlite-vss / pgvector | 1-2 per request             |                                     |
+| **2.1** | Same              | Same                  | Same                        |                                     |
+| **3**   | Same              | Same                  | 1-3 per request             | B-1 required if not done in Phase 1 |
+| **4**   | Same              | Same                  | Same                        |                                     |
 
 ---
 
@@ -200,6 +199,7 @@ This spec uses a **hybrid approach**: deterministic algorithms where optimal, LL
 ```
 
 **The SDM provides:**
+
 - Logical/business-friendly names → included in searchable text
 - Descriptions → included in searchable text
 - Synonyms → included in searchable text
@@ -207,6 +207,7 @@ This spec uses a **hybrid approach**: deterministic algorithms where optimal, LL
 - Mapping to physical table/column names → **this becomes the card ID**
 
 **Why Physical-First:**
+
 ```
 User: "Show sales by customer"
             │
@@ -232,9 +233,9 @@ User: "Show sales by customer"
             │
             ▼
    Generator directly produces:
-   SELECT cust_nm, SUM(amount) 
+   SELECT cust_nm, SUM(amount)
    FROM sales_dw.cust_mstr ...
-   
+
    ✓ No translation layer needed!
 ```
 
@@ -256,7 +257,7 @@ User: "Show sales by customer"
 │                                  • Error (if failed)           │
 └────────────────────────────────────────────────────────────────┘
 
-Note: Conversation History is used in Phase 2+ for query understanding 
+Note: Conversation History is used in Phase 2+ for query understanding
 context. In Phase 1, it is accepted but ignored.
 ```
 
@@ -355,7 +356,7 @@ This improves recall without adding agentic complexity.
   - `missing_links`: list of terminal pairs that could not be connected (with a reason)
 - The linker **MUST NOT** pretend connectivity by adding arbitrary connector tables when no join path exists in the schema graph.
 
-Rationale: connectivity failure is a *schema linking outcome*; decomposition/clarification is a generator/agent decision.
+Rationale: connectivity failure is a _schema linking outcome_; decomposition/clarification is a generator/agent decision.
 
 #### 5.4.3 Connector minimization contract (Greedy shortest-path)
 
@@ -407,6 +408,7 @@ def find_connectors(join_graph, terminals, seed=None):
 ```
 
 **Tie-breaking (MUST be deterministic):**
+
 1. Shorter path length wins
 2. Higher retrieval score wins (if available)
 3. Lexical order wins
@@ -422,6 +424,7 @@ def find_connectors(join_graph, terminals, seed=None):
 A single scalar `confidence` is used only for gating (recovery, widening, fallback). Define it deterministically:
 
 **Formula:**
+
 ```python
 from math import sqrt
 
@@ -457,7 +460,6 @@ def compute_confidence(table_candidates, column_candidates, selected_column_ids,
     return sqrt(table_conf * col_conf) * conn_factor
 ```
 
-
 The linker should include `_debug.confidence_breakdown` in traces for tuning.
 
 #### 5.4.5 Entitlements and safe tracing
@@ -469,17 +471,19 @@ entitlements:
   mode: "strict" | "passthrough"    # Default: "passthrough"
 ```
 
-| Mode | Behavior | Use When |
-|------|----------|----------|
-| **`strict`** | Filter schema elements by user permissions before returning slice, logging, or sending schema context to an LLM | Schema structure is sensitive; multi-tenant SaaS; probing attacks are a concern |
-| **`passthrough`** | Return full slice; rely on DB/executor for access control | Schema is non-sensitive; internal trusted deployments |
+| Mode              | Behavior                                                                                                        | Use When                                                                        |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **`strict`**      | Filter schema elements by user permissions before returning slice, logging, or sending schema context to an LLM | Schema structure is sensitive; multi-tenant SaaS; probing attacks are a concern |
+| **`passthrough`** | Return full slice; rely on DB/executor for access control                                                       | Schema is non-sensitive; internal trusted deployments                           |
 
 When `strict` mode is enabled, authorization must be enforced **before**:
+
 - returning a schema slice,
 - logging retrieval candidates (unless redacted),
 - sending any schema-related context to an LLM.
 
 **Minimum rules:**
+
 - Filter retrieval results by entitlements (at query-time or index-time)
 - Default traces to **redact** sample values / sensitive descriptions
 - Admin debug mode: enabled via `X-Debug-Trace: full` header (requires `admin` entitlement)
@@ -487,6 +491,7 @@ When `strict` mode is enabled, authorization must be enforced **before**:
 #### 5.4.6 Slice budgets (prompt safety)
 
 Define hard caps and enforce them deterministically:
+
 - `max_tables` (default: 10)
 - `max_columns_per_table` (default: 25)
 - `max_total_columns` (default: 80)
@@ -500,6 +505,7 @@ A metric card must include a machine-readable list of referenced **physical** ta
 #### 5.4.8 Query understanding contract (Phase 2+)
 
 The Phase 2 LLM call is **schema-agnostic**:
+
 - Input: question + optional conversation context + optional small domain glossary
 - Output: normalized search tokens + entities/metrics/filters/time hints
 - It **MUST NOT** output table/column identifiers
@@ -529,13 +535,13 @@ connectivity: "unknown"
 
 **Error codes:**
 
-| Code | Meaning | HTTP Status |
-|------|---------|-------------|
-| `sdm_not_found` | Requested SDM version doesn't exist | 404 |
-| `entitlement_denied` | User lacks permission to access any matched schema | 403 |
-| `no_matches` | No schema elements matched the query | 200 (with empty slice) |
-| `timeout` | Linking exceeded time budget | 504 |
-| `internal_error` | Unexpected failure | 500 |
+| Code                 | Meaning                                            | HTTP Status            |
+| -------------------- | -------------------------------------------------- | ---------------------- |
+| `sdm_not_found`      | Requested SDM version doesn't exist                | 404                    |
+| `entitlement_denied` | User lacks permission to access any matched schema | 403                    |
+| `no_matches`         | No schema elements matched the query               | 200 (with empty slice) |
+| `timeout`            | Linking exceeded time budget                       | 504                    |
+| `internal_error`     | Unexpected failure                                 | 500                    |
 
 ---
 
@@ -549,11 +555,11 @@ connectivity: "unknown"
 
 **Approach:** Fully deterministic. SDM provides all metadata needed.
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| A-1: Schema graph | 1 | ⚙️ Deterministic | 0 |
-| A-2: Card generation | 1 | ⚙️ Deterministic | 0 |
-| A-3: Caching | 2 | ⚙️ Deterministic | 0 |
+| Story                | Phase | Approach         | LLM Calls |
+| -------------------- | ----- | ---------------- | --------- |
+| A-1: Schema graph    | 1     | ⚙️ Deterministic | 0         |
+| A-2: Card generation | 1     | ⚙️ Deterministic | 0         |
+| A-3: Caching         | 2     | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -564,11 +570,13 @@ connectivity: "unknown"
 **Approach:** Pure deterministic graph construction. No LLM needed.
 
 **What this produces:**
+
 - Graph with **physical table names** as nodes
 - Relationships as edges (stored with physical references)
 - Edges store: join keys (physical), cardinality, provenance
 
 **Acceptance Criteria:**
+
 - [ ] All physical tables as nodes
 - [ ] Relationships stored with physical column references
 - [ ] Can compute: joinability, shortest path
@@ -588,20 +596,21 @@ connectivity: "unknown"
 
 **Source of card content:**
 
-| Card Field | Source | Purpose |
-|------------|--------|---------|
-| `id` | Physical table/column name | **Primary identifier** |
-| `text` (searchable) | physical_name + logical_name + description + synonyms | Search matching |
-| `physical_table` | SDM physical mapping | **What we return** |
-| `sdm_context` | SDM metadata | Optional debugging only |
+| Card Field          | Source                                                | Purpose                 |
+| ------------------- | ----------------------------------------------------- | ----------------------- |
+| `id`                | Physical table/column name                            | **Primary identifier**  |
+| `text` (searchable) | physical_name + logical_name + description + synonyms | Search matching         |
+| `physical_table`    | SDM physical mapping                                  | **What we return**      |
+| `sdm_context`       | SDM metadata                                          | Optional debugging only |
 
 **Table Card Structure:**
+
 ```json
 {
   "id": "table:sales_dw.cust_mstr",
   "type": "table",
   "text": "sales_dw cust_mstr Customers customer client buyer account master data contact info",
-  
+
   "physical_table": "sales_dw.cust_mstr",
   "sdm_context": {
     "logical_name": "Customers",
@@ -612,12 +621,13 @@ connectivity: "unknown"
 ```
 
 **Column Card Structure:**
+
 ```json
 {
   "id": "column:sales_dw.cust_mstr.cust_nm",
   "type": "column",
   "text": "cust_nm customer name full name buyer name sales_dw cust_mstr",
-  
+
   "physical_column": "cust_nm",
   "physical_table": "sales_dw.cust_mstr",
   "data_type": "varchar",
@@ -630,16 +640,17 @@ connectivity: "unknown"
 ```
 
 **Metric Card Structure:**
+
 ```json
 {
   "id": "metric:total_revenue",
   "type": "metric",
   "text": "total revenue sales sum amount gross revenue orders",
-  
+
   "metric_name": "total_revenue",
   "physical_dependencies": [
-    {"table": "sales_dw.orders", "column": "amount"},
-    {"table": "sales_dw.orders", "column": "order_date"}
+    { "table": "sales_dw.orders", "column": "amount" },
+    { "table": "sales_dw.orders", "column": "order_date" }
   ],
   "expression_hint": "SUM(orders.amount)",
   "sdm_context": {
@@ -652,14 +663,15 @@ connectivity: "unknown"
 
 **Card Types Generated:**
 
-| Card Type | ID Format | Returns | Closure Behavior |
-|-----------|-----------|---------|------------------|
-| Table card | `table:{physical_table}` | Physical table name | Membership |
-| Column card | `column:{physical_table}.{physical_column}` | Physical column reference | Membership |
-| Metric card | `metric:{metric_name}` | Expression + physical deps | Metric closure: adds all `physical_dependencies` |
-| Relationship card | `rel:{table1}:{table2}` | Physical join columns | FK-key closure |
+| Card Type         | ID Format                                   | Returns                    | Closure Behavior                                 |
+| ----------------- | ------------------------------------------- | -------------------------- | ------------------------------------------------ |
+| Table card        | `table:{physical_table}`                    | Physical table name        | Membership                                       |
+| Column card       | `column:{physical_table}.{physical_column}` | Physical column reference  | Membership                                       |
+| Metric card       | `metric:{metric_name}`                      | Expression + physical deps | Metric closure: adds all `physical_dependencies` |
+| Relationship card | `rel:{table1}:{table2}`                     | Physical join columns      | FK-key closure                                   |
 
 **Card Generation:**
+
 ```python
 def generate_table_card(sdm_table) -> Card:
     physical_name = sdm_table.physical_table
@@ -669,7 +681,7 @@ def generate_table_card(sdm_table) -> Card:
         sdm_table.description or "",
         " ".join(sdm_table.synonyms or [])
     ])
-    
+
     return Card(
         id=f"table:{physical_name}",
         type="table",
@@ -685,7 +697,7 @@ def generate_table_card(sdm_table) -> Card:
 def generate_metric_card(sdm_metric) -> Card:
     # Extract physical dependencies from metric expression
     deps = parse_metric_dependencies(sdm_metric.expression)
-    
+
     searchable_text = " ".join([
         sdm_metric.name,
         sdm_metric.logical_name or "",
@@ -693,7 +705,7 @@ def generate_metric_card(sdm_metric) -> Card:
         " ".join(sdm_metric.synonyms or []),
         " ".join(d["table"] + " " + d["column"] for d in deps)
     ])
-    
+
     return Card(
         id=f"metric:{sdm_metric.name}",
         type="metric",
@@ -710,6 +722,7 @@ def generate_metric_card(sdm_metric) -> Card:
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Card IDs use physical names
 - [ ] Searchable text includes: physical name + logical name + description + synonyms
 - [ ] Cards return physical references
@@ -730,6 +743,7 @@ def generate_metric_card(sdm_metric) -> Card:
 **Approach:** Deterministic caching logic.
 
 **Acceptance Criteria:**
+
 - [ ] Artifacts cached by `(sdm_id, sdm_version)`
 - [ ] SDM update triggers regeneration
 - [ ] Old artifacts serve during regeneration
@@ -742,9 +756,9 @@ def generate_metric_card(sdm_metric) -> Card:
 
 **Approach:** Fully deterministic. Security rules must not depend on LLM.
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| B-1: Policy filter | 1 or 3 | ⚙️ Deterministic | 0 |
+| Story              | Phase  | Approach         | LLM Calls |
+| ------------------ | ------ | ---------------- | --------- |
+| B-1: Policy filter | 1 or 3 | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -757,12 +771,14 @@ def generate_metric_card(sdm_metric) -> Card:
 **Approach:** Rule-based filtering on **physical references**.
 
 **Critical ordering rule (MUST):**
+
 - Entitlements MUST be applied **before**:
   - any schema slice is returned,
   - any linking trace is logged (unless redacted),
   - any schema-related context is sent to an LLM.
 
 **Acceptance Criteria:**
+
 - [ ] Filter operates on physical table/column names
 - [ ] Unauthorized elements never appear in output schema slices
 - [ ] Unauthorized elements never appear in traces (except redacted counts)
@@ -777,9 +793,9 @@ def generate_metric_card(sdm_metric) -> Card:
 
 **Goal:** Route queries to correct databases/schemas.
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| C-1: Database selection | 3 | ⚙️ Deterministic | 0 |
+| Story                   | Phase | Approach         | LLM Calls |
+| ----------------------- | ----- | ---------------- | --------- |
+| C-1: Database selection | 3     | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -790,6 +806,7 @@ def generate_metric_card(sdm_metric) -> Card:
 **Approach:** BM25 + embedding search over database/schema cards (same physical-first approach).
 
 **Acceptance Criteria:**
+
 - [ ] Routes correctly 95%+ of time
 - [ ] No LLM calls (retrieval-based)
 - [ ] Returns physical database/schema identifiers
@@ -805,14 +822,14 @@ def generate_metric_card(sdm_metric) -> Card:
 
 **Approach:** Fully deterministic. Retrieval + graph algorithms.
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| D-1: Basic retrieval | 1 | ⚙️ Deterministic | 0 |
-| D-2: Basic refinement | 1 | ⚙️ Deterministic | 0 |
-| D-3: Two-stage linking | 1 | ⚙️ Deterministic | 0 |
-| D-4: Hybrid retrieval | 2 | ⚙️ Deterministic | 0 |
-| D-5: Bidirectional | 2 | ⚙️ Deterministic | 0 |
-| D-6: Connector minimization | 2 | ⚙️ Deterministic | 0 |
+| Story                       | Phase | Approach         | LLM Calls |
+| --------------------------- | ----- | ---------------- | --------- |
+| D-1: Basic retrieval        | 1     | ⚙️ Deterministic | 0         |
+| D-2: Basic refinement       | 1     | ⚙️ Deterministic | 0         |
+| D-3: Two-stage linking      | 1     | ⚙️ Deterministic | 0         |
+| D-4: Hybrid retrieval       | 2     | ⚙️ Deterministic | 0         |
+| D-5: Bidirectional          | 2     | ⚙️ Deterministic | 0         |
+| D-6: Connector minimization | 2     | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -830,22 +847,23 @@ class ColumnRef(BaseModel):
 def link(question: str, parsed_query: ParsedQuery | None = None) -> SchemaSlice:
     raw_terms = parsed_query.search_terms if parsed_query else question
     search_terms = normalize_query(raw_terms)  # §5.4.1
-    
+
     table_cards = bm25_search(table_index, search_terms, k=10)
     column_cards = bm25_search(column_index, search_terms, n=30)
     metric_cards = bm25_search(metric_index, search_terms, k=5)
-    
+
     tables = [card.physical_table for card in table_cards]
     columns = [
         ColumnRef(table=card.physical_table, column=card.physical_column)
         for card in column_cards
     ]
     metrics = [card for card in metric_cards]
-    
+
     return SchemaSlice(tables, columns, metrics, confidence)
 ```
 
 **Acceptance Criteria:**
+
 - [ ] Returns physical table/column names
 - [ ] Works without any LLM calls
 - [ ] Confidence score (0-1)
@@ -861,6 +879,7 @@ def link(question: str, parsed_query: ParsedQuery | None = None) -> SchemaSlice:
 **Approach:** Graph algorithms on physical table graph.
 
 **Acceptance Criteria:**
+
 - [ ] Membership closure: add tables containing selected columns
 - [ ] FK-key closure: add columns needed for joins
 - [ ] Metric closure: add tables/columns referenced by selected metrics
@@ -873,17 +892,18 @@ def link(question: str, parsed_query: ParsedQuery | None = None) -> SchemaSlice:
 > As a system, I want to first narrow to tables, then find relevant columns.
 
 **Algorithm:**
+
 ```python
 def two_stage_link(question: str) -> SchemaSlice:
     table_cards = bm25_search(table_index, question, k=10)
     candidate_tables = [card.physical_table for card in table_cards]
-    
+
     column_cards = bm25_search(
-        column_index, 
+        column_index,
         question,
         table_filter=candidate_tables
     )
-    
+
     return SchemaSlice(tables=candidate_tables, columns=column_cards)
 ```
 
@@ -912,12 +932,14 @@ def two_stage_link(question: str) -> SchemaSlice:
 **Approach:** Greedy connect-to-component using BFS shortest-path attachment (see §5.4.3).
 
 **Algorithm (summary):**
+
 1. Seed with the highest-scoring terminal table
 2. Repeatedly attach the nearest remaining terminal via shortest join path to the connected component
 3. Add all tables on each path to the connected set
 4. Deterministic tie-breaks: path length → score → lexical
 
 **Acceptance Criteria:**
+
 - [ ] Connectors are **physical table names**
 - [ ] Join paths use **physical column references**
 - [ ] Output is deterministic and idempotent
@@ -930,13 +952,13 @@ def two_stage_link(question: str) -> SchemaSlice:
 
 **Goal:** Use LLM to improve linking quality where it genuinely helps.
 
-| Story | Phase | Approach | LLM Calls | When |
-|-------|-------|----------|-----------|------|
-| E-1: Query understanding | 2 | 🤖 LLM | 1 | Every request |
-| E-2: Recovery loop | 2 | 🤖 LLM | 1-2 | Low confidence |
-| E-3: Ambiguity resolution | 3 | 🤖 LLM | 1 | When ambiguous |
-| E-4a: Cross-SDM suggestions (offline) | 3 | ⚙️ Deterministic | 0 | SDM update |
-| E-4b: Cross-SDM hints (runtime) | 3 | ⚙️ Deterministic | 0 | Multi-SDM queries |
+| Story                                 | Phase | Approach         | LLM Calls | When              |
+| ------------------------------------- | ----- | ---------------- | --------- | ----------------- |
+| E-1: Query understanding              | 2     | 🤖 LLM           | 1         | Every request     |
+| E-2: Recovery loop                    | 2     | 🤖 LLM           | 1-2       | Low confidence    |
+| E-3: Ambiguity resolution             | 3     | 🤖 LLM           | 1         | When ambiguous    |
+| E-4a: Cross-SDM suggestions (offline) | 3     | ⚙️ Deterministic | 0         | SDM update        |
+| E-4b: Cross-SDM hints (runtime)       | 3     | ⚙️ Deterministic | 0         | Multi-SDM queries |
 
 **Policy:** No within-SDM join inference at runtime. Within-SDM relationships must be explicit.
 
@@ -949,11 +971,13 @@ def two_stage_link(question: str) -> SchemaSlice:
 **Hard boundary:** LLM **must not** output schema identifiers. Outputs only search signals.
 
 **Input:**
+
 - `question`
 - `conversation_history` (optional, for context)
 - `domain_glossary` (optional, small)
 
 **Output:**
+
 ```python
 class FilterHint(BaseModel):
     field_hint: str
@@ -985,15 +1009,15 @@ ParsedQuery(
 ```python
 def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
     result = link(question)
-    
+
     for round in range(max_rounds):
         if result.confidence >= 0.6 and result.connectivity == "connected":
             break
-        
+
         rewritten = llm_rewrite_query(question, result)
         result2 = link(rewritten.query)
         result = merge_results(result, result2)
-    
+
     return result
 ```
 
@@ -1014,6 +1038,7 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 **Scope:** Offline job only. Not used to force connectivity at runtime.
 
 **Acceptance Criteria:**
+
 - [ ] Produces candidates with evidence and confidence
 - [ ] Candidates enter review/approval workflow
 - [ ] Approved edges stored as explicit `cross_relationship` artifacts
@@ -1026,6 +1051,7 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 > As a system, I want to return hint-only cross-SDM join candidates.
 
 **Rules:**
+
 - Hints are **never** treated as guaranteed join edges
 - Hints **must not** be used to claim `connectivity="connected"`
 - Hints are filtered by entitlements
@@ -1034,10 +1060,10 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 
 ## EPIC F: Fallback & Confidence
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| F-0: Confidence scoring | 1 | ⚙️ Deterministic | 0 |
-| F-1: Simple fallback | 1 | ⚙️ Deterministic | 0 |
+| Story                   | Phase | Approach         | LLM Calls |
+| ----------------------- | ----- | ---------------- | --------- |
+| F-0: Confidence scoring | 1     | ⚙️ Deterministic | 0         |
+| F-1: Simple fallback    | 1     | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -1048,6 +1074,7 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 **Definition:** See §5.4.4.
 
 **Acceptance Criteria:**
+
 - [ ] Confidence is in [0, 1]
 - [ ] Deterministic for identical inputs
 - [ ] Decreases when disconnected
@@ -1060,6 +1087,7 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 > As a system, I want to return "no confident matches" gracefully.
 
 **Acceptance Criteria:**
+
 - [ ] Returns empty slice with confidence = 0
 - [ ] Provides reason for failure
 - [ ] Uses error contract (§5.5) if appropriate
@@ -1068,10 +1096,10 @@ def link_with_recovery(question: str, max_rounds: int = 2) -> SchemaSlice:
 
 ## EPIC G: Output & Observability
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| G-1: Schema slice | 1 | ⚙️ Deterministic | 0 |
-| G-2: Linking trace | 2 | ⚙️ Deterministic | 0 |
+| Story              | Phase | Approach         | LLM Calls |
+| ------------------ | ----- | ---------------- | --------- |
+| G-1: Schema slice  | 1     | ⚙️ Deterministic | 0         |
+| G-2: Linking trace | 2     | ⚙️ Deterministic | 0         |
 
 ---
 
@@ -1090,34 +1118,34 @@ schema_slice:
   truncated: false
 
   tables:
-    - table: "sales_dw.cust_mstr"
+    - table: 'sales_dw.cust_mstr'
       columns:
-        - column: "cust_id"
+        - column: 'cust_id'
           type: integer
           primary_key: true
-        - column: "cust_nm"
+        - column: 'cust_nm'
           type: varchar
 
-    - table: "sales_dw.orders"
+    - table: 'sales_dw.orders'
       columns:
-        - column: "order_id"
+        - column: 'order_id'
           type: integer
           primary_key: true
-        - column: "cust_id"
+        - column: 'cust_id'
           type: integer
-        - column: "amount"
+        - column: 'amount'
           type: decimal
 
   joins:
-    - from: "sales_dw.cust_mstr.cust_id"
-      to: "sales_dw.orders.cust_id"
-      type: "inner"
+    - from: 'sales_dw.cust_mstr.cust_id'
+      to: 'sales_dw.orders.cust_id'
+      type: 'inner'
 
   metrics:
-    - name: "total_revenue"
-      expression: "SUM(sales_dw.orders.amount)"
+    - name: 'total_revenue'
+      expression: 'SUM(sales_dw.orders.amount)'
 
-  connectivity: "connected"
+  connectivity: 'connected'
   components: []
   missing_links: []
 
@@ -1126,6 +1154,7 @@ schema_slice:
 ```
 
 **Acceptance Criteria:**
+
 - [ ] All names are physical
 - [ ] Includes `limits` + `truncated` flags
 - [ ] If disconnected, includes `components` and `missing_links`
@@ -1140,33 +1169,33 @@ schema_slice:
 ```yaml
 trace:
   input:
-    question: "Show sales by customer"
-  
+    question: 'Show sales by customer'
+
   query_understanding:
     extracted:
-      entities: ["customer"]
-      metrics: ["sales"]
-  
+      entities: ['customer']
+      metrics: ['sales']
+
   retrieval:
-    method: "hybrid_bidirectional"
+    method: 'hybrid_bidirectional'
     matches:
-      - card_id: "table:sales_dw.cust_mstr"
+      - card_id: 'table:sales_dw.cust_mstr'
         score: 0.89
-      - card_id: "table:sales_dw.orders"
+      - card_id: 'table:sales_dw.orders'
         score: 0.76
-  
+
   refinement:
-    algorithm: "steiner_approximation"
+    algorithm: 'steiner_approximation'
     connectors_added: []
-  
+
   confidence_breakdown:
     table_conf: 0.88
     col_conf: 0.82
     conn_factor: 1.0
     final: 0.85
-  
+
   output:
-    tables: ["sales_dw.cust_mstr", "sales_dw.orders"]
+    tables: ['sales_dw.cust_mstr', 'sales_dw.orders']
     confidence: 0.85
 ```
 
@@ -1174,15 +1203,16 @@ trace:
 
 ## EPIC H: Hierarchical Schema Linking
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| H-1: JSON Schema Cards | 2.1 | ⚙️ Deterministic | 0 |
+| Story                  | Phase | Approach         | LLM Calls |
+| ---------------------- | ----- | ---------------- | --------- |
+| H-1: JSON Schema Cards | 2.1   | ⚙️ Deterministic | 0         |
 
 ---
 
 ### Story H-1: JSON Schema Cards [Phase 2.1] ⚙️
 
 **Card for nested field:**
+
 ```json
 {
   "id": "field:events.user.address.city",
@@ -1201,21 +1231,21 @@ trace:
 
 ## EPIC I: Cross-Domain Linking
 
-| Story | Phase | Approach | LLM Calls |
-|-------|-------|----------|-----------|
-| I-1: Unified SQL + JQ | 4 | ⚙️ Deterministic | 0 |
+| Story                 | Phase | Approach         | LLM Calls |
+| --------------------- | ----- | ---------------- | --------- |
+| I-1: Unified SQL + JQ | 4     | ⚙️ Deterministic | 0         |
 
 ---
 
 ## 7. Summary: Physical vs SDM
 
-| Aspect | Source | Used For |
-|--------|--------|----------|
+| Aspect         | Source   | Used For                                    |
+| -------------- | -------- | ------------------------------------------- |
 | Physical names | Database | Card IDs, output references, SQL generation |
-| Synonyms | SDM | Search enrichment (in card text) |
-| Descriptions | SDM | Search enrichment (in card text) |
-| Logical names | SDM | Search enrichment, optional debugging |
-| Relationships | SDM | Join graph (stored with physical refs) |
+| Synonyms       | SDM      | Search enrichment (in card text)            |
+| Descriptions   | SDM      | Search enrichment (in card text)            |
+| Logical names  | SDM      | Search enrichment, optional debugging       |
+| Relationships  | SDM      | Join graph (stored with physical refs)      |
 
 **SDM = search quality booster, not the source of truth for identifiers.**
 
@@ -1225,11 +1255,11 @@ trace:
 
 ### Per-Request Cost (Phase 2+)
 
-| Component | LLM Calls | Tokens (approx) | Cost @ GPT-4o-mini |
-|-----------|-----------|-----------------|-------------------|
-| Query understanding | 1 | ~500 in, ~200 out | $0.0001 |
-| Recovery (10% of requests) | 0.1-0.2 | ~800 in, ~300 out | $0.00005 |
-| **Total average** | **~1.2** | **~600** | **~$0.00015/request** |
+| Component                  | LLM Calls | Tokens (approx)   | Cost @ GPT-4o-mini    |
+| -------------------------- | --------- | ----------------- | --------------------- |
+| Query understanding        | 1         | ~500 in, ~200 out | $0.0001               |
+| Recovery (10% of requests) | 0.1-0.2   | ~800 in, ~300 out | $0.00005              |
+| **Total average**          | **~1.2**  | **~600**          | **~$0.00015/request** |
 
 ---
 
@@ -1237,36 +1267,36 @@ trace:
 
 ### By Phase
 
-| Phase | Stories |
-|-------|---------|
-| 1 | A-1, A-2, D-1, D-2, D-3, F-0, F-1, G-1, (B-1 optional) |
-| 2 | A-3, D-4, D-5, D-6, E-1, E-2, G-2 |
-| 2.1 | H-1 |
-| 3 | B-1 (if not Phase 1), C-1, E-3, E-4a, E-4b |
-| 4 | I-1 |
+| Phase | Stories                                                |
+| ----- | ------------------------------------------------------ |
+| 1     | A-1, A-2, D-1, D-2, D-3, F-0, F-1, G-1, (B-1 optional) |
+| 2     | A-3, D-4, D-5, D-6, E-1, E-2, G-2                      |
+| 2.1   | H-1                                                    |
+| 3     | B-1 (if not Phase 1), C-1, E-3, E-4a, E-4b             |
+| 4     | I-1                                                    |
 
 ### Non-Functional Requirements
 
-| ID | Requirement | Target |
-|----|-------------|--------|
-| NFR-1 | Latency without LLM | < 200ms |
-| NFR-2 | Latency with LLM | < 700ms typical |
+| ID    | Requirement          | Target            |
+| ----- | -------------------- | ----------------- |
+| NFR-1 | Latency without LLM  | < 200ms           |
+| NFR-2 | Latency with LLM     | < 700ms typical   |
 | NFR-3 | LLM failure handling | Graceful fallback |
-| NFR-4 | LLM cost per request | < $0.001 |
+| NFR-4 | LLM cost per request | < $0.001          |
 
 ---
 
 ## 10. Summary: What Uses LLM
 
-| Component | LLM? | Phase | Calls |
-|-----------|------|-------|-------|
-| Card generation | **No** | 1 | 0 |
-| Query understanding | Yes | 2+ | 1 |
-| Retrieval | No | All | 0 |
-| Refinement | No | All | 0 |
-| Recovery | Yes | 2+ | 1-2 |
-| Ambiguity | Yes | 3+ | 1 |
-| Policy filter | No | 1 or 3 | 0 |
+| Component           | LLM?   | Phase  | Calls |
+| ------------------- | ------ | ------ | ----- |
+| Card generation     | **No** | 1      | 0     |
+| Query understanding | Yes    | 2+     | 1     |
+| Retrieval           | No     | All    | 0     |
+| Refinement          | No     | All    | 0     |
+| Recovery            | Yes    | 2+     | 1-2   |
+| Ambiguity           | Yes    | 3+     | 1     |
+| Policy filter       | No     | 1 or 3 | 0     |
 
 **Phase 1: Zero LLM calls** — fully deterministic, BM25 only  
 **Phase 2+: 1-2 LLM calls typical**, ~$0.00015/request

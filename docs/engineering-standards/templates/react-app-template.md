@@ -92,8 +92,11 @@ type State = {
 export const useStore = create<State>()(
   immer((set) => ({
     items: [],
-    addItem: (item) => set((state) => { state.items.push(item); }),
-  }))
+    addItem: (item) =>
+      set((state) => {
+        state.items.push(item);
+      }),
+  })),
 );
 ```
 

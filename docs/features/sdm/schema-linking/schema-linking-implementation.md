@@ -27,44 +27,40 @@
 
 ### Phase 1: Core MVP (BM25 Only, Zero LLM)
 
-
-| Story                         | Implementation Sections                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Story                         | Implementation Sections                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
 | A-1: Schema Graph             | §6.1 Database Schema, §6.2 Domain Models (`SchemaGraph`, `JoinEdge`)                       |
 | A-2: Card Generation          | §6.2 Domain Models (`Card`, `TableCard`, `ColumnCard`, `MetricCard`), §8.1 Card Generation |
 | D-1: Basic Retrieval          | §8.2 BM25 Search, §7 API Design                                                            |
-| D-2: Basic Refinement         | §8.3 Closure Algorithms (Membership, FK-Key, Metric)                                        |
-| D-3: Two-Stage Linking        | §8.4 Two-Stage Linking Algorithm                                                            |
-| F-0: Confidence Scoring       | §8.5 Confidence Calculation                                                                 |
-| F-1: Simple Fallback          | §8.6 Fallback Strategy                                                                      |
+| D-2: Basic Refinement         | §8.3 Closure Algorithms (Membership, FK-Key, Metric)                                       |
+| D-3: Two-Stage Linking        | §8.4 Two-Stage Linking Algorithm                                                           |
+| F-0: Confidence Scoring       | §8.5 Confidence Calculation                                                                |
+| F-1: Simple Fallback          | §8.6 Fallback Strategy                                                                     |
 | G-1: Schema Slice Output      | §6.2 Domain Models (`SchemaSlice`), §7 API Design                                          |
-| B-1: Policy Filter (optional) | §8.7 Entitlement Filtering                                                                  |
+| B-1: Policy Filter (optional) | §8.7 Entitlement Filtering                                                                 |
 
 ### Phase 2: Accuracy & Scale (Embeddings + LLM)
 
-
-| Story                        | Implementation Sections                                          |
-| ------------------------------ | ------------------------------------------------------------------ |
+| Story                        | Implementation Sections                                        |
+| ---------------------------- | -------------------------------------------------------------- |
 | A-3: Caching                 | §6.1 Database Schema (artifact caching), §8.8 Cache Management |
-| D-4: Hybrid Retrieval        | §8.9 Hybrid Retrieval (BM25 + Embeddings + RRF)                 |
-| D-5: Bidirectional Retrieval | §8.10 Bidirectional Search                                      |
-| D-6: Connector Minimization  | §8.11 Greedy Connector Algorithm                                |
-| E-1: Query Understanding     | §8.12 LLM Query Understanding                                   |
-| E-2: Recovery Loop           | §8.13 Recovery with Query Rewriting                             |
-| G-2: Linking Trace           | §6.2 Domain Models (`LinkingTrace`)                             |
+| D-4: Hybrid Retrieval        | §8.9 Hybrid Retrieval (BM25 + Embeddings + RRF)                |
+| D-5: Bidirectional Retrieval | §8.10 Bidirectional Search                                     |
+| D-6: Connector Minimization  | §8.11 Greedy Connector Algorithm                               |
+| E-1: Query Understanding     | §8.12 LLM Query Understanding                                  |
+| E-2: Recovery Loop           | §8.13 Recovery with Query Rewriting                            |
+| G-2: Linking Trace           | §6.2 Domain Models (`LinkingTrace`)                            |
 
 ### Phase 2.1: Hierarchical Schemas
 
-
-| Story                  | Implementation Sections                                                |
-| ------------------------ | ------------------------------------------------------------------------ |
+| Story                  | Implementation Sections                                              |
+| ---------------------- | -------------------------------------------------------------------- |
 | H-1: JSON Schema Cards | §6.2 Domain Models (`FieldCard`), §8.14 Hierarchical Card Generation |
 
 ### Phase 3: Enterprise
 
-
-| Story                       | Implementation Sections           |
-| ----------------------------- | ----------------------------------- |
+| Story                       | Implementation Sections          |
+| --------------------------- | -------------------------------- |
 | B-1: Policy Filter          | §8.7 Entitlement Filtering       |
 | C-1: Database Selection     | §8.15 Catalog Router             |
 | E-3: Ambiguity Resolution   | §8.16 Ambiguity Handling         |
@@ -73,9 +69,8 @@
 
 ### Phase 4: Cross-Domain
 
-
-| Story                 | Implementation Sections             |
-| ----------------------- | ------------------------------------- |
+| Story                 | Implementation Sections            |
+| --------------------- | ---------------------------------- |
 | I-1: Unified SQL + JQ | §8.19 Unified Cross-Domain Linking |
 
 ---
@@ -126,17 +121,16 @@
 
 ### Component Responsibilities
 
-
-| Component            | Purpose                                    | Technology                     |
-| -------------------- | ------------------------------------------ | ------------------------------ |
-| Input Handler        | Parse request, validate inputs             | FastAPI, Pydantic              |
-| Query Normalizer     | Tokenize, lowercase, expand synonyms       | Python (deterministic)         |
+| Component            | Purpose                                    | Technology                       |
+| -------------------- | ------------------------------------------ | -------------------------------- |
+| Input Handler        | Parse request, validate inputs             | FastAPI, Pydantic                |
+| Query Normalizer     | Tokenize, lowercase, expand synonyms       | Python (deterministic)           |
 | Retrieval Engine     | BM25 + embedding search over cards         | PostgreSQL (tsvector + pgvector) |
-| Refinement Pipeline  | Closure algorithms, connector minimization | NetworkX graph algorithms      |
-| Confidence Scoring   | Compute deterministic confidence           | Pure Python                    |
-| Policy Filter        | Entitlement-based filtering                | Rule engine                    |
-| Budget Enforcer      | Apply slice limits, truncate               | Pure Python                    |
-| Schema Slice Builder | Construct output with physical refs        | Pydantic serialization         |
+| Refinement Pipeline  | Closure algorithms, connector minimization | NetworkX graph algorithms        |
+| Confidence Scoring   | Compute deterministic confidence           | Pure Python                      |
+| Policy Filter        | Entitlement-based filtering                | Rule engine                      |
+| Budget Enforcer      | Apply slice limits, truncate               | Pure Python                      |
+| Schema Slice Builder | Construct output with physical refs        | Pydantic serialization           |
 
 ### Storage Architecture
 
@@ -273,9 +267,8 @@ SDM Update                                 NL Question
 
 **Options:**
 
-
 | Option            | Pros                              | Cons                                          |
-| ------------------- | ----------------------------------- | ----------------------------------------------- |
+| ----------------- | --------------------------------- | --------------------------------------------- |
 | A: Logical names  | Human-readable, matches SDM       | Requires translation layer for SQL generation |
 | B: Physical names | Direct use in SQL, no translation | Less readable in debugging                    |
 
@@ -291,11 +284,10 @@ SDM Update                                 NL Question
 
 **Options:**
 
-
-| Option                             | Pros                            | Cons                           |
-| ------------------------------------ | --------------------------------- | -------------------------------- |
+| Option                             | Pros                            | Cons                          |
+| ---------------------------------- | ------------------------------- | ----------------------------- |
 | A: Steiner tree approximation      | Optimal for large terminal sets | Complex implementation, O(n³) |
-| B: Greedy shortest-path attachment | Simple, deterministic, fast     | May add 1-2 extra connectors   |
+| B: Greedy shortest-path attachment | Simple, deterministic, fast     | May add 1-2 extra connectors  |
 
 **Chosen:** Option B (Greedy)
 
@@ -309,17 +301,16 @@ SDM Update                                 NL Question
 
 **Options:**
 
-
 | Option                          | Pros                | Cons                                         |
-| --------------------------------- | --------------------- | ---------------------------------------------- |
+| ------------------------------- | ------------------- | -------------------------------------------- |
 | A: Strict (link-time filtering) | Zero schema leakage | Requires permission lookups on every request |
 | B: Passthrough (DB enforcement) | Simpler, faster     | Schema structure visible in traces           |
 
 **Chosen:** Configurable (default: passthrough)
 
-**Rationale:** Multi-tenant SaaS deployments need strict mode. Internal deployments can use passthrough for performance. In **strict** mode, filtering must be applied *before returning, logging, or sending schema context to downstream components*, and must be applied in a way that is not sensitive to closure order:
+**Rationale:** Multi-tenant SaaS deployments need strict mode. Internal deployments can use passthrough for performance. In **strict** mode, filtering must be applied _before returning, logging, or sending schema context to downstream components_, and must be applied in a way that is not sensitive to closure order:
 
-- **Strict-mode ordering (v2):** apply entitlements immediately after retrieval *and again after closures* (metric/connector/FK-key) because closures can introduce new tables/columns. After filtering, recompute connectivity + budgets on the filtered slice to avoid returning “impossible” joins.
+- **Strict-mode ordering (v2):** apply entitlements immediately after retrieval _and again after closures_ (metric/connector/FK-key) because closures can introduce new tables/columns. After filtering, recompute connectivity + budgets on the filtered slice to avoid returning “impossible” joins.
 - **Trace redaction:** full traces are admin-only; otherwise omit/redact physical identifiers in strict mode.
 
 Made configurable via `entitlements.mode` setting. See spec §5.4.5.
@@ -429,7 +420,7 @@ CREATE TABLE sdm_linking_card_embeddings (
 );
 
 -- HNSW index for fast approximate nearest neighbor search
-CREATE INDEX idx_sdm_linking_embeddings_vec ON sdm_linking_card_embeddings 
+CREATE INDEX idx_sdm_linking_embeddings_vec ON sdm_linking_card_embeddings
     USING hnsw (embedding vector_cosine_ops);
 
 -- Artifact Cache
@@ -468,7 +459,7 @@ from enum import Enum
 
 class CardType(str, Enum):
     """Card type enumeration."""
-  
+
     TABLE = "table"
     COLUMN = "column"
     METRIC = "metric"
@@ -477,11 +468,11 @@ class CardType(str, Enum):
 
 class Card(BaseModel):
     """Base card structure for search indexing.
-  
+
     Cards are indexed by physical names and return physical references.
     SDM metadata enriches searchable text but is not the source of identifiers.
     """
-  
+
     id: str = Field(description="Card ID: {type}:{physical_ref}")
     type: CardType
     text: str = Field(description="Searchable text: physical + logical + synonyms + description")
@@ -495,14 +486,14 @@ class Card(BaseModel):
 
 class TableCard(Card):
     """Card representing a physical table."""
-  
+
     type: Literal[CardType.TABLE] = CardType.TABLE
     physical_table: str
 
 
 class ColumnCard(Card):
     """Card representing a physical column."""
-  
+
     type: Literal[CardType.COLUMN] = CardType.COLUMN
     physical_column: str
     physical_table: str
@@ -511,7 +502,7 @@ class ColumnCard(Card):
 
 class MetricCard(Card):
     """Card representing a metric with physical dependencies."""
-  
+
     type: Literal[CardType.METRIC] = CardType.METRIC
     metric_name: str
     physical_dependencies: list[dict] = Field(
@@ -523,7 +514,7 @@ class MetricCard(Card):
 
 class FieldCard(Card):
     """Card representing a JSON schema field (Phase 2.1)."""
-  
+
     type: Literal[CardType.FIELD] = CardType.FIELD
     physical_path: str  # e.g., "events.user.address.city"
     data_type: str | None = None
@@ -531,7 +522,7 @@ class FieldCard(Card):
 
 class JoinEdge(BaseModel):
     """Edge in the schema join graph."""
-  
+
     source_table: str
     target_table: str
     source_column: str
@@ -541,10 +532,10 @@ class JoinEdge(BaseModel):
 
 class SchemaGraph(BaseModel):
     """In-memory representation of joinable tables."""
-  
+
     tables: set[str] = Field(default_factory=set)
     edges: list[JoinEdge] = Field(default_factory=list)
-  
+
     def get_neighbors(self, table: str) -> list[str]:
         """Return tables directly joinable to the given table."""
         neighbors = []
@@ -554,7 +545,7 @@ class SchemaGraph(BaseModel):
             elif edge.target_table == table:
                 neighbors.append(edge.source_table)
         return neighbors
-  
+
     def get_edge(self, table1: str, table2: str) -> JoinEdge | None:
         """Return the join edge between two tables if it exists."""
         for edge in self.edges:
@@ -566,7 +557,7 @@ class SchemaGraph(BaseModel):
 
 class ColumnRef(BaseModel):
     """Physical column reference."""
-  
+
     column: str
     type: str | None = None
     primary_key: bool = False
@@ -574,14 +565,14 @@ class ColumnRef(BaseModel):
 
 class TableSlice(BaseModel):
     """Table with selected columns in the schema slice."""
-  
+
     table: str
     columns: list[ColumnRef] = Field(default_factory=list)
 
 
 class JoinRef(BaseModel):
     """Join reference in the schema slice."""
-  
+
     from_ref: str = Field(alias="from", description="schema.table.column")
     to_ref: str = Field(alias="to", description="schema.table.column")
     type: str = "inner"
@@ -589,14 +580,14 @@ class JoinRef(BaseModel):
 
 class MetricRef(BaseModel):
     """Metric reference in the schema slice."""
-  
+
     name: str
     expression: str
 
 
 class SliceLimits(BaseModel):
     """Budget limits for schema slice."""
-  
+
     max_tables: int = 10
     max_columns_per_table: int = 25
     max_total_columns: int = 80
@@ -604,7 +595,7 @@ class SliceLimits(BaseModel):
 
 class Connectivity(str, Enum):
     """Connectivity status of the schema slice."""
-  
+
     CONNECTED = "connected"
     DISCONNECTED = "disconnected"
     UNKNOWN = "unknown"
@@ -612,7 +603,7 @@ class Connectivity(str, Enum):
 
 class MissingLink(BaseModel):
     """Information about tables that could not be connected."""
-  
+
     table1: str
     table2: str
     reason: str
@@ -620,11 +611,11 @@ class MissingLink(BaseModel):
 
 class SchemaSlice(BaseModel):
     """Output schema slice with physical references.
-  
+
     This is the primary output of the schema linker. All references
     are physical database identifiers that can be used directly in SQL.
     """
-  
+
     limits: SliceLimits = Field(default_factory=SliceLimits)
     truncated: bool = False
     tables: list[TableSlice] = Field(default_factory=list)
@@ -642,7 +633,7 @@ class SchemaSlice(BaseModel):
 
 class ConfidenceBreakdown(BaseModel):
     """Detailed confidence calculation for debugging."""
-  
+
     table_conf: float
     col_conf: float
     conn_factor: float
@@ -651,10 +642,10 @@ class ConfidenceBreakdown(BaseModel):
 
 class QueryUnderstandingResult(BaseModel):
     """Output of LLM query understanding (Phase 2+).
-  
+
     MUST NOT contain schema identifiers. Only search signals.
     """
-  
+
     search_tokens: list[str]
     entities: list[str] = Field(default_factory=list)
     metrics: list[str] = Field(default_factory=list)
@@ -663,14 +654,14 @@ class QueryUnderstandingResult(BaseModel):
 
 class RetrievalMatch(BaseModel):
     """Single retrieval match for tracing."""
-  
+
     card_id: str
     score: float
 
 
 class LinkingTrace(BaseModel):
     """Full linking trace for debugging (Phase 2+)."""
-  
+
     input_question: str
     query_understanding: QueryUnderstandingResult | None = None
     retrieval_method: str
@@ -684,7 +675,7 @@ class LinkingTrace(BaseModel):
 
 class ErrorCode(str, Enum):
     """Standard error codes for schema linking."""
-  
+
     SDM_NOT_FOUND = "sdm_not_found"
     ENTITLEMENT_DENIED = "entitlement_denied"
     NO_MATCHES = "no_matches"
@@ -694,7 +685,7 @@ class ErrorCode(str, Enum):
 
 class LinkingError(BaseModel):
     """Structured error response."""
-  
+
     code: ErrorCode
     message: str
     details: dict | None = None
@@ -703,7 +694,7 @@ class LinkingError(BaseModel):
 
 class LinkingRequest(BaseModel):
     """Input request for schema linking."""
-  
+
     question: str
     sdm_id: str
     sdm_version: str | None = None
@@ -714,7 +705,7 @@ class LinkingRequest(BaseModel):
 
 class LinkingResponse(BaseModel):
     """Output response from schema linking."""
-  
+
     schema_slice: SchemaSlice | None = None
     confidence: float = 0.0
     connectivity: Connectivity = Connectivity.UNKNOWN
@@ -733,7 +724,6 @@ class LinkingResponse(BaseModel):
 Request:
 
 > `sdm_version` may be omitted/null to use the currently active version for `sdm_id` (resolved server-side).
-
 
 ```json
 {
@@ -765,17 +755,17 @@ Response (success):
       {
         "table": "sales_dw.cust_mstr",
         "columns": [
-          {"column": "cust_id", "type": "integer", "primary_key": true},
-          {"column": "cust_nm", "type": "varchar", "primary_key": false}
+          { "column": "cust_id", "type": "integer", "primary_key": true },
+          { "column": "cust_nm", "type": "varchar", "primary_key": false }
         ]
       },
       {
         "table": "sales_dw.orders",
         "columns": [
-          {"column": "order_id", "type": "integer", "primary_key": true},
-          {"column": "cust_id", "type": "integer", "primary_key": false},
-          {"column": "amount", "type": "decimal", "primary_key": false},
-          {"column": "order_date", "type": "date", "primary_key": false}
+          { "column": "order_id", "type": "integer", "primary_key": true },
+          { "column": "cust_id", "type": "integer", "primary_key": false },
+          { "column": "amount", "type": "decimal", "primary_key": false },
+          { "column": "order_date", "type": "date", "primary_key": false }
         ]
       }
     ],
@@ -833,7 +823,7 @@ from typing import Protocol
 
 class SchemaLinker(Protocol):
     """Protocol for schema linking service."""
-  
+
     async def link(
         self,
         question: str,
@@ -844,7 +834,7 @@ class SchemaLinker(Protocol):
         limits: SliceLimits | None = None,
     ) -> LinkingResponse:
         """Link a natural language question to schema elements.
-      
+
         Args:
             question: Natural language question
             sdm_id: Semantic Data Model identifier
@@ -852,22 +842,22 @@ class SchemaLinker(Protocol):
             sdm_version: Optional specific SDM version (if None, resolve and use the active version for sdm_id)
             conversation_history: Optional conversation context (Phase 2+)
             limits: Optional budget limits override
-          
+
         Returns:
             LinkingResponse with schema slice or error
-          
+
         Raises:
             Never raises - errors returned in response.error
         """
         ...
-  
+
     async def regenerate_artifacts(
         self,
         sdm_id: str,
         sdm_version: str,
     ) -> None:
         """Regenerate cards and graph for an SDM version.
-      
+
         Called on SDM update. Runs via a tracked job/task runner (no fire-and-forget). The active version should only be flipped after all artifacts for the new `(sdm_id, sdm_version)` are built and validated (atomic activation). Online requests continue using the previous active version until activation.
         """
         ...
@@ -882,18 +872,18 @@ class SchemaLinker(Protocol):
 ```python
 async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
     """Generate search-optimized cards from SDM.
-  
+
     Cards are indexed by physical names but include SDM enrichment
     in searchable text for better matching.
-  
+
     Args:
         sdm: The semantic data model to process
-      
+
     Returns:
         List of cards (table, column, metric) ready for indexing
     """
     cards: list[Card] = []
-  
+
     # Generate table cards
     for table in sdm.tables:
         searchable_text = _build_searchable_text(
@@ -902,7 +892,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
             description=table.description,
             synonyms=table.synonyms,
         )
-      
+
         card = TableCard(
             id=f"table:{table.physical_table}",
             text=searchable_text,
@@ -915,7 +905,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
             },
         )
         cards.append(card)
-      
+
         # Generate column cards for this table
         for column in table.columns:
             col_searchable = _build_searchable_text(
@@ -925,7 +915,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
                 synonyms=column.synonyms,
                 parent_physical=table.physical_table,
             )
-          
+
             col_card = ColumnCard(
                 id=f"column:{table.physical_table}.{column.physical_column}",
                 text=col_searchable,
@@ -940,7 +930,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
                 },
             )
             cards.append(col_card)
-  
+
     # Generate metric cards
     for metric in sdm.metrics:
         deps = _parse_metric_dependencies(metric.expression)
@@ -951,7 +941,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
             synonyms=metric.synonyms,
             dependencies=deps,
         )
-      
+
         metric_card = MetricCard(
             id=f"metric:{metric.name}",
             text=metric_searchable,
@@ -966,7 +956,7 @@ async def generate_cards_from_sdm(sdm: "SemanticDataModel") -> list[Card]:
             },
         )
         cards.append(metric_card)
-  
+
     return cards
 
 
@@ -985,34 +975,34 @@ def _build_searchable_text(
         description or "",
         " ".join(synonyms or []),
     ]
-  
+
     if parent_physical:
         parts.append(parent_physical.replace(".", " "))
-  
+
     if dependencies:
         for dep in dependencies:
             parts.append(dep.get("table", "").replace(".", " "))
             parts.append(dep.get("column", ""))
-  
+
     return " ".join(filter(None, parts))
 
 
 def _parse_metric_dependencies(expression: str) -> list[dict]:
     """Extract physical table.column references from metric expression.
-  
+
     Simple regex-based extraction. Handles: SUM(table.column), table.column.
     """
     import re
-  
+
     pattern = r"([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)"
     matches = re.findall(pattern, expression)
-  
+
     deps = []
     for match in matches:
         parts = match.rsplit(".", 1)
         if len(parts) == 2:
             deps.append({"table": parts[0], "column": parts[1]})
-  
+
     return deps
 ```
 
@@ -1037,39 +1027,39 @@ def normalize_query(
     synonym_dict: dict[str, list[str]] | None = None,
 ) -> list[str]:
     """Normalize query into stable search tokens.
-  
+
     Deterministic normalization per spec §5.4.1:
     - Split on ., _, -, and camelCase
     - Lowercase, strip punctuation
     - Drop configurable stopwords
     - Optional: deterministic synonym expansion
-  
+
     Args:
         query: Raw natural language query
         stopwords: Words to remove (default: DEFAULT_STOPWORDS)
         synonym_dict: SDM-provided synonym mappings for expansion
-      
+
     Returns:
         List of normalized search tokens
     """
     if stopwords is None:
         stopwords = DEFAULT_STOPWORDS
-  
+
     # Split camelCase
     query = re.sub(r"([a-z])([A-Z])", r"\1 \2", query)
-  
+
     # Split on delimiters
     query = re.sub(r"[._\-/]", " ", query)
-  
+
     # Remove punctuation except alphanumeric and spaces
     query = re.sub(r"[^a-zA-Z0-9\s]", "", query)
-  
+
     # Lowercase and split
     tokens = query.lower().split()
-  
+
     # Remove stopwords
     tokens = [t for t in tokens if t not in stopwords and len(t) > 1]
-  
+
     # Optional synonym expansion (deterministic)
     if synonym_dict:
         expanded = []
@@ -1078,7 +1068,7 @@ def normalize_query(
             if token in synonym_dict:
                 expanded.extend(synonym_dict[token])
         tokens = expanded
-  
+
     return tokens
 ```
 
@@ -1615,13 +1605,15 @@ def _compute_components(schema_graph: SchemaGraph, tables: set[str]) -> list[lis
 
 ### 8.8 Budget Enforcement
 
-Budgets are **hard caps** (spec §5.4.6). v2 clarifies what is *required* vs *droppable* so budget trimming never produces an invalid slice.
+Budgets are **hard caps** (spec §5.4.6). v2 clarifies what is _required_ vs _droppable_ so budget trimming never produces an invalid slice.
 
 **Required columns (never drop):**
+
 1. Join key columns used by `joins` (from/to column refs)
 2. Metric dependency columns (from metric closure)
 
 **Droppable columns:**
+
 - Additional “nice-to-have” columns selected via retrieval.
 
 If the table budget is exceeded, we deterministically drop the lowest-priority terminals (by score, tie-break lexical) and **re-run connector minimization** on the reduced terminal set so joins remain consistent.
@@ -1779,6 +1771,7 @@ def _join_tables(j: JoinRef) -> set[str]:
 In **passthrough** mode, schema linking returns the full slice and relies on downstream DB enforcement. In **strict** mode, schema linking must not leak unauthorized identifiers (even in logs/traces) and must filter before returning.
 
 **v2 strict-mode placement:**
+
 1. After retrieval (tables/columns/metrics) filter candidates
 2. After closures (metric/connector/FK-key) filter newly-added tables/columns again
 3. Recompute connectivity + budgets on the filtered slice
@@ -1972,7 +1965,7 @@ DROP TABLE IF EXISTS sdm_linking_nodes;
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE sdm_linking_card_embeddings (...);
-CREATE INDEX idx_sdm_linking_embeddings_vec ON sdm_linking_card_embeddings 
+CREATE INDEX idx_sdm_linking_embeddings_vec ON sdm_linking_card_embeddings
     USING hnsw (embedding vector_cosine_ops);
 
 CREATE TABLE sdm_linking_artifacts (...);

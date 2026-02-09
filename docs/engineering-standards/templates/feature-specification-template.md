@@ -21,9 +21,9 @@
 
 **Expected Impact:**
 
-| Metric | Target |
-| ------ | ------ |
-| [Primary metric] | [Target value] |
+| Metric             | Target         |
+| ------------------ | -------------- |
+| [Primary metric]   | [Target value] |
 | [Secondary metric] | [Target value] |
 
 ---
@@ -55,8 +55,8 @@ example_field: value
 
 ### What's New
 
-| Concept | Description |
-| ------- | ----------- |
+| Concept             | Description         |
+| ------------------- | ------------------- |
 | **[New concept 1]** | [Brief description] |
 | **[New concept 2]** | [Brief description] |
 
@@ -83,25 +83,25 @@ flowchart TD
 
 ### Functional
 
-| ID | Requirement | Priority |
-| -- | ----------- | -------- |
-| FR-1 | [Requirement description] | P0 |
-| FR-2 | [Requirement description] | P1 |
-| FR-3 | [Requirement description] | P2 |
+| ID   | Requirement               | Priority |
+| ---- | ------------------------- | -------- |
+| FR-1 | [Requirement description] | P0       |
+| FR-2 | [Requirement description] | P1       |
+| FR-3 | [Requirement description] | P2       |
 
 ### Non-Functional
 
-| ID | Requirement | Target |
-| -- | ----------- | ------ |
-| NFR-1 | [Performance/latency requirement] | < Xms |
+| ID    | Requirement                       | Target   |
+| ----- | --------------------------------- | -------- |
+| NFR-1 | [Performance/latency requirement] | < Xms    |
 | NFR-2 | [Throughput/capacity requirement] | [Target] |
 
 ### Expectations
 
-| Name | Expectation |
-| ---- | ----------- |
+| Name              | Expectation      |
+| ----------------- | ---------------- |
 | [Constraint name] | [Value or limit] |
-| [Resource limit] | [Value] |
+| [Resource limit]  | [Value]          |
 
 ---
 
@@ -120,6 +120,7 @@ flowchart TD
 **Context:**
 
 [2-3 PARAGRAPHS explaining:
+
 - WHY this story matters and what problem it solves
 - Background/current state that led to this need
 - How this fits into the broader system or user workflow
@@ -129,12 +130,14 @@ Include enough detail that both humans and AI understand the full picture and ca
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - [Deliverable 1: e.g., "`Schema` TypedDict in `types.py` with fields: `name`, `description`, `config`"]
 - [Deliverable 2: e.g., "YAML parsing that handles the new `schemas:` array"]
 - [Deliverable 3: e.g., "Pydantic validation for definitions"]
 
-*What this enables:*
+_What this enables:_
+
 - [Capability 1: what users can now do]
 - [Capability 2: downstream feature this unlocks]
 - [Capability 3: foundation for future stories]
@@ -170,11 +173,13 @@ Include enough detail that both humans and AI understand the full picture and ca
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - [Deliverable 1]
 - [Deliverable 2]
 
-*What this enables:*
+_What this enables:_
+
 - [Capability 1]
 - [Capability 2]
 
@@ -211,11 +216,13 @@ Include enough detail that both humans and AI understand the full picture and ca
 
 **Scope:**
 
-*What this story produces:*
+_What this story produces:_
+
 - [Deliverable 1]
 - [Deliverable 2]
 
-*What this enables:*
+_What this enables:_
+
 - [Capability 1]
 - [Capability 2]
 
@@ -264,11 +271,11 @@ Include enough detail that both humans and AI understand the full picture and ca
 
 ## Success Metrics
 
-| Metric | Baseline | Target |
-| ------ | -------- | ------ |
-| [Metric 1: e.g., "Data queryable via NL"] | [Value: e.g., "0%"] | [Value: e.g., "100% of defined items"] |
-| [Metric 2: e.g., "Execution latency"] | [Value: e.g., "N/A"] | [Value: e.g., "< 500ms p95"] |
-| [Metric 3: e.g., "Integration time"] | [Value: e.g., "Manual (hours)"] | [Value: e.g., "Declarative (minutes)"] |
+| Metric                                    | Baseline                        | Target                                 |
+| ----------------------------------------- | ------------------------------- | -------------------------------------- |
+| [Metric 1: e.g., "Data queryable via NL"] | [Value: e.g., "0%"]             | [Value: e.g., "100% of defined items"] |
+| [Metric 2: e.g., "Execution latency"]     | [Value: e.g., "N/A"]            | [Value: e.g., "< 500ms p95"]           |
+| [Metric 3: e.g., "Integration time"]      | [Value: e.g., "Manual (hours)"] | [Value: e.g., "Declarative (minutes)"] |
 
 ---
 

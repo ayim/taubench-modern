@@ -23,10 +23,10 @@
 
 ## Story-to-Implementation Mapping
 
-| Story | Implementation Sections |
-| ----- | ----------------------- |
-| A-1   | §7 Data Structures, §8 API Design |
-| A-2   | §8 Core Algorithm |
+| Story | Implementation Sections                     |
+| ----- | ------------------------------------------- |
+| A-1   | §7 Data Structures, §8 API Design           |
+| A-2   | §8 Core Algorithm                           |
 | B-1   | §2 System Architecture, §6 Design Decisions |
 
 ---
@@ -51,11 +51,11 @@
 
 **Components:**
 
-| Component | Purpose | Technology |
-| --------- | ------- | ---------- |
-| API | [Purpose] | [Tech] |
-| Service | [Purpose] | [Tech] |
-| Database | [Purpose] | [Tech] |
+| Component | Purpose   | Technology |
+| --------- | --------- | ---------- |
+| API       | [Purpose] | [Tech]     |
+| Service   | [Purpose] | [Tech]     |
+| Database  | [Purpose] | [Tech]     |
 
 ---
 
@@ -75,6 +75,7 @@ User    API    Service    DB
 ```
 
 **Steps:**
+
 1. [Step 1]
 2. [Step 2]
 3. [Step 3]
@@ -88,6 +89,7 @@ Input → Validate → Process → Store → Output
 ```
 
 **Transformations:**
+
 - Input → Validated: [What happens]
 - Validated → Processed: [What happens]
 - Processed → Stored: [What happens]
@@ -102,10 +104,10 @@ Input → Validate → Process → Store → Output
 
 **Options:**
 
-| Option | Pros | Cons |
-| ------ | ---- | ---- |
-| A | [Pro] | [Con] |
-| B | [Pro] | [Con] |
+| Option | Pros  | Cons  |
+| ------ | ----- | ----- |
+| A      | [Pro] | [Con] |
+| B      | [Pro] | [Con] |
 
 **Chosen:** Option A
 
@@ -162,6 +164,7 @@ class [ModelName](BaseModel):
 ```
 
 Response:
+
 ```json
 {
   "id": "123",
@@ -173,11 +176,9 @@ Response:
 
 ```typescript
 export const router = {
-  create: protectedProcedure
-    .input(z.object({ param: z.string() }))
-    .mutation(async ({ input }) => {
-      // Implementation
-    }),
+  create: protectedProcedure.input(z.object({ param: z.string() })).mutation(async ({ input }) => {
+    // Implementation
+  }),
 };
 ```
 
@@ -200,10 +201,10 @@ async def algorithm(input: Input) -> Output:
     """[Description]."""
     # Step 1
     validated = validate(input)
-    
+
     # Step 2
     processed = process(validated)
-    
+
     # Step 3
     return store(processed)
 ```
@@ -215,15 +216,18 @@ async def algorithm(input: Input) -> Output:
 ### Phases
 
 **Phase 1: Core Implementation**
+
 - [ ] Data structures and models
 - [ ] API endpoints
 - [ ] Unit tests
 
 **Phase 2: Integration**
+
 - [ ] Integrate with existing systems
 - [ ] Integration tests
 
 **Phase 3: Deployment**
+
 - [ ] Feature flag: `ENABLE_[FEATURE]` (default: false)
 - [ ] Deploy to staging
 - [ ] Enable for beta users

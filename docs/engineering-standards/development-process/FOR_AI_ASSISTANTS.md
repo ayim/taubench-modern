@@ -88,7 +88,7 @@ if TYPE_CHECKING:
 async def get_user(database: DatabaseClient, user_id: str) -> User | None:
     """Get user by ID."""
     from agent_platform_server.models import User  # Import inside method
-  
+
     result = await database.selectUser({'id': user_id})
     return result.data if result.success else None
 ```
@@ -106,10 +106,7 @@ const UserSchema = z.object({
 type User = z.infer<typeof UserSchema>;
 
 // Discriminated union for state
-type State =
-  | { status: 'loading' }
-  | { status: 'success'; data: User }
-  | { status: 'error'; error: Error };
+type State = { status: 'loading' } | { status: 'success'; data: User } | { status: 'error'; error: Error };
 
 // TRPC query
 const { data } = trpc.users.get.useQuery({ id });
@@ -124,9 +121,8 @@ const mutation = trpc.users.update.useMutation({
 
 ## Common Pitfalls
 
-
 | Python                                     | TypeScript                                             |
-| -------------------------------------------- | -------------------------------------------------------- |
+| ------------------------------------------ | ------------------------------------------------------ |
 | ❌ Run from subdirectories (use root)      | ❌`any` types (use `unknown` + guards)                 |
 | ❌ Blocking I/O (use`async`/`await`)       | ❌ Boolean flags for state (use discriminated unions)  |
 | ❌ Top-level imports (move inside methods) | ❌ Prop spreading (define explicitly)                  |
@@ -167,9 +163,8 @@ docker compose up  # Start everything
 
 ## Testing
 
-
 |                   | Python                 | TypeScript                  |
-| ------------------- | ------------------------ | ----------------------------- |
+| ----------------- | ---------------------- | --------------------------- |
 | **Unit**          | pytest, mocked deps    | Vitest, isolated            |
 | **Integration**   | Real Postgres/services | MSW (mock API)              |
 | **E2E**           | Integration tests      | Playwright (critical paths) |
