@@ -4509,7 +4509,7 @@ export const spec = {
         tags: ['document-intelligence'],
         summary: 'Get Document Intelligence Config',
         description:
-          'Get Document Intelligence configuration.\n\nReturns the current Document Intelligence configuration including\nData Server connection details, integrations, and data connections.\nAlways returns 200 OK with status indicating configuration state.',
+          'Get Document Intelligence configuration.\n\nReturns the current Document Intelligence configuration including\nReducto integration details.\nAlways returns 200 OK with status indicating configuration state.',
         operationId:
           'get_document_intelligence_config_document_intelligence_get',
         responses: {
@@ -4529,7 +4529,7 @@ export const spec = {
         tags: ['document-intelligence'],
         summary: 'Upsert Document Intelligence',
         description:
-          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a combined configuration payload under the `/document-intelligence`\nroot. It stores the Data Server connection details and any provided\nintegrations using the new v2_integration table.\n\nReturns the updated configuration in the same format as the GET endpoint.',
+          'Upsert Document Intelligence configuration (PUT semantics).\n\nAccepts a configuration payload with Reducto integration details.\nStores the integration using the v2_integration table.\n\nReturns the updated configuration in the same format as the GET endpoint.',
         operationId: 'upsert_document_intelligence_document_intelligence_post',
         requestBody: {
           content: {
@@ -13825,19 +13825,6 @@ export const spec = {
         required: ['name', 'description', 'model_schema'],
         title: 'DataModelSummary',
       },
-      DataServerConfig: {
-        properties: {
-          credentials: {
-            $ref: '#/components/schemas/_Credentials',
-          },
-          api: {
-            $ref: '#/components/schemas/_ApiConfig',
-          },
-        },
-        type: 'object',
-        required: ['credentials', 'api'],
-        title: 'DataServerConfig',
-      },
       DataServerDetails: {
         properties: {
           username: {
@@ -14281,9 +14268,6 @@ export const spec = {
       },
       DocumentIntelligenceConfigPayload: {
         properties: {
-          data_server: {
-            $ref: '#/components/schemas/DataServerConfig',
-          },
           integrations: {
             items: {
               $ref: '#/components/schemas/IntegrationInput',
@@ -14291,29 +14275,8 @@ export const spec = {
             type: 'array',
             title: 'Integrations',
           },
-          data_connections: {
-            items: {
-              $ref: '#/components/schemas/DataConnection',
-            },
-            type: 'array',
-            title: 'Data Connections',
-            description: 'Deprecated: Use data_connection_id instead',
-            deprecated: true,
-          },
-          data_connection_id: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
-            title: 'Data Connection Id',
-          },
         },
         type: 'object',
-        required: ['data_server'],
         title: 'DocumentIntelligenceConfigPayload',
       },
       DocumentIntelligenceConfigResponse: {
@@ -27121,41 +27084,6 @@ export const spec = {
         required: ['records'],
         title: 'WorkItemsListResponse',
       },
-      _ApiConfig: {
-        properties: {
-          http: {
-            $ref: '#/components/schemas/_HttpConfig',
-          },
-          mysql: {
-            $ref: '#/components/schemas/_MysqlConfig',
-          },
-        },
-        type: 'object',
-        required: ['http', 'mysql'],
-        title: '_ApiConfig',
-      },
-      _Credentials: {
-        properties: {
-          username: {
-            type: 'string',
-            title: 'Username',
-          },
-          password: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                $ref: '#/components/schemas/SecretString',
-              },
-            ],
-            title: 'Password',
-          },
-        },
-        type: 'object',
-        required: ['username', 'password'],
-        title: '_Credentials',
-      },
       _DataFrameAssemblyInfoRequest: {
         properties: {
           data_frame_names: {
@@ -27575,36 +27503,6 @@ export const spec = {
         title: '_GetAsValidatedQueryResponse',
         description:
           'Response containing the verified query and semantic data model name.',
-      },
-      _HttpConfig: {
-        properties: {
-          url: {
-            type: 'string',
-            title: 'Url',
-          },
-          port: {
-            type: 'integer',
-            title: 'Port',
-          },
-        },
-        type: 'object',
-        required: ['url', 'port'],
-        title: '_HttpConfig',
-      },
-      _MysqlConfig: {
-        properties: {
-          host: {
-            type: 'string',
-            title: 'Host',
-          },
-          port: {
-            type: 'integer',
-            title: 'Port',
-          },
-        },
-        type: 'object',
-        required: ['host', 'port'],
-        title: '_MysqlConfig',
       },
       _SaveAsValidatedQueryPayload: {
         properties: {

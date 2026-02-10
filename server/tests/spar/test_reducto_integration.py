@@ -8,11 +8,8 @@ from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from sema4ai_docint.extraction.reducto.async_ import JobType
 
 from agent_platform.core.payloads.document_intelligence import (
-    DocumentLayoutPayload,
-    ExtractDocumentPayload,
     ParseJobResult,
 )
-from agent_platform.core.payloads.upsert_document_layout import _ExtractionSchema
 
 from .helpers import upload_file_to_thread
 
@@ -90,31 +87,31 @@ class TestReductoIntegration:
 
     def _upload_resource_to_new_agent_thread(
         self,
-        agent_server_client_with_doc_int: AgentServerClient,
+        agent_server_client: AgentServerClient,
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
         resource_name: str,
     ) -> tuple[str, str, str]:
         agent_id = agent_factory()
-        thread_id = agent_server_client_with_doc_int.create_thread_and_return_thread_id(agent_id)
+        thread_id = agent_server_client.create_thread_and_return_thread_id(agent_id)
         resource_path = spar_resources_path / resource_name
-        file_upload_result = upload_file_to_thread(agent_server_client_with_doc_int, thread_id, resource_path)
+        file_upload_result = upload_file_to_thread(agent_server_client, thread_id, resource_path)
         return thread_id, file_upload_result.file_ref, agent_id
 
     @pytest.mark.parametrize("resource_name", ["tables.pdf"])
     def test_document_parse(
         self,
-        agent_server_client_with_doc_int: AgentServerClient,
+        agent_server_client: AgentServerClient,
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
         resource_name: str,
     ):
         thread_id, file_ref, agent_id = self._upload_resource_to_new_agent_thread(
-            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
+            agent_server_client, agent_factory, spar_resources_path, resource_name
         )
 
         # perform the parse
-        parse_result = agent_server_client_with_doc_int.parse_document(file_ref, agent_id, thread_id)
+        parse_result = agent_server_client.parse_document(file_ref, agent_id, thread_id)
 
         # assert the parse result matches expected structure
         self._assert_tables_pdf_parse_result(parse_result)
@@ -122,24 +119,24 @@ class TestReductoIntegration:
     @pytest.mark.parametrize("resource_name", ["tables.pdf"])
     def test_async_document_parse(
         self,
-        agent_server_client_with_doc_int: AgentServerClient,
+        agent_server_client: AgentServerClient,
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
         resource_name: str,
     ):
         thread_id, file_ref, _ = self._upload_resource_to_new_agent_thread(
-            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
+            agent_server_client, agent_factory, spar_resources_path, resource_name
         )
 
         # Get a job
-        job_result = agent_server_client_with_doc_int.start_async_document_parse(file_ref, thread_id)
+        job_result = agent_server_client.start_async_document_parse(file_ref, thread_id)
 
         # Assert the job result matches expected structure
         assert job_result.job_id is not None
         assert job_result.job_type == JobType.PARSE
 
         # check status
-        result = agent_server_client_with_doc_int.get_job_status(job_result.job_id, JobType.PARSE)
+        result = agent_server_client.get_job_status(job_result.job_id, JobType.PARSE)
         assert "status" in result
         # To avoid race condition, we will access "Completed" on first poll
         assert result["status"] in ["Pending", "Completed"]
@@ -147,7 +144,7 @@ class TestReductoIntegration:
         result_url = result["result_url"]
         while result_url is None:
             sleep(1)
-            result = agent_server_client_with_doc_int.get_job_status(job_result.job_id, JobType.PARSE)
+            result = agent_server_client.get_job_status(job_result.job_id, JobType.PARSE)
             result_url = result["result_url"]
 
         # check result url is the expected one
@@ -156,7 +153,7 @@ class TestReductoIntegration:
         )
 
         # get the result
-        job_result = agent_server_client_with_doc_int.get_job_result(job_result.job_id, JobType.PARSE)
+        job_result = agent_server_client.get_job_result(job_result.job_id, JobType.PARSE)
         assert isinstance(job_result, ParseJobResult)
         self._assert_tables_pdf_parse_result(job_result)
 
@@ -164,18 +161,18 @@ class TestReductoIntegration:
     def extraction_schema_result(
         self,
         request: pytest.FixtureRequest,
-        agent_server_client_with_doc_int: AgentServerClient,
+        agent_server_client: AgentServerClient,
         agent_factory: Callable[[], str],
         spar_resources_path: Path,
     ) -> ExtractionSchemaResult:
         """Fixture that generates extraction schema from the parametrized document."""
         resource_name: str = request.param
         thread_id, file_ref, agent_id = self._upload_resource_to_new_agent_thread(
-            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
+            agent_server_client, agent_factory, spar_resources_path, resource_name
         )
 
         # generate the extraction schema
-        extraction_schema = agent_server_client_with_doc_int.generate_extraction_schema(file_ref, thread_id, agent_id)
+        extraction_schema = agent_server_client.generate_extraction_schema(file_ref, thread_id, agent_id)
         return {
             "schema": extraction_schema.schema,
             "resource_name": resource_name,
@@ -196,40 +193,3 @@ class TestReductoIntegration:
         assert schema["properties"] is not None
         assert "required" in schema
         assert schema["required"] is not None
-
-    @pytest.mark.parametrize("extraction_schema_result", ["tables.pdf"], indirect=True)
-    def test_extract_document_with_transient_schema(
-        self,
-        extraction_schema_result: ExtractionSchemaResult,
-        agent_server_client_with_doc_int: AgentServerClient,
-        agent_factory: Callable[[], str],
-        spar_resources_path: Path,
-    ):
-        """Test that the document can be extracted with a transient schema."""
-        resource_name = extraction_schema_result["resource_name"]
-
-        thread_id, _, _ = self._upload_resource_to_new_agent_thread(
-            agent_server_client_with_doc_int, agent_factory, spar_resources_path, resource_name
-        )
-
-        # Create a document layout with the extraction schema
-        document_layout = DocumentLayoutPayload(
-            extraction_schema=_ExtractionSchema.model_validate(extraction_schema_result["schema"]),
-        )
-        extract_request = ExtractDocumentPayload(
-            file_name=resource_name,
-            thread_id=thread_id,
-            document_layout=document_layout,
-            generate_citations=True,
-        )
-
-        extract_results = agent_server_client_with_doc_int.extract_document(extract_request)
-
-        # Validate that we got results
-        assert extract_results is not None
-        assert isinstance(extract_results, dict)
-        assert "result" in extract_results
-        assert len(extract_results["result"]) > 0
-
-        # Check citations based on generate_citations parameter
-        assert "citations" in extract_results

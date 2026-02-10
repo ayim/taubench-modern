@@ -5,7 +5,6 @@ import { type ErrorResponse, type ExpressRequest, type ExpressResponse } from '.
 import type { MonitoringContext } from '../monitoring/index.js';
 
 const ConfigureDocumentIntelligenceInput = z.object({
-  dataConnectionId: z.string().uuid(),
   integrations: z
     .array(
       z.object({
@@ -32,7 +31,7 @@ export const createConfigureDocumentIntelligence =
       } satisfies ErrorResponse);
     }
 
-    const { integrations, dataConnectionId } = bodyParseResult.data;
+    const { integrations } = bodyParseResult.data;
 
     const agentSDK = createAgentSDK({
       baseUrl: configuration.agentServerInternalUrl,
@@ -43,9 +42,7 @@ export const createConfigureDocumentIntelligence =
 
     const agentServerResponse = await agentSDK.POST('/api/v2/document-intelligence', {
       body: {
-        data_server: configuration.dataServerCredentials,
         integrations,
-        data_connection_id: dataConnectionId,
       },
     });
 

@@ -38,22 +38,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     schema: 'test-schema',
     username: 'test',
   },
-  dataServerCredentials: {
-    credentials: {
-      username: 'NOT_USED_IN_TESTS',
-      password: 'NOT_USED_IN_TESTS',
-    },
-    api: {
-      http: {
-        url: 'NOT_USED_IN_TESTS',
-        port: 'NOT_USED_IN_TESTS' as unknown as number,
-      },
-      mysql: {
-        host: 'NOT_USED_IN_TESTS',
-        port: 'NOT_USED_IN_TESTS' as unknown as number,
-      },
-    },
-  },
   eaiLinkUrl: null,
   files: {
     mode: 'disabled',

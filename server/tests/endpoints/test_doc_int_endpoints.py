@@ -16,7 +16,6 @@ from reducto.types.shared.parse_response import (
 )
 from reducto.types.shared.parse_response import ResultFullResult as ParseResult
 from reducto.types.shared.parse_usage import ParseUsage
-from sema4ai.data._data_source import ConnectionNotSetupError
 from sema4ai_docint import DocumentLayout, normalize_name
 from sema4ai_docint.extraction.reducto.async_ import Job, JobStatus, JobType
 from sema4ai_docint.extraction.reducto.exceptions import (
@@ -25,17 +24,15 @@ from sema4ai_docint.extraction.reducto.exceptions import (
     UploadMissingFileIdError,
     UploadMissingPresignedUrlError,
 )
-from sema4ai_docint.models.constants import DATA_SOURCE_NAME
 from sema4ai_docint.models.schema_metadata import SchemaWithMetadata
 
-from agent_platform.core.data_connections import DataConnection, DataSources
 from agent_platform.core.data_server.data_server import (
     DataServerDetails,
     DataServerEndpoint,
     DataServerEndpointKind,
 )
 from agent_platform.core.document_intelligence.integrations import IntegrationKind
-from agent_platform.core.errors.base import PlatformError, PlatformHTTPError
+from agent_platform.core.errors.base import PlatformHTTPError
 from agent_platform.core.errors.responses import ErrorCode
 from agent_platform.core.files import UploadedFile
 from agent_platform.core.integrations import Integration
@@ -48,9 +45,6 @@ from agent_platform.core.payloads.document_intelligence import (
     GenerateSchemaResponsePayload,
     ParseDocumentResponsePayload,
     ParseJobResult,
-)
-from agent_platform.core.payloads.document_intelligence_config import (
-    DocumentIntelligenceConfigPayload,
 )
 from agent_platform.core.payloads.upsert_document_layout import DocumentLayoutPayload
 from agent_platform.core.utils import SecretString
@@ -179,113 +173,6 @@ def create_mock_get_integration_by_kind(data_server_details: DataServerDetails, 
     return AsyncMock(side_effect=mock_get_integration_by_kind)
 
 
-@pytest.mark.asyncio
-async def test_upsert_document_intelligence_reuses_singleton_integrations(storage, monkeypatch):
-    """Ensure the upsert endpoint logic keeps a single data_server and reducto integration."""
-
-    StorageService.reset()
-    StorageService.set_for_testing(storage)
-
-    monkeypatch.setattr(
-        document_intelligence,
-        "_build_datasource",
-        AsyncMock(),
-    )
-
-    payload_template = {
-        "data_server": {
-            "credentials": {"username": "docint-user", "password": None},
-            "api": {
-                "http": {"url": "http://127.0.0.1", "port": 47334},
-                "mysql": {"host": "127.0.0.1", "port": 5432},
-            },
-        },
-        "integrations": [
-            {
-                "type": IntegrationKind.REDUCTO.value,
-                "endpoint": "https://reducto.example.com",
-                "api_key": None,
-                "external_id": "workspace-123",
-            }
-        ],
-    }
-
-    first_payload_dict = {
-        **payload_template,
-        "data_server": {
-            **payload_template["data_server"],
-            "credentials": {"username": "docint-user", "password": "pass-1"},
-        },
-        "integrations": [
-            {
-                **payload_template["integrations"][0],
-                "api_key": "secret-1",
-            }
-        ],
-    }
-    first_payload = DocumentIntelligenceConfigPayload.model_validate(first_payload_dict)
-    await document_intelligence.upsert_document_intelligence(first_payload, storage)
-
-    integrations_after_first = await storage.list_integrations()
-    data_server_first = [
-        integration
-        for integration in integrations_after_first
-        if IntegrationKind(integration.kind) == IntegrationKind.DATA_SERVER
-    ]
-    reducto_first = [
-        integration
-        for integration in integrations_after_first
-        if IntegrationKind(integration.kind) == IntegrationKind.REDUCTO
-    ]
-
-    assert len(data_server_first) == 1
-    assert len(reducto_first) == 1
-
-    data_server_id = data_server_first[0].id
-    reducto_id = reducto_first[0].id
-
-    second_payload_dict = {
-        **payload_template,
-        "data_server": {
-            **payload_template["data_server"],
-            "credentials": {"username": "docint-user", "password": "pass-2"},
-        },
-        "integrations": [
-            {
-                **payload_template["integrations"][0],
-                "api_key": "secret-2",
-            }
-        ],
-    }
-    second_payload = DocumentIntelligenceConfigPayload.model_validate(second_payload_dict)
-    await document_intelligence.upsert_document_intelligence(second_payload, storage)
-
-    integrations_after_second = await storage.list_integrations()
-    data_server_second = [
-        integration
-        for integration in integrations_after_second
-        if IntegrationKind(integration.kind) == IntegrationKind.DATA_SERVER
-    ]
-    reducto_second = [
-        integration
-        for integration in integrations_after_second
-        if IntegrationKind(integration.kind) == IntegrationKind.REDUCTO
-    ]
-
-    assert len(data_server_second) == 1
-    assert len(reducto_second) == 1
-
-    updated_data_server = data_server_second[0]
-    updated_reducto = reducto_second[0]
-
-    assert updated_data_server.id == data_server_id
-    assert updated_reducto.id == reducto_id
-    assert updated_data_server.settings.password == "pass-2"
-    assert updated_reducto.settings.api_key == "secret-2"
-
-    StorageService.reset()
-
-
 @pytest.fixture
 def sample_user_id(test_user) -> str:
     """Provide a sample user ID for testing."""
@@ -349,130 +236,6 @@ class TestDocumentIntelligenceEndpoints:
         assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
         assert error_data["error"]["message"] == "Document Intelligence Data Server connection details not found"
 
-    def test_ok_endpoint_succeeds_when_configured(self, client: TestClient, mock_docint_service: Mock):
-        """When DIDS details are present and valid, the endpoint should succeed."""
-        # Prepare valid connection details
-        valid_details = DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        # Patch the storage instance used by the router dependency to return valid details
-        storage_instance = StorageService.get_instance()
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(valid_details),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=mock_docint_service,
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence/ok")
-
-        assert response.status_code == 200
-        assert response.json() == {"ok": True}
-
-    def test_ok_endpoint_fails_when_data_server_offline(self, client: TestClient, mock_docint_service: Mock):
-        """When DIDS details are valid but data server is unreachable, should return 412."""
-        DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        storage_instance = StorageService.get_instance()
-
-        # Create mock service and customize it to make login fail (simulate offline server)
-        datasource = mock_docint_service.get_docint_datasource.return_value
-        http_conn = datasource.connection.return_value._http_connection
-        http_conn.login.side_effect = Exception("Connection refused")
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(
-                    DataServerDetails(
-                        username="test",
-                        password=SecretString("test"),
-                        data_server_endpoints=[
-                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
-                        ],
-                    ),
-                    "test-api-key",
-                ),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=mock_docint_service,
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence/ok")
-
-        assert response.status_code == 412
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
-        expected_msg = "Failed to login to Document Intelligence data source: Connection refused"
-        assert expected_msg in error_data["error"]["message"]
-
-    def test_ok_endpoint_fails_when_connection_not_setup(self, client: TestClient, mock_docint_service: Mock):
-        """When datasource connection is not properly setup, should return 412."""
-        DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        storage_instance = StorageService.get_instance()
-
-        # Create mock service and customize it to make connection() raise ConnectionNotSetupError
-        datasource = mock_docint_service.get_docint_datasource.return_value
-        datasource.connection.side_effect = ConnectionNotSetupError("Connection not setup")
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(
-                    DataServerDetails(
-                        username="test",
-                        password=SecretString("test"),
-                        data_server_endpoints=[
-                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
-                        ],
-                    ),
-                    "test-api-key",
-                ),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=mock_docint_service,
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence/ok")
-
-        assert response.status_code == 412
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == ErrorCode.PRECONDITION_FAILED.value.code
-        expected_msg = "Document Intelligence datasource connection not properly configured"
-        assert expected_msg in error_data["error"]["message"]
-
     def test_upsert_document_intelligence_succeeds(self, client: TestClient):
         """POST /document-intelligence should persist integrations using v2_integration table."""
         payload = {
@@ -483,38 +246,13 @@ class TestDocumentIntelligenceEndpoints:
                     "api_key": "secret-key",
                     "external_id": "reducto-workspace-123",
                 }
-            ],
-            "data_server": {
-                "credentials": {"username": "user", "password": "pass"},
-                "api": {
-                    "http": {"url": "127.0.0.1", "port": 47334},
-                    "mysql": {"host": "127.0.0.1", "port": 5432},
-                },
-            },
-            "data_connection_id": "conn-1",
+            ]
         }
 
         storage_instance = StorageService.get_instance()
 
         from agent_platform.core.integrations import Integration
-        from agent_platform.core.integrations.settings.data_server import (
-            DataServerEndpoint,
-            DataServerSettings,
-        )
         from agent_platform.core.integrations.settings.reducto import ReductoSettings
-
-        mock_data_server_integration = Integration(
-            id="test-id-1",
-            kind=IntegrationKind.DATA_SERVER,
-            settings=DataServerSettings(
-                username="user",
-                password="pass",
-                endpoints=[
-                    DataServerEndpoint(host="127.0.0.1", port=47334, kind="http"),
-                    DataServerEndpoint(host="127.0.0.1", port=5432, kind="mysql"),
-                ],
-            ),
-        )
 
         mock_reducto_integration = Integration(
             id="test-id-2",
@@ -526,7 +264,7 @@ class TestDocumentIntelligenceEndpoints:
             ),
         )
 
-        mock_integrations = [mock_data_server_integration, mock_reducto_integration]
+        mock_integrations = [mock_reducto_integration]
         mock_data_connections = [
             MagicMock(id="conn-1", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
             MagicMock(id="conn-2", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
@@ -534,7 +272,6 @@ class TestDocumentIntelligenceEndpoints:
 
         # Create a mock data connection with proper UUID
         from agent_platform.core.data_connections.data_connections import DataConnection
-        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
 
         mock_data_connection = DataConnection(
             id="conn-1",
@@ -564,16 +301,6 @@ class TestDocumentIntelligenceEndpoints:
             ) as upsert_integration,
             patch.object(
                 storage_instance,
-                "clear_data_connection_tag",
-                new=AsyncMock(),
-            ) as clear_data_connection_tag,
-            patch.object(
-                storage_instance,
-                "add_data_connection_tag",
-                new=AsyncMock(),
-            ) as add_data_connection_tag,
-            patch.object(
-                storage_instance,
                 "list_integrations",
                 new=AsyncMock(return_value=mock_integrations),
             ),
@@ -586,98 +313,6 @@ class TestDocumentIntelligenceEndpoints:
                 storage_instance,
                 "get_data_connection",
                 new=AsyncMock(return_value=mock_data_connection),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
-                return_value=Mock(),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
-            ),
-        ):
-            response = client.post("/api/v2/document-intelligence", json=payload)
-
-        assert response.status_code == 200
-        response_data = response.json()
-
-        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
-        assert response_data["error"] is None
-        assert response_data["configuration"] is not None
-
-        assert upsert_integration.await_count == 2
-
-        clear_data_connection_tag.assert_awaited_once_with(DataConnectionTag.DOCUMENT_INTELLIGENCE)
-
-        assert add_data_connection_tag.await_count == 1
-        add_data_connection_tag.assert_any_await("conn-1", DataConnectionTag.DOCUMENT_INTELLIGENCE)
-
-    def test_upsert_document_intelligence_minimal_payload(self, client: TestClient):
-        """POST /document-intelligence should work with minimal payload (only data_server)."""
-        payload = {
-            "data_server": {
-                "credentials": {"username": "user", "password": "pass"},
-                "api": {
-                    "http": {"url": "127.0.0.1", "port": 47334},
-                    "mysql": {"host": "127.0.0.1", "port": 5432},
-                },
-            },
-            "data_connection_id": None,
-        }
-
-        storage_instance = StorageService.get_instance()
-
-        from agent_platform.core.integrations import Integration
-        from agent_platform.core.integrations.settings.data_server import (
-            DataServerEndpoint,
-            DataServerSettings,
-        )
-
-        mock_data_server_integration = Integration(
-            id="test-id-1",
-            kind=IntegrationKind.DATA_SERVER,
-            settings=DataServerSettings(
-                username="user",
-                password="pass",
-                endpoints=[
-                    DataServerEndpoint(host="127.0.0.1", port=47334, kind="http"),
-                    DataServerEndpoint(host="127.0.0.1", port=5432, kind="mysql"),
-                ],
-            ),
-        )
-
-        mock_integrations = [mock_data_server_integration]
-        mock_data_connections = []
-
-        with (
-            patch.object(
-                storage_instance,
-                "upsert_integration",
-                new=AsyncMock(),
-            ) as upsert_integration,
-            patch.object(
-                storage_instance,
-                "add_data_connection_tag",
-                new=AsyncMock(),
-            ) as add_data_connection_tag,
-            patch.object(
-                storage_instance,
-                "list_integrations",
-                new=AsyncMock(return_value=mock_integrations),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connections",
-                new=AsyncMock(return_value=mock_data_connections),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
-                return_value=Mock(),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
             ),
         ):
             response = client.post("/api/v2/document-intelligence", json=payload)
@@ -690,242 +325,6 @@ class TestDocumentIntelligenceEndpoints:
         assert response_data["configuration"] is not None
 
         assert upsert_integration.await_count == 1
-
-        add_data_connection_tag.assert_not_awaited()
-
-    def test_upsert_document_intelligence_accepts_single_data_connection_id(self, client: TestClient):
-        """POST /document-intelligence should accept single data_connection_id."""
-        payload = {
-            "data_server": {
-                "credentials": {"username": "user", "password": "pass"},
-                "api": {
-                    "http": {"url": "127.0.0.1", "port": 47334},
-                    "mysql": {"host": "127.0.0.1", "port": 5432},
-                },
-            },
-            "data_connection_id": "conn-1",
-        }
-
-        storage_instance = StorageService.get_instance()
-
-        from agent_platform.core.integrations import Integration
-        from agent_platform.core.integrations.settings.data_server import (
-            DataServerEndpoint,
-            DataServerSettings,
-        )
-
-        mock_data_server_integration = Integration(
-            id="test-id-1",
-            kind=IntegrationKind.DATA_SERVER,
-            settings=DataServerSettings(
-                username="user",
-                password="pass",
-                endpoints=[
-                    DataServerEndpoint(host="127.0.0.1", port=47334, kind="http"),
-                    DataServerEndpoint(host="127.0.0.1", port=5432, kind="mysql"),
-                ],
-            ),
-        )
-
-        mock_integrations = [mock_data_server_integration]
-        mock_data_connections = [
-            MagicMock(id="conn-1", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
-            MagicMock(id="conn-2", tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE]),
-        ]
-
-        # Create a mock data connection with proper UUID
-        from agent_platform.core.data_connections.data_connections import DataConnection
-        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
-
-        mock_data_connection = DataConnection(
-            id="conn-1",
-            name="test-connection",
-            description="Test connection",
-            engine="postgres",
-            configuration=PostgresDataConnectionConfiguration(
-                host="localhost",
-                port=5432,
-                database="testdb",
-                user="testuser",
-                password="testpass",
-                schema="public",
-                sslmode=None,
-            ),
-            external_id="test-external-id",
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z",
-            tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
-        )
-
-        with (
-            patch.object(
-                storage_instance,
-                "upsert_integration",
-                new=AsyncMock(),
-            ),
-            patch.object(
-                storage_instance,
-                "remove_data_connection_tag",
-                new=AsyncMock(),
-            ),
-            patch.object(
-                storage_instance,
-                "add_data_connection_tag",
-                new=AsyncMock(),
-            ),
-            patch.object(
-                storage_instance,
-                "list_integrations",
-                new=AsyncMock(return_value=mock_integrations),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connections",
-                new=AsyncMock(return_value=mock_data_connections),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connection",
-                new=AsyncMock(return_value=mock_data_connection),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
-                return_value=Mock(),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
-            ),
-        ):
-            response = client.post("/api/v2/document-intelligence", json=payload)
-
-        assert response.status_code == 200
-        response_data = response.json()
-
-        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
-        assert response_data["error"] is None
-        assert response_data["configuration"] is not None
-
-    def test_upsert_document_intelligence_clears_existing_tags(self, client: TestClient):
-        """POST /document-intelligence should clear existing data_intelligence tags."""
-        payload = {
-            "data_server": {
-                "credentials": {"username": "user", "password": "pass"},
-                "api": {
-                    "http": {"url": "127.0.0.1", "port": 47334},
-                    "mysql": {"host": "127.0.0.1", "port": 5432},
-                },
-            },
-            "data_connection_id": "conn-1",
-        }
-
-        storage_instance = StorageService.get_instance()
-
-        from agent_platform.core.integrations import Integration
-        from agent_platform.core.integrations.settings.data_server import (
-            DataServerEndpoint,
-            DataServerSettings,
-        )
-
-        mock_data_server_integration = Integration(
-            id="test-id-1",
-            kind=IntegrationKind.DATA_SERVER,
-            settings=DataServerSettings(
-                username="user",
-                password="pass",
-                endpoints=[
-                    DataServerEndpoint(host="127.0.0.1", port=47334, kind="http"),
-                    DataServerEndpoint(host="127.0.0.1", port=5432, kind="mysql"),
-                ],
-            ),
-        )
-
-        mock_integrations = [mock_data_server_integration]
-        mock_data_connections = []
-
-        # Create a mock data connection with proper UUID
-        from agent_platform.core.data_connections.data_connections import DataConnection
-        from agent_platform.core.payloads.data_connection import PostgresDataConnectionConfiguration
-
-        mock_data_connection = DataConnection(
-            id="conn-1",
-            name="test-connection",
-            description="Test connection",
-            engine="postgres",
-            configuration=PostgresDataConnectionConfiguration(
-                host="localhost",
-                port=5432,
-                database="testdb",
-                user="testuser",
-                password="testpass",
-                schema="public",
-                sslmode=None,
-            ),
-            external_id="test-external-id",
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z",
-            tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
-        )
-
-        with (
-            patch.object(
-                storage_instance,
-                "upsert_integration",
-                new=AsyncMock(),
-            ),
-            patch.object(
-                storage_instance,
-                "clear_data_connection_tag",
-                new=AsyncMock(),
-            ) as clear_data_connection_tag,
-            patch.object(
-                storage_instance,
-                "add_data_connection_tag",
-                new=AsyncMock(),
-            ) as add_data_connection_tag,
-            patch.object(
-                storage_instance,
-                "list_integrations",
-                new=AsyncMock(return_value=mock_integrations),
-            ) as list_integrations,
-            patch.object(
-                storage_instance,
-                "get_data_connections",
-                new=AsyncMock(return_value=mock_data_connections),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connection",
-                new=AsyncMock(return_value=mock_data_connection),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource.model_validate",
-                return_value=Mock(),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database",
-                new=AsyncMock(),
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source",
-            ),
-        ):
-            response = client.post("/api/v2/document-intelligence", json=payload)
-
-        assert response.status_code == 200
-        response_data = response.json()
-
-        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
-        assert response_data["error"] is None
-        assert response_data["configuration"] is not None
-
-        clear_data_connection_tag.assert_awaited_once_with(DataConnectionTag.DOCUMENT_INTELLIGENCE)
-
-        add_data_connection_tag.assert_awaited_once_with("conn-1", DataConnectionTag.DOCUMENT_INTELLIGENCE)
-
-        assert list_integrations.await_count >= 1
 
     def test_get_document_intelligence_config_not_found(self, client: TestClient):
         """GET /document-intelligence should return 200 with not_configured status."""
@@ -963,142 +362,7 @@ class TestDocumentIntelligenceEndpoints:
         assert response_data["configuration"] is None
         assert response_data["error"] is not None
         assert response_data["error"]["code"] == ErrorCode.UNEXPECTED.value.code
-        assert response_data["error"]["message"] == "Document Intelligence DataServer is not available"
-
-    def test_get_document_intelligence_config_success(self, client: TestClient):
-        """GET /document-intelligence should return the current configuration."""
-        # Create test data
-        data_server_details = DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        data_connections = [
-            DataConnection(
-                id="conn-1",
-                name="Test Connection",
-                description="Test Connection Description",
-                engine="postgres",
-                configuration=PostgresDataConnectionConfiguration(
-                    host="localhost",
-                    port=5432,
-                    database="test_db",
-                    user="test_user",
-                    password="test_password",
-                ),
-                external_id="conn-1",
-                tags=[DataConnectionTag.DOCUMENT_INTELLIGENCE],
-            )
-        ]
-
-        # Create mock integrations
-        data_server_integration = create_mock_integration_with_data_server_settings(data_server_details)
-        reducto_integration = create_mock_integration_with_reducto_settings("secret-key")
-        all_integrations = [data_server_integration, reducto_integration]
-
-        storage_instance = StorageService.get_instance()
-
-        with (
-            patch.object(
-                storage_instance,
-                "list_integrations",
-                new=AsyncMock(return_value=all_integrations),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connections",
-                new=AsyncMock(return_value=data_connections),
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence")
-
-        assert response.status_code == 200
-        response_data = response.json()
-
-        # Verify the response structure matches the new format
-        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
-        assert response_data["error"] is None
-        assert response_data["configuration"] is not None
-
-        # Verify the configuration structure matches DocumentIntelligenceConfigPayload
-        configuration = response_data["configuration"]
-        assert "data_server" in configuration
-        assert "integrations" in configuration
-        assert "data_connections" in configuration
-
-        # Verify data server details
-        data_server = configuration["data_server"]
-        assert data_server["credentials"]["username"] == "testuser"
-        assert data_server["credentials"]["password"] == "testpass"
-        assert data_server["api"]["http"]["url"] == "127.0.0.1"
-        assert data_server["api"]["http"]["port"] == 47334
-        assert data_server["api"]["mysql"]["host"] == "127.0.0.1"
-        assert data_server["api"]["mysql"]["port"] == 5432
-
-        # Verify integrations
-        assert len(configuration["integrations"]) == 1
-        integration = configuration["integrations"][0]
-        assert integration["external_id"] == "test-external-id"
-        assert integration["type"] == "reducto"
-        assert integration["endpoint"] == "https://api.reducto.com"
-        assert integration["api_key"] == "secret-key"
-
-        # Verify data connection ID
-        assert configuration["data_connection_id"] == "conn-1"
-
-        # Verify data connections is empty (new format uses data_connection_id)
-        assert len(configuration["data_connections"]) == 0
-
-    def test_get_document_intelligence_config_empty_data(self, client: TestClient):
-        """GET /document-intelligence should return empty lists when no integrations exist."""
-        data_server_details = DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        # Create mock integrations - only data server, no other integrations
-        data_server_integration = create_mock_integration_with_data_server_settings(data_server_details)
-        all_integrations = [data_server_integration]
-
-        storage_instance = StorageService.get_instance()
-
-        with (
-            patch.object(
-                storage_instance,
-                "list_integrations",
-                new=AsyncMock(return_value=all_integrations),
-            ),
-            patch.object(
-                storage_instance,
-                "get_data_connections",
-                new=AsyncMock(return_value=[]),
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence")
-
-        assert response.status_code == 200
-        response_data = response.json()
-
-        # Verify the response structure matches the new format
-        assert response_data["status"] == DocumentIntelligenceConfigStatus.CONFIGURED
-        assert response_data["error"] is None
-        assert response_data["configuration"] is not None
-
-        # Verify empty lists are returned
-        configuration = response_data["configuration"]
-        assert configuration["integrations"] == []
-        assert configuration["data_connections"] == []
-
-        # Verify data server details are still present
-        assert configuration["data_server"]["credentials"]["username"] == "testuser"
+        assert response_data["error"]["message"] == "Document Intelligence is not available"
 
     async def test_delete_di_when_not_configured(self, client: TestClient):
         """
@@ -1112,11 +376,6 @@ class TestDocumentIntelligenceEndpoints:
                 "delete_integration",
                 new=AsyncMock(),
             ) as delete_integration,
-            patch.object(
-                storage_instance,
-                "clear_data_connection_tag",
-                new=AsyncMock(),
-            ) as clear_data_connection_tag,
         ):
             response = client.delete("/api/v2/document-intelligence")
 
@@ -1124,7 +383,6 @@ class TestDocumentIntelligenceEndpoints:
         assert response.json() == {"ok": True}
 
         delete_integration.assert_awaited_once_with(IntegrationKind.REDUCTO)
-        clear_data_connection_tag.assert_awaited_once_with(DataConnectionTag.DOCUMENT_INTELLIGENCE)
 
     async def test_delete_document_intelligence(self, client: TestClient):
         """
@@ -1139,11 +397,6 @@ class TestDocumentIntelligenceEndpoints:
                 "delete_integration",
                 new=AsyncMock(),
             ) as delete_integration,
-            patch.object(
-                storage_instance,
-                "clear_data_connection_tag",
-                new=AsyncMock(),
-            ) as clear_data_connection_tag,
         ):
             response = client.delete("/api/v2/document-intelligence")
 
@@ -1152,283 +405,6 @@ class TestDocumentIntelligenceEndpoints:
 
         assert delete_integration.await_count == 1
         delete_integration.assert_any_await(IntegrationKind.REDUCTO)
-
-        clear_data_connection_tag.assert_awaited_once_with(DataConnectionTag.DOCUMENT_INTELLIGENCE)
-
-    @pytest.mark.parametrize(
-        ("details", "expected_substring"),
-        [
-            (
-                DataServerDetails(
-                    username=None,
-                    password=SecretString("testpass"),
-                    data_server_endpoints=[
-                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                    ],
-                ),
-                "missing username",
-            ),
-            (
-                DataServerDetails(
-                    username="   ",
-                    password=SecretString("testpass"),
-                    data_server_endpoints=[
-                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                    ],
-                ),
-                "missing username",
-            ),
-            (
-                DataServerDetails(
-                    username="user",
-                    password=None,
-                    data_server_endpoints=[
-                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                    ],
-                ),
-                "missing password",
-            ),
-            (
-                DataServerDetails(
-                    username="user",
-                    password=SecretString("   "),
-                    data_server_endpoints=[
-                        DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                    ],
-                ),
-                "missing password",
-            ),
-            (
-                DataServerDetails(
-                    username="user",
-                    password=SecretString("testpass"),
-                    data_server_endpoints=[],
-                ),
-                "missing connections",
-            ),
-        ],
-    )
-    def test_ok_endpoint_fails_with_partial_configuration(
-        self, client: TestClient, details: DataServerDetails, expected_substring: str
-    ):
-        """Ensure dependency validation catches partial configurations with clear messages."""
-        storage_instance = StorageService.get_instance()
-        with patch.object(
-            storage_instance,
-            "get_integration_by_kind",
-            new=AsyncMock(return_value=Mock(settings=Mock(model_dump=lambda: details.model_dump()))),
-        ):
-            response = client.get("/api/v2/document-intelligence/ok")
-
-        assert response.status_code == 412
-        error = response.json()["error"]
-        assert error["code"] == ErrorCode.PRECONDITION_FAILED.value.code
-        assert expected_substring in error["message"]
-
-    def test_get_all_layouts_returns_layouts(self, client: TestClient):
-        """GET /document-intelligence/layouts should return layout summaries."""
-        # Prepare valid connection details
-        DataServerDetails(
-            username="testuser",
-            password=SecretString("testpass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        storage_instance = StorageService.get_instance()
-
-        # Fake DI service and datasource
-        fake_service = Mock()
-        fake_service.ensure_setup.return_value = None
-        fake_service.get_docint_datasource.return_value = Mock()
-
-        # Fake layouts returned by the model layer
-        layout1 = Mock()
-        layout1.name = "Invoice"
-        layout1.data_model = "InvoiceModel"
-        layout1.summary = "Standard invoice layout"
-        layout2 = Mock()
-        layout2.name = "Receipt"
-        layout2.data_model = "ReceiptModel"
-        layout2.summary = None
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(
-                    DataServerDetails(
-                        username="test",
-                        password=SecretString("test"),
-                        data_server_endpoints=[
-                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
-                        ],
-                    ),
-                    "test-api-key",
-                ),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=fake_service,
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_all",
-                return_value=[layout1, layout2],
-            ) as mock_find_all,
-        ):
-            response = client.get("/api/v2/document-intelligence/layouts")
-
-        assert response.status_code == 200
-        assert response.json() == [
-            {
-                "name": "Invoice",
-                "data_model": "InvoiceModel",
-                "summary": "Standard invoice layout",
-            },
-            {
-                "name": "Receipt",
-                "data_model": "ReceiptModel",
-                "summary": None,
-            },
-        ]
-        mock_find_all.assert_called_once()
-
-    def test_get_all_layouts_returns_empty_list(self, client: TestClient):
-        """GET /document-intelligence/layouts should return an empty list when no layouts exist."""
-        DataServerDetails(
-            username="user",
-            password=SecretString("pass"),
-            data_server_endpoints=[
-                DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-            ],
-        )
-
-        storage_instance = StorageService.get_instance()
-        fake_service = Mock()
-        fake_service.get_docint_datasource.return_value = Mock()
-
-        with (
-            patch.object(
-                storage_instance,
-                "get_integration_by_kind",
-                new=create_mock_get_integration_by_kind(
-                    DataServerDetails(
-                        username="test",
-                        password=SecretString("test"),
-                        data_server_endpoints=[
-                            DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP)
-                        ],
-                    ),
-                    "test-api-key",
-                ),
-            ),
-            patch(
-                "agent_platform.server.api.dependencies.DocumentIntelligenceService.get_instance",
-                return_value=fake_service,
-            ),
-            patch(
-                "agent_platform.server.api.private_v2.document_intelligence.layouts.DocumentLayout.find_all",
-                return_value=[],
-            ),
-        ):
-            response = client.get("/api/v2/document-intelligence/layouts")
-
-        assert response.status_code == 200
-        assert response.json() == []
-
-    def test_get_all_layouts_fails_when_dids_not_configured(self, client: TestClient):
-        """When DIDS details are missing, the layouts endpoint should return precondition failed."""
-        response = client.get("/api/v2/document-intelligence/layouts")
-
-        assert response.status_code == 412
-        error = response.json()["error"]
-        assert error["code"] == ErrorCode.PRECONDITION_FAILED.value.code
-
-
-class TestBuildDatasource:
-    """Tests for the _build_datasource function."""
-
-    @pytest.fixture
-    def sample_data_sources(self):
-        """Sample DataSources instance for testing."""
-        return DataSources(
-            data_server=DataServerDetails(
-                username="testuser",
-                password=SecretString("testpass"),
-                data_server_endpoints=[
-                    DataServerEndpoint(host="127.0.0.1", port=47334, kind=DataServerEndpointKind.HTTP),
-                    DataServerEndpoint(host="127.0.0.1", port=5432, kind=DataServerEndpointKind.MYSQL),
-                ],
-            ),
-            data_sources={
-                DATA_SOURCE_NAME: DataConnection(
-                    id="docint-conn-1",
-                    external_id="123",
-                    name="docint-postgres",
-                    description="Document Intelligence PostgreSQL Connection",
-                    engine="postgres",
-                    configuration=PostgresDataConnectionConfiguration(
-                        user="testuser",
-                        password="testpass",
-                        host="localhost",
-                        port=5432,
-                        database="testdb",
-                    ),
-                ),
-            },
-        )
-
-    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source")
-    @patch("agent_platform.server.data_server.data_source.DataSource")
-    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_database")
-    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.DataSource")
-    async def test_build_datasource_success(
-        self,
-        mock_datasource,
-        mock_initialize_database,
-        mock_server_datasource,
-        mock_initialize_data_source,
-        sample_data_sources,
-    ):
-        """Test successful datasource creation and initialization."""
-        # Setup DataSource mock instance returned by model_validate
-        mock_docint_ds = Mock()
-        mock_datasource.model_validate.return_value = mock_docint_ds
-
-        # Setup server-side DataSource mock
-        mock_admin_ds = Mock()
-        mock_server_datasource.model_validate.return_value = mock_admin_ds
-
-        # Call the function
-        await document_intelligence._build_datasource(sample_data_sources)
-
-        mock_initialize_data_source.assert_awaited_once_with(sample_data_sources)
-
-        # Verify admin datasource was created with correct name
-        assert mock_datasource.model_validate.call_count == 1
-        mock_datasource.model_validate.assert_any_call(datasource_name="DocumentIntelligence")
-
-        # Verify initialize_database was called
-        mock_initialize_database.assert_called_once_with("postgres", mock_docint_ds)
-
-    @patch("agent_platform.server.api.private_v2.document_intelligence.document_intelligence.initialize_data_source")
-    @patch("agent_platform.server.data_server.data_source.DataSource")
-    async def test_build_datasource_connection_error(
-        self, mock_server_datasource, mock_initialize_data_source, sample_data_sources
-    ):
-        """Test error handling when connection setup fails."""
-        # Setup mock to raise exception on setup
-        mock_initialize_data_source.side_effect = Exception("Connection failed")
-
-        # Verify PlatformError is raised
-        with pytest.raises(PlatformError) as exc_info:
-            await document_intelligence._build_datasource(sample_data_sources)
-
-        assert exc_info.value.response.error_code == ErrorCode.UNEXPECTED
-        assert "Error initializing Document Intelligence database" in str(exc_info.value)
 
 
 class TestDataModelEndpoints:

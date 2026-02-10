@@ -46,7 +46,6 @@ docker compose ps
 # Wait for core infrastructure services first
 wait_for_healthy "postgres" || exit 1
 wait_for_healthy "influx-db" || exit 1
-wait_for_healthy "data-server" || exit 1
 wait_for_healthy "otel-collector" || exit 1
 
 # Wait for the SPAR service

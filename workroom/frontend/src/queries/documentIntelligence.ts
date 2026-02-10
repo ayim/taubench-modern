@@ -3,7 +3,6 @@ import type { components, ServerResponse, ServerRequest } from '@sema4ai/agent-s
 import { useRouteContext } from '@tanstack/react-router';
 
 import { createSparQuery, createSparQueryOptions, createSparMutation, QueryError, ResourceType } from './shared';
-import { dataConnectionsQueryKey } from './dataConnections';
 
 export const documentIntelligenceQueryKey = () => ['documentIntelligence'];
 
@@ -35,14 +34,12 @@ export const useUpsertDocumentIntelligenceConfigMutation = () => {
       configuration: {
         documentIntelligenceApiKey: string;
         documentIntelligenceEndpoint: string;
-        dataConnectionId: string;
       };
     }) => {
       await agentAPIClient.SPAR_upsertDocumentIntelligenceConfiguration({ configuration });
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
-      await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },
   });
 };
@@ -67,7 +64,6 @@ export const useClearDocumentIntelligenceConfigMutation = () => {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: documentIntelligenceQueryKey() });
-      await queryClient.refetchQueries({ queryKey: dataConnectionsQueryKey() });
     },
   });
 };

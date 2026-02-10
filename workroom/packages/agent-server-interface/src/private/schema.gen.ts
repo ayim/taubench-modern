@@ -1526,7 +1526,7 @@ export interface paths {
      * @description Get Document Intelligence configuration.
      *
      *     Returns the current Document Intelligence configuration including
-     *     Data Server connection details, integrations, and data connections.
+     *     Reducto integration details.
      *     Always returns 200 OK with status indicating configuration state.
      */
     get: operations['get_document_intelligence_config_document_intelligence_get'];
@@ -1535,9 +1535,8 @@ export interface paths {
      * Upsert Document Intelligence
      * @description Upsert Document Intelligence configuration (PUT semantics).
      *
-     *     Accepts a combined configuration payload under the `/document-intelligence`
-     *     root. It stores the Data Server connection details and any provided
-     *     integrations using the new v2_integration table.
+     *     Accepts a configuration payload with Reducto integration details.
+     *     Stores the integration using the v2_integration table.
      *
      *     Returns the updated configuration in the same format as the GET endpoint.
      */
@@ -5614,11 +5613,6 @@ export interface components {
         [key: string]: unknown;
       };
     };
-    /** DataServerConfig */
-    DataServerConfig: {
-      credentials: components['schemas']['_Credentials'];
-      api: components['schemas']['_ApiConfig'];
-    };
     /** DataServerDetails */
     DataServerDetails: {
       /**
@@ -5804,17 +5798,8 @@ export interface components {
     };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {
-      data_server: components['schemas']['DataServerConfig'];
       /** Integrations */
       integrations?: components['schemas']['IntegrationInput'][];
-      /**
-       * Data Connections
-       * @deprecated
-       * @description Deprecated: Use data_connection_id instead
-       */
-      data_connections?: components['schemas']['DataConnection'][];
-      /** Data Connection Id */
-      data_connection_id?: string | null;
     };
     /** DocumentIntelligenceConfigResponse */
     DocumentIntelligenceConfigResponse: {
@@ -11885,18 +11870,6 @@ export interface components {
       /** Next Offset */
       next_offset?: number | null;
     };
-    /** _ApiConfig */
-    _ApiConfig: {
-      http: components['schemas']['_HttpConfig'];
-      mysql: components['schemas']['_MysqlConfig'];
-    };
-    /** _Credentials */
-    _Credentials: {
-      /** Username */
-      username: string;
-      /** Password */
-      password: string | components['schemas']['SecretString'];
-    };
     /** _DataFrameAssemblyInfoRequest */
     _DataFrameAssemblyInfoRequest: {
       /** Data Frame Names */
@@ -12032,20 +12005,6 @@ export interface components {
       verified_query: components['schemas']['VerifiedQuery'];
       /** Semantic Data Model Name */
       semantic_data_model_name: string | null;
-    };
-    /** _HttpConfig */
-    _HttpConfig: {
-      /** Url */
-      url: string;
-      /** Port */
-      port: number;
-    };
-    /** _MysqlConfig */
-    _MysqlConfig: {
-      /** Host */
-      host: string;
-      /** Port */
-      port: number;
     };
     /** _SaveAsValidatedQueryPayload */
     _SaveAsValidatedQueryPayload: {

@@ -50,22 +50,6 @@ export interface Configuration {
     schema: string;
     username: string;
   };
-  dataServerCredentials: {
-    credentials: {
-      username: string;
-      password: string;
-    };
-    api: {
-      http: {
-        url: string;
-        port: number;
-      };
-      mysql: {
-        host: string;
-        port: number;
-      };
-    };
-  };
   eaiLinkUrl: string | null;
   files:
     | { mode: 'disabled' }
@@ -301,8 +285,6 @@ export const getConfiguration = (): Configuration => {
 
   const enabledFeature = { enabled: true, reason: null };
 
-  const dataServerHost = process.env.SEMA4AI_WORKROOM_DATA_SERVER_HOST_OVERRIDE ?? 'http://localhost';
-
   const sparVersion = process.env.SPAR_VERSION ?? 'dev';
 
   return {
@@ -311,24 +293,6 @@ export const getConfiguration = (): Configuration => {
     allowInsecureRequests,
     auth,
     database,
-    dataServerCredentials: {
-      // Default credentials when using SKIP_CONFIGURATION
-      // https://github.com/Sema4AI/data/blob/master/docker/data-server/default_config.json
-      credentials: {
-        username: 'sema4ai',
-        password: 'sema4ai',
-      },
-      api: {
-        http: {
-          url: dataServerHost,
-          port: 47334,
-        },
-        mysql: {
-          host: dataServerHost,
-          port: 47335,
-        },
-      },
-    },
     eaiLinkUrl,
     files,
     frontendMode: isDevelopment ? 'middleware' : 'disk',

@@ -67,7 +67,6 @@ type WorkroomToken = {
 };
 
 type SPAR_upsertDocumentIntelligenceConfigurationPayload = {
-  dataConnectionId: string;
   integrations: { type: 'reducto'; api_key: string; endpoint: string }[];
 };
 
@@ -385,7 +384,6 @@ export class AgentAPIClient {
     configuration: {
       documentIntelligenceApiKey: string;
       documentIntelligenceEndpoint: string;
-      dataConnectionId: string;
     };
   }): Promise<null> {
     const tenant = await this.getTenant(this.getCurrentTenantId());
@@ -405,7 +403,6 @@ export class AgentAPIClient {
         authorization: `Bearer ${workroomToken}`,
       },
       body: JSON.stringify({
-        dataConnectionId: configuration.dataConnectionId,
         integrations: [
           {
             type: 'reducto',

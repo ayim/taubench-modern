@@ -1038,38 +1038,27 @@ class AgentServerClient:
     def configure_document_intelligence(self, doc_int_config: DocumentIntelligenceConfigPayload):
         url = urljoin(self.base_url + "/", "document-intelligence")
 
-        # Convert SecretString objects to plain strings before calling asdict
         from agent_platform.core.payloads.document_intelligence_config import IntegrationInput
         from agent_platform.core.utils import SecretString
 
-        # Create new integrations with converted SecretString objects
+        # Convert SecretString objects to plain strings before calling asdict
         new_integrations = []
-        if hasattr(doc_int_config, "integrations"):
-            for integration in doc_int_config.integrations:
-                if hasattr(integration, "api_key") and isinstance(integration.api_key, SecretString):
-                    # Create a new IntegrationInput with the plain string API key
-                    new_integration = IntegrationInput(
-                        type=integration.type,
-                        endpoint=integration.endpoint,
-                        api_key=integration.api_key.get_secret_value(),
-                        external_id=integration.external_id,
-                    )
-                    new_integrations.append(new_integration)
-                else:
-                    new_integrations.append(integration)
+        for integration in doc_int_config.integrations:
+            if isinstance(integration.api_key, SecretString):
+                new_integration = IntegrationInput(
+                    type=integration.type,
+                    endpoint=integration.endpoint,
+                    api_key=integration.api_key.get_secret_value(),
+                    external_id=integration.external_id,
+                )
+                new_integrations.append(new_integration)
+            else:
+                new_integrations.append(integration)
 
-        # Create a new config with the converted integrations
-        if new_integrations:
-            config_copy = DocumentIntelligenceConfigPayload(
-                data_server=doc_int_config.data_server,
-                integrations=new_integrations,
-                data_connections=doc_int_config.data_connections,
-                data_connection_id=doc_int_config.data_connection_id,
-            )
-        else:
-            config_copy = doc_int_config
+        config_copy = DocumentIntelligenceConfigPayload(
+            integrations=new_integrations,
+        )
 
-        # Now convert to dict - SecretString objects are already converted
         config_dict = asdict(config_copy)
 
         response = requests.post(url, json=config_dict)
