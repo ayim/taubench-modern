@@ -1,11 +1,13 @@
 import { Box, Button, SideNavigation, Tooltip, Typography, useScreenSize } from '@sema4ai/components';
-import { IconClock, IconMenu, IconPlus } from '@sema4ai/icons';
+import { IconClock, IconMenu, IconPlus, IconStar } from '@sema4ai/icons';
 import { AgentIcon, useSidebarMenu } from '@sema4ai/layouts';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useLinkProps } from '~/components/link';
 import { useAgentQuery } from '~/queries/agents';
+import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
+import { FavouriteButton } from '../FavouriteButton';
 import { useFeatureFlag, FeatureFlag } from '../../hooks';
 import { Container as HeaderContainer, MenuToggleButton } from '../ThreadHeader';
 import { AgentContextMenu } from '../Agents';
@@ -66,8 +68,11 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
+  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
+  const favourites = useAgentPreferencesStore((s) => s.favouritesByTenant[tenantId] ?? []);
 
   const createWorkItemLinkProps = useLinkProps('/tenants/$tenantId/worker/$agentId/create', { agentId, tenantId });
+  const agentIsFavourite = favourites.includes(agentId);
   const { enabled: isChatInteractive } = useFeatureFlag(FeatureFlag.agentChatInput);
 
   const onAgentDelete = () => {
@@ -94,6 +99,17 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
             </Typography>
           </Box>
         </Box>
+        <Tooltip text={agentIsFavourite ? 'Remove from favourites' : 'Add to favourites'} placement="bottom">
+          <FavouriteButton
+            icon={IconStar}
+            variant="ghost"
+            size="small"
+            round
+            $active={agentIsFavourite}
+            aria-label={agentIsFavourite ? 'Remove from favourites' : 'Add to favourites'}
+            onClick={() => (agentIsFavourite ? removeFavourite(tenantId, agentId) : addFavourite(tenantId, agentId))}
+          />
+        </Tooltip>
         <Box ml="$4">
           <AgentContextMenu agent={agent} onAgentDelete={onAgentDelete} />
         </Box>

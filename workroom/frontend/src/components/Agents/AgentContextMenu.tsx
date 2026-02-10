@@ -2,8 +2,10 @@ import { components } from '@sema4ai/agent-server-interface';
 import { Button, Menu, useSnackbar } from '@sema4ai/components';
 import { useDeleteConfirm } from '@sema4ai/layouts';
 import { IconDotsHorizontal } from '@sema4ai/icons';
+import { useParams } from '@tanstack/react-router';
 
 import { useDeleteAgentMutation } from '~/queries/agents';
+import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
 import { useFeatureFlag, FeatureFlag } from '../../hooks';
 
 type Props = {
@@ -14,9 +16,13 @@ type Props = {
  * Displays single Agent related actions context menu
  */
 export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
+  const { tenantId = '' } = useParams({ strict: false });
   const deleteAgentMutation = useDeleteAgentMutation({});
   const { addSnackbar } = useSnackbar();
   const { enabled: isDeploymentWizardEnabled } = useFeatureFlag(FeatureFlag.deploymentWizard);
+  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
+  const favourites = useAgentPreferencesStore((s) => s.favouritesByTenant[tenantId] ?? []);
+  const agentIsFavourite = agent.id ? favourites.includes(agent.id) : false;
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -52,8 +58,22 @@ export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
   });
 
   return (
-    isDeploymentWizardEnabled && (
-      <Menu trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}>
+    <Menu trigger={<Button size="small" icon={IconDotsHorizontal} aria-label="More" round variant="ghost" />}>
+      <Menu.Item
+        onClick={(e) => {
+          e.stopPropagation();
+          if (agent.id) {
+            if (agentIsFavourite) {
+              removeFavourite(tenantId, agent.id);
+            } else {
+              addFavourite(tenantId, agent.id);
+            }
+          }
+        }}
+      >
+        {agentIsFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
+      </Menu.Item>
+      {isDeploymentWizardEnabled && (
         <Menu.Item
           onClick={(e) => {
             e.stopPropagation();
@@ -62,7 +82,7 @@ export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
         >
           Delete
         </Menu.Item>
-      </Menu>
-    )
+      )}
+    </Menu>
   );
 };

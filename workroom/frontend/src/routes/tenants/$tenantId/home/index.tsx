@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { type FC, type MouseEvent, useState, useMemo, useCallback } from 'react';
 import { createFileRoute, Link, useRouteContext } from '@tanstack/react-router';
 import {
   Box,
@@ -11,7 +11,7 @@ import {
   Progress,
 } from '@sema4ai/components';
 import { AgentCard, AgentIcon } from '@sema4ai/layouts';
-import { IconArrowRight, IconSearch } from '@sema4ai/icons';
+import { IconArrowRight, IconSearch, IconStar } from '@sema4ai/icons';
 import { AgentContextMenu } from '~/components/Agents/AgentContextMenu';
 import { AgentDeploymentForm } from '~/components/AgentDeploymentForm';
 import { sortByCreatedAtDesc } from '~/lib/utils';
@@ -20,6 +20,8 @@ import { components } from '@sema4ai/agent-server-interface';
 import { styled } from '@sema4ai/theme';
 import { IconAgents } from '@sema4ai/icons/logos';
 
+import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
+import { FavouriteButton } from '~/components/FavouriteButton';
 import { useAgentsQuery } from '~/queries/agents';
 import { AgentPackageInspectionResponse } from '~/queries/agentPackageInspection';
 import { Page } from '~/components/layout/Page';
@@ -37,6 +39,35 @@ const agentSearchRules: SearchRules<components['schemas']['AgentCompat']> = { na
 const Grid = styled(GridBase)`
   grid-auto-rows: 1fr;
 `;
+
+const AgentVersion: FC<{ agentId: string; version: string; tenantId: string }> = ({ agentId, version, tenantId }) => {
+  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
+  const isFavourited = useAgentPreferencesStore((s) => (s.favouritesByTenant[tenantId] ?? []).includes(agentId));
+
+  const handleClick = (e: MouseEvent) => {
+    e.preventDefault();
+    if (isFavourited) {
+      removeFavourite(tenantId, agentId);
+    } else {
+      addFavourite(tenantId, agentId);
+    }
+  };
+
+  return (
+    <Box display="flex" alignItems="center" gap="$4">
+      <FavouriteButton
+        icon={IconStar}
+        variant="ghost"
+        size="small"
+        round
+        $active={isFavourited}
+        aria-label={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
+        onClick={handleClick}
+      />
+      {version}
+    </Box>
+  );
+};
 
 function HomePage() {
   const { tenantId } = Route.useParams();
@@ -172,7 +203,7 @@ function HomePage() {
                       identifier={agent.id || ''}
                     />
                   }
-                  version={agent.version}
+                  version={<AgentVersion agentId={agent.id} version={agent.version ?? ''} tenantId={tenantId} />}
                   title={agent.name}
                   description={agent.description}
                 >

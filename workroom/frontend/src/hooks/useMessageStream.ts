@@ -387,7 +387,7 @@ class StreamManager {
 export const streamManager = new StreamManager();
 
 export const useMessageStream = ({ agentId, threadId }: { agentId: string; threadId: string }) => {
-  const { agentAPIClient } = useSparUIContext();
+  const { agentAPIClient, tenantId } = useSparUIContext();
   const queryClient = useQueryClient();
   const { mutateAsync: uploadFiles, isPending: uploadingFiles } = useUploadThreadFilesMutation({ threadId });
   const refetchFiles = useThreadFilesRefetch({ threadId, agentId });
@@ -411,6 +411,13 @@ export const useMessageStream = ({ agentId, threadId }: { agentId: string; threa
           message: 'Sending empty messages is not supported',
         },
       };
+    }
+
+    try {
+      const { useAgentPreferencesStore } = await import('./useAgentPreferencesStore');
+      useAgentPreferencesStore.getState().trackAgentInteraction(tenantId, agentId);
+    } catch {
+      // Non-critical — don't block message sending if tracking fails
     }
 
     const uploadedAttachments = await (async (): Promise<

@@ -41,6 +41,12 @@ const MenuOuterToggle = styled(Button)<{ $expanded?: boolean }>`
   }
 `;
 
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid ${({ theme }) => theme.colors.border.subtle.color};
+  margin: ${({ theme }) => theme.space.$12} 0;
+`;
+
 const ScrollContainer = styled.div`
   overflow: auto;
   padding: 0 ${({ theme }) => theme.space.$12};
@@ -133,6 +139,8 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
                 Work Items
               </RouterSideNavigationLink>
             )}
+
+            {(permissions[ADMINISTRATION_ACCESS_PERMISSION] || permissions['users.read']) && <Divider />}
 
             {permissions[ADMINISTRATION_ACCESS_PERMISSION] && features.deploymentWizard.enabled && (
               <RouterSideNavigationLink

@@ -1,3 +1,4 @@
+export * from './useAgentPreferencesStore';
 export * from './useFeatureFlag';
 export * from './useMessageStream';
 export * from './useToggle';

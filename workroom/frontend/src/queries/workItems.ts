@@ -246,6 +246,14 @@ export const useCreateWorkItemMutation = createSparMutation<
     return createdWorkItem;
   },
   onSuccess: (createdWorkItem) => {
+    import('../hooks/useAgentPreferencesStore').then(({ useAgentPreferencesStore }) => {
+      const tenantMeta = document.head.querySelector<HTMLMetaElement>('meta[name=tenantId]');
+      const tenantId = tenantMeta?.content;
+      if (tenantId) {
+        useAgentPreferencesStore.getState().trackAgentInteraction(tenantId, agentId);
+      }
+    });
+
     queryClient.setQueriesData<InfiniteData<WorkItemsListResponse>>(
       {
         queryKey: infiniteWorkItemsQueryKeyPrefix({ agentId }),
