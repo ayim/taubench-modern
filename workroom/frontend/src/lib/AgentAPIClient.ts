@@ -199,7 +199,7 @@ export class AgentAPIClient {
   public async getAgentPermissions(_params: {
     agentId: string;
   }): Promise<{ isAuthorized: boolean; id: string; uri: string; providerType: OAuthProvider; scopes: string[] }[]> {
-    throw new Error('OAuth permissions not supported in Moonraker');
+    return [];
   }
 
   public async deleteOAuthConnection(_params: {
