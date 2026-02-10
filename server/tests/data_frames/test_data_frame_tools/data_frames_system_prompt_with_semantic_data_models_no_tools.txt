@@ -22,17 +22,13 @@ you will find them here:
 ### Model: test_semantic_model
 SQL dialect: duckdb
 Description: A test semantic model for data frame testing
-Table: test_table
+Table: test_data_frame
  Description: Test table for semantic model
  Dimensions:
- - name: col1
-   expr: col1
-   data_type: INTEGER
-   description: First column dimension
-
+  - name: col1
+    data_type: INTEGER
+    description: First column dimension
  Facts:
- - name: col2
-   expr: col2
-   data_type: INTEGER
-   description: Second column fact
-
+  - name: col2
+    data_type: INTEGER
+    description: Second column fact

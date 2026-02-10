@@ -116,8 +116,8 @@ class LegacySqlStrategy(SqlGenerationStrategy):
             str,
             """
             A SQL "SELECT" query to execute against existing data frames
-            or "logical" tables in semantic data models.
-            Any data frame or "logical" table can be referenced by its name in the SQL query.
+            or tables in semantic data models.
+            Any data frame or table can be referenced by its name in the SQL query.
             Some common SQL features:
                 • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
                 • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
@@ -166,13 +166,13 @@ class LegacySqlStrategy(SqlGenerationStrategy):
             """,
         ] = None,
     ) -> dict[str, Any]:
-        """Run a SQL query against the existing data frames or "logical" tables in semantic
+        """Run a SQL query against the existing data frames or tables in semantic
         data models and use its data to create a new data frame.
 
         A sample of the newly created data frame is returned (specified by num_samples).
 
         Use SQL using syntax matching the SQL dialect of the semantic data model or data frame being queried.
-        Existing data frames and "logical" tables in semantic data models are available by their name in your query.
+        Existing data frames and tables in semantic data models are available by their name in your query.
 
         IMPORTANT RETRY BEHAVIOR:
         - If this tool returns status='needs_retry', read the error message carefully
@@ -216,7 +216,7 @@ def _get_sql_generation_instructions(
         instructions_parts.append(
             dedent("""
             **SQL SYNTAX RULES:**
-            - Reference tables by their logical name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
+            - Reference tables by their name only (e.g., `FROM my_table`). Do NOT prefix with the model name.
             - Qualify column names with the table or its alias, especially in CTEs and JOINs.
               If not aliased, use `table_name.column_name`; when aliased, use `alias.column_name`. Never use `alias.table_name.column`.
             """)
@@ -526,8 +526,8 @@ If the tool indicates failure, you should inform the user of the failure, along 
             str,
             """
             A SQL query to execute against existing data frames
-            or tables in semantic data models. You should only provide
-            a query as returned by the generate_sql tool.
+            or tables in semantic data models.
+            You should only provide a query as returned by the generate_sql tool.
             """,
         ],
         new_data_frame_name: Annotated[
@@ -555,7 +555,7 @@ If the tool indicates failure, you should inform the user of the failure, along 
             """,
         ] = None,
     ) -> dict[str, Any]:
-        """Run a SQL query against the existing data frames or "logical" tables in semantic
+        """Run a SQL query against the existing data frames or tables in semantic
         data models and use its data to create a new data frame.
 
         A sample of the newly created data frame is returned (specified by num_samples).

@@ -70,11 +70,20 @@ def build_sdm_post_create_summary(
     return " ".join(summary_lines)
 
 
-def _format_sdm_for_question_prompt(semantic_model: SemanticDataModel) -> str:
+async def _format_sdm_for_question_prompt(
+    semantic_model: SemanticDataModel,
+    storage: StorageDependency,
+) -> str:
     """Format SDM details into a prompt-friendly string."""
-    from agent_platform.server.kernel.semantic_data_model import summarize_data_model
+    from agent_platform.server.kernel.semantic_data_model import (
+        get_dialect_from_semantic_data_model,
+        summarize_data_model,
+    )
 
-    return summarize_data_model(semantic_model, None)
+    # Detect the engine from the semantic data model
+    engine = await get_dialect_from_semantic_data_model(semantic_model, storage)
+    # Default to duckdb if engine detection fails
+    return summarize_data_model(semantic_model, engine or "duckdb")
 
 
 def _parse_sdm_questions_from_llm(text: str) -> list[str]:
@@ -123,7 +132,7 @@ async def _generate_sdm_questions_via_llm(
     resolved_temperature = TEMPERATURE if temperature is None else temperature
     resolved_minimize_reasoning = MINIMIZE_REASONING if minimize_reasoning is None else minimize_reasoning
 
-    sdm_details = _format_sdm_for_question_prompt(semantic_model)
+    sdm_details = await _format_sdm_for_question_prompt(semantic_model, storage)
     system_instruction = SDM_QUESTION_SYSTEM_PROMPT
     user_prompt = f"Semantic Data Model:\n{sdm_details}"
 

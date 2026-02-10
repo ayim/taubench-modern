@@ -26,7 +26,7 @@ def simple_sdm() -> SemanticDataModel:
             "tables": [
                 {
                     "name": "users",
-                    "base_table": {},
+                    "base_table": {"table": "users_table"},
                     "description": "User table",
                     "dimensions": [
                         {"name": "user_id", "expr": "user_id", "data_type": "INTEGER"},
@@ -47,7 +47,7 @@ def snowflake_sdm_with_variant() -> SemanticDataModel:
             "tables": [
                 {
                     "name": "products",
-                    "base_table": {},
+                    "base_table": {"table": "products_tbl"},
                     "dimensions": [
                         {"name": "product_id", "expr": "product_id", "data_type": "INTEGER"},
                         {"name": "metadata", "expr": "metadata", "data_type": "VARIANT"},
@@ -70,7 +70,7 @@ def postgres_sdm_with_json() -> SemanticDataModel:
             "tables": [
                 {
                     "name": "documents",
-                    "base_table": {},
+                    "base_table": {"table": "documents_table"},
                     "dimensions": [
                         {"name": "doc_id", "expr": "doc_id", "data_type": "INTEGER"},
                         {"name": "content", "expr": "content", "data_type": "JSON"},
@@ -91,7 +91,7 @@ def mysql_sdm_with_json() -> SemanticDataModel:
             "tables": [
                 {
                     "name": "events",
-                    "base_table": {},
+                    "base_table": {"table": "events_tbl"},
                     "dimensions": [
                         {"name": "event_id", "expr": "event_id", "data_type": "INTEGER"},
                         {"name": "payload", "expr": "payload", "data_type": "JSON"},
@@ -179,6 +179,158 @@ class TestSdmSqlPrompters:
 
         # Unique to MySQL: JSON_TABLE for array processing
         assert "JSON_TABLE" in result
+
+    def test_column_expr_appears_as_primary(self):
+        """Column expressions should be primary identifiers, not names."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "users",
+                        "base_table": {"table": "user_table", "data_connection_id": "conn-123"},
+                        "dimensions": [
+                            {"name": "full_name", "expr": "first_name || ' ' || last_name", "data_type": "VARCHAR"}
+                        ],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "postgres")])
+
+        # Expression should appear as column identifier (YAML format)
+        assert "first_name || ' ' || last_name" in result
+
+    def test_important_instruction_appears_in_summary(self, simple_sdm: SemanticDataModel):
+        """Summary should include column metadata with lowercase labels."""
+        result = summarize_data_models([(simple_sdm, "duckdb")])
+
+        # Check that data_type appears with lowercase formatting
+        assert "data_type: INTEGER" in result or "data_type: VARCHAR" in result
+
+    def test_multiple_column_types_formatted_correctly(self):
+        """Different column types should all use physical-first formatting."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "sales",
+                        "base_table": {"table": "sales_fact", "data_connection_id": "conn-123"},
+                        "dimensions": [{"name": "product_name", "expr": "product", "data_type": "VARCHAR"}],
+                        "facts": [{"name": "revenue", "expr": "price * quantity", "data_type": "DECIMAL"}],
+                        "metrics": [{"name": "total_revenue", "expr": "SUM(price * quantity)", "data_type": "DECIMAL"}],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "duckdb")])
+
+        # All should show expressions as primary (YAML format with "- name:")
+        assert "- name: product" in result
+        assert "- name: price * quantity" in result
+        assert "- name: SUM(price * quantity)" in result
+
+    def test_file_reference_table_uses_logical_name_as_physical(self):
+        """File-based tables should use logical name as physical name."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "my_data",
+                        "base_table": {"file_reference": {"thread_id": "thread-123", "file_ref": "file-456"}},
+                        "dimensions": [{"name": "id", "expr": "id", "data_type": "INTEGER"}],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "duckdb")])
+
+        # For file references, logical name IS the physical name
+        assert "Table: my_data" in result
+
+    def test_file_reference_columns_use_name_not_expr(self):
+        """File reference tables should show column name (not expr) with no Display Name."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "uploaded_data",
+                        "base_table": {"file_reference": {"thread_id": "thread-123", "file_ref": "file-456"}},
+                        "dimensions": [
+                            {"name": "customer_id", "expr": "customer_id", "data_type": "INTEGER"},
+                            {"name": "full_name", "expr": "first_name || ' ' || last_name", "data_type": "VARCHAR"},
+                        ],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "duckdb")])
+
+        # For file reference tables, use column name (YAML format)
+        assert "- name: customer_id" in result
+        assert "- name: full_name" in result
+
+        # Data type should be present
+        assert "data_type: INTEGER" in result
+        assert "data_type: VARCHAR" in result
+
+        # Should NOT show expr for file reference tables
+        assert "expr:" not in result
+
+    def test_data_connection_columns_use_expr_with_display_name(self):
+        """Data connection tables should show column expr with data type on separate line."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "users",
+                        "base_table": {"table": "user_table", "data_connection_id": "conn-123"},
+                        "dimensions": [
+                            {"name": "user_id", "expr": "user_id", "data_type": "INTEGER"},
+                            {"name": "full_name", "expr": "first_name || ' ' || last_name", "data_type": "VARCHAR"},
+                        ],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "postgres")])
+
+        # For data connection tables, use expr (YAML format)
+        assert "- name: user_id" in result
+        assert "- name: first_name || ' ' || last_name" in result
+
+        # Data type should be present
+        assert "data_type: INTEGER" in result
+        assert "data_type: VARCHAR" in result
+
+    def test_data_connection_table_uses_base_table_as_physical(self):
+        """Data connection tables should use base_table.table as physical name."""
+        sdm = SemanticDataModel.model_validate(
+            {
+                "name": "test_model",
+                "tables": [
+                    {
+                        "name": "customers",
+                        "base_table": {"table": "customer_master", "data_connection_id": "conn-123"},
+                        "dimensions": [{"name": "id", "expr": "customer_id", "data_type": "INTEGER"}],
+                    }
+                ],
+            }
+        )
+
+        result = summarize_data_models([(sdm, "postgres")])
+
+        # For data connections, base_table.table is physical
+        assert "Table: customer_master" in result
 
 
 class TestGetSemanticDataModelsWithEngines:

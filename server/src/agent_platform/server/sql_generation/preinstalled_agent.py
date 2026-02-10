@@ -17,7 +17,7 @@ SQL_GENERATION_AGENT_METADATA = {
     "visibility": os.getenv("SQL_AGENT_VISIBILITY", "hidden"),
     "feature": "sql-generation",
 }
-SQL_GENERATION_AGENT_VERSION = "1.0.0"
+SQL_GENERATION_AGENT_VERSION = "1.1.0"
 SQL_GENERATION_AGENT_ARCHITECTURE = "agent_platform.architectures.experimental_1"
 _SQL_GENERATION_AGENT_NAME = "SQL Generation Agent"
 

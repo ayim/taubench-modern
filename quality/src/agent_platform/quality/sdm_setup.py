@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http
 import os
+import uuid
 from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
@@ -272,7 +273,14 @@ class SDMSetup:
                                     status=e.response.status_code,
                                 )
 
-        payload: dict[str, Any] = {"semantic_model": semantic_model}
+        # Use a dummy thread_id for the import operation
+        # The thread_id is only used for post-create messages, which we don't need in quality tests
+        thread_id = str(uuid.uuid4())
+
+        payload: dict[str, Any] = {
+            "semantic_model": semantic_model,
+            "thread_id": thread_id,
+        }
         if agent_id is not None:
             payload["agent_id"] = agent_id
 

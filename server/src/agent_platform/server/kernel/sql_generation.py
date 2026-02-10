@@ -16,12 +16,12 @@ from agent_platform.server.data_frames.semantic_data_model_collector import (
     SemanticDataModelAndReferences,
     SemanticDataModelCollector,
 )
+from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
 from agent_platform.server.kernel.sql import LegacySqlStrategy
 from agent_platform.server.storage.option import StorageService
 
 logger = get_logger(__name__)
 
-CREATE_DF_FROM_LOGICAL_SQL_TOOL_NAME = "create_data_frame_from_logical_sql"
 ESTIMATE_QUERY_SHAPE_TOOL_NAME = "estimate_query_shape"
 FINALIZE_SQL_GENERATION_TOOL_NAME = "finalize_sql_generation"
 PEEK_TABLE_TOOL_NAME = "peek_table"
@@ -150,7 +150,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
             )
             return dedent(f"""
             ## Semantic Data Models (tables available to be used in the \
-            `{CREATE_DF_FROM_LOGICAL_SQL_TOOL_NAME}` tool):
+            `{DF_CREATE_FROM_SQL_TOOL_NAME}` tool):
             {self._sql_generation_strategy.get_context_additions(models_and_engines)}
             """)
 
@@ -158,12 +158,10 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     def get_sql_generation_tools(self) -> tuple[ToolDefinition, ...]:
         if self.is_enabled():
-            return (
+            from agent_platform.server.kernel.data_frames import DF_CREATE_FROM_SQL_TOOL_NAME
+
+            tools = [
                 ToolDefinition.from_callable(self.peek_table, name=PEEK_TABLE_TOOL_NAME),
-                ToolDefinition.from_callable(
-                    self.create_data_frame_from_logical_sql,
-                    name=CREATE_DF_FROM_LOGICAL_SQL_TOOL_NAME,
-                ),
                 ToolDefinition.from_callable(
                     self.finalize_sql_generation,
                     name=FINALIZE_SQL_GENERATION_TOOL_NAME,
@@ -176,84 +174,20 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
                     self.verify_query,
                     name=VERIFY_QUERY_TOOL_NAME,
                 ),
-            )
+            ]
+
+            # Add the create_data_frame_from_sql tool from the SQL generation strategy
+            # This is the tool that actually executes SQL and creates data frames
+            if self._sql_generation_strategy:
+                tools.append(
+                    ToolDefinition.from_callable(
+                        self._sql_generation_strategy.create_data_frame_from_sql,
+                        name=DF_CREATE_FROM_SQL_TOOL_NAME,
+                    )
+                )
+
+            return tuple(tools)
         return ()
-
-    async def create_data_frame_from_logical_sql(
-        self,
-        logical_sql: Annotated[
-            str,
-            """
-            A SQL "SELECT" query to execute against existing "logical" tables in your semantic
-            data model.
-            Any "logical" table can be referenced by its name in the SQL query.
-
-            Supported SQL features:
-                • SELECT statements with WHERE, ORDER BY, LIMIT, GROUP BY clauses
-                • Aggregate functions like COUNT, SUM, AVG, MIN, MAX
-                • String functions like CONCAT, UPPER, LOWER
-                • Math functions and operators
-                • JOIN operations (when combining multiple tables)
-                • Common Table Expressions (CTEs)
-
-            Examples:
-                • 'SELECT name, age FROM my_logical_table WHERE age > 30'
-                • 'SELECT country, COUNT(*) as count FROM my_logical_table GROUP BY country'
-                • 'SELECT name, age FROM my_logical_table ORDER BY age DESC LIMIT 10'
-                • 'SELECT UPPER(name) as name_upper FROM my_logical_table'
-                • 'SELECT t1.id, t1.name, t2.order_date
-                       FROM customers t1
-                       JOIN orders t2 ON t1.id = t2.customer_id'
-
-            Note: The SQL dialect syntax used for the query should be inferred from the
-                  SQL dialect specified in your semantic data model being used in
-                  the query.
-            """,
-        ],
-        semantic_data_model_name: Annotated[
-            str,
-            """The semantic data model name to use for executing the SQL query.""",
-        ],
-        new_data_frame_name: Annotated[
-            str,
-            """The name of the new data frame to create. IMPORTANT: It must be a valid variable name
-            such as 'my_data_frame', only ascii letters, numbers and underscores are allowed
-            and it cannot start with a number or be a python keyword. IMPORTANT: The name must be
-            unique in the thread (updating an existing data frame is not possible).""",
-        ],
-        new_data_frame_description: Annotated[
-            str | None,
-            "The description of the new data frame to create.",
-        ] = None,
-        num_samples: Annotated[
-            int,
-            """The number of samples to return from the newly created data frame (number of rows
-            to return). Default is 10 (max 500).
-            """,
-        ] = 10,
-    ) -> dict[str, Any]:
-        """Run a SQL query against the existing "logical" tables in your semantic
-        data model and use its data to create a new data frame.
-
-        A sample of the newly created data frame is returned (specified by num_samples).
-
-        Use SQL using syntax matching the SQL dialect of your semantic data model being queried.
-        Existing "logical" tables in your semantic data model are available by their name in
-        your query.
-        """
-        if self._sql_generation_strategy is None:
-            raise ValueError("SQL generation strategy is not initialized")
-
-        # TODO: We need to consider how we handle actual errors and convert them to
-        # "failed_approaches" so those can be returned and/or stored in the SDM.
-
-        return await self._sql_generation_strategy.create_data_frame_from_sql(
-            sql_query=logical_sql,
-            new_data_frame_name=new_data_frame_name,
-            new_data_frame_description=new_data_frame_description,
-            num_samples=num_samples,
-            semantic_data_model_name=semantic_data_model_name,
-        )
 
     async def estimate_query_shape(
         self,
@@ -358,7 +292,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         table: dict[str, Any],
         semantic_data_model: dict[str, Any],
     ) -> dict[str, Any]:
-        """Format a logical table into a structured description."""
+        """Format a table into a structured description."""
         result: dict[str, Any] = {
             "table_name": table.get("name"),
             "model_name": semantic_data_model.get("name"),
@@ -411,8 +345,8 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
         return formatted
 
-    def _get_logical_column_names(self, table_name: str) -> list[str] | None:
-        """Get all logical column names for a table from the SDM definition.
+    def _get_column_names(self, table_name: str) -> list[str] | None:
+        """Get all column names for a table from the SDM definition.
 
         Returns None if the table is not found.
         """
@@ -427,7 +361,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         return None
 
     def _extract_column_names_from_table(self, table: dict[str, Any]) -> list[str]:
-        """Extract all logical column names from a table definition."""
+        """Extract all column names from a table definition."""
         from agent_platform.core.semantic_data_model.types import CATEGORIES
 
         column_names: list[str] = []
@@ -439,7 +373,7 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
 
     async def peek_table(
         self,
-        table_name: Annotated[str, "The logical table name to sample"],
+        table_name: Annotated[str, "The table name to sample"],
         semantic_data_model_name: Annotated[
             str,
             "The semantic data model name that contains the table.",
@@ -452,14 +386,17 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         generates a data frame name and limits the number of rows to prevent requesting
         entire tables.
         """
+        if self._sql_generation_strategy is None:
+            raise ValueError("SQL generation strategy is not initialized")
+
         # Validate num_rows
         if num_rows <= 0:
             num_rows = _PEEK_TABLE_DEFAULT_ROWS
         elif num_rows > _PEEK_TABLE_MAX_ROWS:
             num_rows = _PEEK_TABLE_MAX_ROWS
 
-        # Get logical column names (also verifies the table exists)
-        column_names = self._get_logical_column_names(table_name)
+        # Get column names (also verifies the table exists)
+        column_names = self._get_column_names(table_name)
         if column_names is None:
             available_tables = self._get_available_table_names()
             return {
@@ -470,14 +407,13 @@ class AgentServerSQLGenerationInterface(SQLGenerationInterface, UsesKernelMixin)
         # Generate auto data frame name
         data_frame_name = f"peek_{table_name}"
 
-        # Build the SQL query using explicit logical column names
+        # Build the SQL query using column names
         columns_sql = ", ".join(column_names)
         sql_query = f"SELECT {columns_sql} FROM {table_name} LIMIT {num_rows}"
 
-        # Call create_data_frame_from_logical_sql internally
-        return await self.create_data_frame_from_logical_sql(
-            logical_sql=sql_query,
-            semantic_data_model_name=semantic_data_model_name,
+        # Call create_data_frame_from_sql internally
+        return await self._sql_generation_strategy.create_data_frame_from_sql(
+            sql_query=sql_query,
             new_data_frame_name=data_frame_name,
             new_data_frame_description=f"Sample of {num_rows} rows from {table_name}",
             num_samples=num_rows,

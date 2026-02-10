@@ -23,7 +23,7 @@ Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to ge
 ### Model: snowflake_semantic_model
 SQL dialect: snowflake
 Description: Snowflake-backed semantic model
-Table: snowflake_table
+Table: test_data_frame
  Description: Snowflake table
 
 

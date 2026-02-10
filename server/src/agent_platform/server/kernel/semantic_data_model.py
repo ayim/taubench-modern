@@ -145,11 +145,56 @@ def infer_engine_for_semantic_model(
 
 def _format_table_field(k: str, v: Any) -> str:
     """Format a table field for display."""
+    import yaml
+
     k = k.replace("_", " ").title()
+
+    return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
+
+
+def _format_columns(columns: list[dict], column_type: str, is_file_reference: bool = False) -> str:
+    """Format columns with physical expressions as primary identifiers.
+
+    Args:
+        columns: List of column dictionaries (dimensions, facts, metrics, etc.)
+        column_type: Type label for this column group
+        is_file_reference: If True, format for file reference tables (use name, separate data_type line)
+
+    Returns:
+        Formatted string with physical-first column information
+    """
+    if not columns:
+        return ""
 
     import yaml
 
-    return f"{k}:\n{yaml.safe_dump(v, sort_keys=False)}"
+    lines = [f"{column_type}:"]
+    for original_col in columns:
+        # Make a copy to avoid mutating the original
+        col = original_col.copy()
+
+        # Pop the column identifier and build the column dict
+        if is_file_reference:
+            # For file reference: use name, remove expr
+            column_id = col.pop("name", "")
+            col.pop("expr", None)  # Remove expr for file references
+        else:
+            # For data connection: use expr, remove name
+            column_id = col.pop("expr", "")
+            col.pop("name", None)  # Remove name for data connections
+
+        # Start the column entry with the identifier
+        lines.append(f"- name: {column_id}")
+
+        # Use YAML to format remaining fields
+        if col:
+            yaml_output = yaml.safe_dump(col, sort_keys=False, default_flow_style=False)
+            # Indent the YAML output by 2 spaces
+            for line in yaml_output.rstrip().split("\n"):
+                lines.append(f"  {line}")
+
+    # Indent entire block by 1 space
+    return "\n ".join(lines)
 
 
 def _format_relationships(relationships: list[Relationship]) -> str:
@@ -266,7 +311,7 @@ def get_semantic_data_models_with_engines(
     return models_and_engines
 
 
-def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, str | None]]) -> str:
+def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, str]]) -> str:
     """Summarize a list of semantic data models."""
     if not models_and_engines:
         return "No semantic data models available."
@@ -274,19 +319,24 @@ def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, 
     return "\n".join(summarize_data_model(model, engine) for model, engine in models_and_engines)
 
 
-def summarize_data_model(model: SemanticDataModel, engine: str | None) -> str:
-    """Describe available semantic data models (structure only).
+def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
+    """Describe available semantic data models with physical-first naming.
 
-    Returns pure structural information: model names, tables, columns,
-    and relationships. No SQL generation guidance.
+    Returns structural information with physical table/column names as primary
+    identifiers. No SQL generation guidance.
 
     Args:
-        model: The semantic data model to summarize.
-        engine: Optional SQL engine/dialect to include in the header.
+        model: The semantic data model to summarize
+        engine: The SQL engine/dialect for this model (must be non-empty)
 
     Returns:
-        Formatted description of model structures
+        Formatted description of model structures with physical-first naming
+
+    Raises:
+        ValueError: If engine is empty or None
     """
+    if not engine:
+        raise ValueError("engine must be a non-empty string")
 
     from agent_platform.core.semantic_data_model.types import VerifiedQuery
 
@@ -315,23 +365,54 @@ def summarize_data_model(model: SemanticDataModel, engine: str | None) -> str:
                 continue
 
             t = table.copy()
-            table_name = t.pop("name")
-            if not table_name:
+            logical_table_name = t.pop("name", "")
+            if not logical_table_name:
                 continue
-            t.pop("base_table", None)  # Don't display base_table details
+
+            # Extract physical table name from base_table
+            base_table = t.pop("base_table", {})
             table_desc = t.pop("description", "")
 
-            table_line = f"Table: {table_name}"
+            # Determine physical table name based on source type
+            physical_table_name = None
+            is_file_reference = False
+            if base_table and isinstance(base_table, dict):
+                # File-based tables: use table name as both display and physical name
+                if base_table.get("file_reference"):
+                    physical_table_name = logical_table_name
+                    is_file_reference = True
+                # Data connection tables: use base_table.table as physical name
+                elif base_table.get("data_connection_id") or base_table.get("data_connection_name"):
+                    physical_table_name = base_table.get("table")
+
+            # Use physical table name as primary
+            if physical_table_name:
+                table_line = f"Table: {physical_table_name}"
+            else:
+                # Fallback: no base_table info provided
+                table_line = f"Table: {logical_table_name}"
+
             if table_desc:
                 table_line += f"\n Description: {table_desc}"
             result.append(table_line)
 
+            # Format each column type explicitly with physical-first formatting
+            from agent_platform.core.semantic_data_model.types import CATEGORIES
+
+            for category in CATEGORIES:
+                if columns := t.pop(category, None):
+                    # Convert category name to title case for display
+                    category_display = category.replace("_", " ").title()
+                    result.append(indent(_format_columns(columns, category_display, is_file_reference), " "))
+
+            # Handle any remaining fields (primary_key, filters, etc.) with old formatter
             for k, v in t.items():
                 if v:
                     result.append(indent(_format_table_field(k, v), " "))
 
     # Pop verified_queries to remove them from the model dict (not included in summary)
     verified_queries.extend(model_dict.pop("verified_queries", None) or ())
+
     # Handle relationships - format conditionally based on feature flag
     relationships = model_dict.pop("relationships", [])
     from agent_platform.server.constants import SystemConfig
