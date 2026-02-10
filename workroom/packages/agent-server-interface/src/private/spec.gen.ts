@@ -26063,6 +26063,7 @@ export const spec = {
             ],
             title: 'Document Intelligence',
             description: 'The document intelligence version to use.',
+            default: 'v2.1',
           },
           id: {
             anyOf: [

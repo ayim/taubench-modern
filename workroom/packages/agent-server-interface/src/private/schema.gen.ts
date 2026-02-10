@@ -11281,8 +11281,9 @@ export interface components {
       /**
        * Document Intelligence
        * @description The document intelligence version to use.
+       * @default v2.1
        */
-      document_intelligence?: ('v2' | 'v2.1') | null;
+      document_intelligence: ('v2' | 'v2.1') | null;
       /**
        * Id
        * @description The ID of the agent (alias of agent_id for backwards compatibility).

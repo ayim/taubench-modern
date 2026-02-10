@@ -111,6 +111,29 @@ async def test_is_enabled_requires_reducto_integration():
 
 
 @pytest.mark.asyncio
+async def test_is_enabled_for_ui_created_agent():
+    """Test that is_enabled returns True for a UI-created agent (document_intelligence=v2.1) with Reducto."""
+    from agent_platform.server.kernel.documents import AgentServerDocumentsInterface
+
+    interface = AgentServerDocumentsInterface()
+
+    mock_kernel = Mock()
+    mock_kernel.agent = Mock()
+    mock_kernel.agent.extra = {"document_intelligence": "v2.1"}
+
+    mock_storage = AsyncMock()
+    mock_integration = Mock()
+    mock_integration.id = "integration-123"
+    mock_storage.get_integration_by_kind = AsyncMock(return_value=mock_integration)
+    mock_kernel.storage = mock_storage
+
+    interface.attach_kernel(mock_kernel)
+
+    is_enabled = await interface.is_enabled()
+    assert is_enabled is True
+
+
+@pytest.mark.asyncio
 async def test_is_enabled_disabled_when_external_system_configured():
     """Test that is_enabled returns False when external document intelligence is configured."""
     from agent_platform.server.kernel.documents import AgentServerDocumentsInterface

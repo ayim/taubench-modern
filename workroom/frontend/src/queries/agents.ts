@@ -334,6 +334,7 @@ export const useDeployAgentMutation = createSparMutation<
         public: true,
         platform_params_ids: [payload.llmId],
         mcp_server_ids: payload.mcpServerIds,
+        document_intelligence: 'v2.1',
       },
     });
 

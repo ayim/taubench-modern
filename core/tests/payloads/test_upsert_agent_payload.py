@@ -1038,6 +1038,33 @@ class TestArchitectureSolverResolution:
         assert agent.agent_architecture.name == "agent_platform.architectures.experimental_1"
 
 
+def test_document_intelligence_defaults_to_v2_1():
+    """Test that document_intelligence defaults to v2.1 for UI-created agents
+    and propagates through to_agent into agent.extra."""
+    payload = _create_payload({})
+    assert payload.document_intelligence == "v2.1"
+
+    agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+    assert agent.extra["document_intelligence"] == "v2.1"
+
+
+def test_document_intelligence_preserves_explicit_values():
+    """Ensure ZIP-deployed agents preserve explicit document_intelligence values (v2, None)."""
+    for value in ("v2", None):
+        payload = UpsertAgentPayload(
+            name="Test Agent",
+            description="desc",
+            version="1.0.0",
+            runbook="hi",
+            agent_architecture=DEFAULT_ARCH,
+            document_intelligence=value,
+        )
+        assert payload.document_intelligence == value
+
+        agent = UpsertAgentPayload.to_agent(payload, user_id="u1")
+        assert agent.extra["document_intelligence"] == value
+
+
 def test_missing_name_azure_legacy():
     """Test we raise an error when missing the name"""
     with pytest.raises(ValueError) as e:  # noqa: PT011

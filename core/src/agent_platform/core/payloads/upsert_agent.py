@@ -192,7 +192,7 @@ class UpsertAgentPayload:
     """Settings that control the agent's behavior."""
 
     document_intelligence: Literal["v2", "v2.1"] | None = field(
-        default=None,
+        default="v2.1",
         metadata={"description": "The document intelligence version to use."},
     )
     """The document intelligence version to use."""
