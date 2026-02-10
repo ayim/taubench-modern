@@ -249,6 +249,44 @@ def _extract_column_from_expression(expr: exp.Expression) -> tuple[exp.Column | 
     return (None, None)
 
 
+def _get_limit_or_offset_context(node: exp.Expression) -> str | None:
+    """Detect if a node is within a LIMIT or OFFSET clause.
+
+    Args:
+        node: The AST node to check
+
+    Returns:
+        "limit" if in a LIMIT clause, "offset" if in an OFFSET clause, None otherwise
+
+    Examples:
+        - LIMIT 100 → "limit"
+        - LIMIT 100 OFFSET 50 → "limit" for 100, "offset" for 50
+        - OFFSET 20 → "offset"
+    """
+    from sqlglot import exp
+
+    parent = node.parent
+    if not parent:
+        return None
+
+    # Walk up to find Limit or Offset node
+    current = parent
+    while current and not isinstance(current, exp.Limit | exp.Offset):
+        current = current.parent
+        if not current:
+            return None
+
+    # Check what type of node we found
+    if isinstance(current, exp.Limit):
+        # We're in a LIMIT clause
+        return "limit"
+    elif isinstance(current, exp.Offset):
+        # We're in an OFFSET clause
+        return "offset"
+
+    return None
+
+
 def _extract_column_and_table_from_node(node: exp.Expression) -> tuple[str | None, str | None, str | None] | None:
     """Extract column name, table name, and function name from AST node.
 
@@ -262,6 +300,9 @@ def _extract_column_and_table_from_node(node: exp.Expression) -> tuple[str | Non
     - Aggregate without column: HAVING count(*) > 10 → (None, None, "count")
     - Scalar function comparisons: WHERE ROUND(price) > 100 → ("price", None, "round")
     - Expression comparisons: WHERE price * 1.1 > 100 → ("price", None, None)
+    - LIMIT clause: LIMIT 100 → (None, None, "limit")
+    - OFFSET clause: OFFSET 50 → (None, None, "offset")
+    - CAST expressions: WHERE date BETWEEN CAST('2009-01-01' AS DATE) AND ... → ("date", None, None)
 
     Args:
         node: The AST node (literal or boolean)
@@ -274,41 +315,46 @@ def _extract_column_and_table_from_node(node: exp.Expression) -> tuple[str | Non
     """
     from sqlglot import exp
 
-    # Try to find the column/function being compared
-    # Walk up the parent chain to find comparison or predicate
-    parent = node.parent
+    # Walk up the parent chain, skipping "wrapper" nodes like CAST, DataType, Paren, Tuple
+    # until we find a meaningful context node (comparison, BETWEEN, IN, etc.)
+    # These wrapper nodes don't provide context themselves but pass through to their parent
+    wrapper_nodes = (exp.Cast, exp.DataType, exp.Paren, exp.Tuple, exp.Anonymous)
+
+    current = node.parent
+    while current and isinstance(current, wrapper_nodes):
+        current = current.parent
+
+    if not current:
+        return None
+
     column_node = None
     function_name = None
 
-    # Look for comparison operations (=, >, <, >=, <=, !=, etc.)
-    if parent and isinstance(
-        parent,
-        exp.EQ | exp.GT | exp.LT | exp.GTE | exp.LTE | exp.NEQ | exp.Like,
-    ):
-        # Get the other side of the comparison
-        for child in parent.args.values():
-            if child != node:
-                column_node, function_name = _extract_column_from_expression(child)
-                if column_node or function_name:
-                    break
-
-    # Look for IN clause: column IN (value1, value2, ...)
-    # Literals in IN clauses are wrapped in Tuple -> In structure
-    if not column_node and not function_name:
-        current = parent
-        # Walk up to find In node (might be through Tuple or other wrappers)
-        while current and not isinstance(current, exp.In):
-            current = current.parent
-            if not current:
+    # Check for comparison operations (=, >, <, >=, <=, !=, etc.)
+    if isinstance(current, exp.EQ | exp.GT | exp.LT | exp.GTE | exp.LTE | exp.NEQ | exp.Like):
+        # Get the other side of the comparison (the one that's not our literal/wrapper chain)
+        for child in current.args.values():
+            # Walk down from this child - if it eventually leads to our node, skip it
+            if node in child.walk():
+                continue
+            # Extract column from the other side
+            column_node, function_name = _extract_column_from_expression(child)
+            if column_node or function_name:
                 break
 
-        if current and isinstance(current, exp.In):
-            # Extract column/function from the IN expression
-            column_node, function_name = _extract_column_from_expression(current.this)
+    # Check for BETWEEN clause
+    elif isinstance(current, exp.Between):
+        column_node, function_name = _extract_column_from_expression(current.this)
 
-    # Look for BETWEEN clause: column BETWEEN value1 AND value2
-    if not column_node and not function_name and parent and isinstance(parent, exp.Between):
-        column_node, function_name = _extract_column_from_expression(parent.this)
+    # Check for IN clause
+    elif isinstance(current, exp.In):
+        column_node, function_name = _extract_column_from_expression(current.this)
+
+    # Check for LIMIT/OFFSET clause
+    else:
+        limit_offset_context = _get_limit_or_offset_context(node)
+        if limit_offset_context:
+            function_name = limit_offset_context
 
     # Extract column name and table if we have a column node
     column_name = None

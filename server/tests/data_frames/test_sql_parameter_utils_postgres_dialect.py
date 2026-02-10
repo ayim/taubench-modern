@@ -800,17 +800,41 @@ class TestParameterizeSQLQueryPostgresDialect:
         assert "integer" in param_types
 
     def test_postgres_limit_offset_with_literals(self):
-        """Test parameterizing LIMIT and OFFSET clauses."""
+        """Test parameterizing LIMIT and OFFSET clauses.
+
+        LIMIT and OFFSET are now parameterized to support pagination use cases.
+        While they don't have column context, they are user-controllable values
+        that benefit from parameterization.
+        """
         sql = "SELECT * FROM users WHERE age > 18 LIMIT 10 OFFSET 20"
         result = parameterize_sql_query(sql, dialect="postgres")
-        # Only the WHERE clause literal should be parameterized
-        # LIMIT/OFFSET literals don't have column context (structural values)
-        assert len(result.parameters) == 1
-        assert result.parameters[0].name == "age"
-        assert result.parameters[0].example_value == 18
-        assert result.parameters[0].data_type == "integer"
-        # Verify full SQL with LIMIT and OFFSET unchanged
-        assert normalize_sql(result.parameterized_sql) == "SELECT * FROM users WHERE age > :age LIMIT 10 OFFSET 20"
+        # All three literals should be parameterized
+        assert len(result.parameters) == 3
+
+        # Find parameters by name
+        params_by_name = {p.name: p for p in result.parameters}
+
+        # Verify age parameter
+        assert "age" in params_by_name
+        assert params_by_name["age"].example_value == 18
+        assert params_by_name["age"].data_type == "integer"
+        assert params_by_name["age"].base_column_name == "age"
+
+        # Verify limit parameter
+        assert "limit" in params_by_name
+        assert params_by_name["limit"].example_value == 10
+        assert params_by_name["limit"].data_type == "integer"
+        assert params_by_name["limit"].base_column_name is None  # No column context
+
+        # Verify offset parameter
+        assert "offset" in params_by_name
+        assert params_by_name["offset"].example_value == 20
+        assert params_by_name["offset"].data_type == "integer"
+        assert params_by_name["offset"].base_column_name is None  # No column context
+
+        # Verify full SQL is parameterized
+        expected_sql = "SELECT * FROM users WHERE age > :age LIMIT :limit OFFSET :offset"
+        assert normalize_sql(result.parameterized_sql) == expected_sql
 
     def test_parameter_base_column_names_present(self):
         """Test that all extracted parameters have base column names."""
