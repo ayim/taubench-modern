@@ -1,64 +1,26 @@
 import { createContext, useContext } from 'react';
-import { operations } from '@sema4ai/workroom-interface';
-import { Meta } from './meta';
+import type { Meta } from './meta';
+import type { TrpcOutput } from './trpc';
 
-export type TenantMeta = operations['getWorkroomMeta']['responses'][200]['content']['application/json'] &
-  Pick<Meta, 'branding'>;
+export type TenantMeta = TrpcOutput['configuration']['getTenantConfig'] & Pick<Meta, 'branding'>;
+
+const disabledFeature = { enabled: false, reason: null } as const;
 
 export const TenantContext = createContext<TenantMeta>({
   features: {
-    agentEvals: {
-      enabled: false,
-      reason: '',
-    },
-    settings: {
-      enabled: false,
-      reason: '',
-    },
-    documentIntelligence: {
-      enabled: false,
-      reason: '',
-    },
-    developerMode: {
-      enabled: false,
-      reason: '',
-    },
-    mcpServersManagement: {
-      enabled: false,
-      reason: '',
-    },
-    agentDetails: {
-      enabled: false,
-      reason: '',
-    },
-    deploymentWizard: {
-      enabled: false,
-      reason: '',
-    },
-    agentAuthoring: {
-      enabled: false,
-      reason: '',
-    },
-    semanticDataModels: {
-      enabled: false,
-      reason: '',
-    },
-    workerAgents: {
-      enabled: false,
-      reason: '',
-    },
-    publicAPI: {
-      enabled: false,
-      reason: '',
-    },
-    userManagement: {
-      enabled: false,
-      reason: '',
-    },
-    agentConfiguration: {
-      enabled: false,
-      reason: '',
-    },
+    agentAuthoring: disabledFeature,
+    agentConfiguration: disabledFeature,
+    agentDetails: disabledFeature,
+    agentEvals: disabledFeature,
+    deploymentWizard: disabledFeature,
+    developerMode: disabledFeature,
+    documentIntelligence: disabledFeature,
+    mcpServersManagement: disabledFeature,
+    publicAPI: disabledFeature,
+    semanticDataModels: disabledFeature,
+    settings: disabledFeature,
+    userManagement: disabledFeature,
+    workerAgents: disabledFeature,
   },
 });
 

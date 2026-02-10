@@ -2,20 +2,14 @@ import { createFileRoute, redirect } from '@tanstack/react-router';
 import { shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/')({
-  loader: async ({ params, context: { agentAPIClient } }) => {
-    const tenantMeta = await agentAPIClient.getTenantMeta();
+  loader: async ({ params, context: { trpc: trpcClient } }) => {
+    const tenantConfig = await trpcClient.configuration.getTenantConfig.ensureData();
 
-    if (!tenantMeta) {
-      // No-op: the configuration view is only surfacing feature-gated views
+    if (!shouldDisplayConfigurationSidebarLink({ features: tenantConfig.features })) {
       return;
     }
 
-    if (!shouldDisplayConfigurationSidebarLink({ features: tenantMeta.features })) {
-      // No-op: direct access via URL leads to this
-      return;
-    }
-
-    const shouldRedirectToLLMs = tenantMeta?.features.deploymentWizard.enabled;
+    const shouldRedirectToLLMs = tenantConfig.features.deploymentWizard.enabled;
 
     if (shouldRedirectToLLMs) {
       throw redirect({
@@ -24,7 +18,7 @@ export const Route = createFileRoute('/tenants/$tenantId/configuration/')({
       });
     }
 
-    const shouldRedirectToSettings = tenantMeta?.features.settings.enabled;
+    const shouldRedirectToSettings = tenantConfig.features.settings.enabled;
 
     if (shouldRedirectToSettings) {
       throw redirect({

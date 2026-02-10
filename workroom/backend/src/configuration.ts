@@ -4,11 +4,9 @@ import {
   parseEnvVariableBoolean,
   parseEnvVariableInteger,
 } from '@sema4ai/shared-utils';
-import type { operations } from '@sema4ai/workroom-interface';
+import type { TenantConfig } from './interfaces.js';
 import { LogSeverity } from './monitoring/index.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
-
-export type WorkroomMeta = operations['getWorkroomMeta']['responses']['200']['content']['application/json'];
 
 export interface Configuration {
   agentServerInternalUrl: string;
@@ -69,7 +67,6 @@ export interface Configuration {
     };
   };
   eaiLinkUrl: string | null;
-  featuresUrl: string | null;
   files:
     | { mode: 'disabled' }
     | {
@@ -109,7 +106,7 @@ export interface Configuration {
   userIdentity: {
     cacheTTL: number;
   };
-  workroomMeta: WorkroomMeta;
+  tenantConfig: TenantConfig;
 }
 
 export const getConfiguration = (): Configuration => {
@@ -128,6 +125,8 @@ export const getConfiguration = (): Configuration => {
         throw new Error(`Unsupported node environment: ${env}`);
     }
   })();
+
+  const isDevelopment = nodeEnv === 'development';
 
   const agentServerInternalUrl = parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_URL');
 
@@ -249,9 +248,6 @@ export const getConfiguration = (): Configuration => {
     return 'INFO';
   })();
 
-  const featuresUrl = process.env.SEMA4AI_WORKROOM_FEATURES_URL
-    ? parseEnvVariable('SEMA4AI_WORKROOM_FEATURES_URL')
-    : null;
   const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
 
   const session = ((): Configuration['session'] => {
@@ -334,9 +330,8 @@ export const getConfiguration = (): Configuration => {
       },
     },
     eaiLinkUrl,
-    featuresUrl,
     files,
-    frontendMode: nodeEnv === 'development' ? 'middleware' : 'disk',
+    frontendMode: isDevelopment ? 'middleware' : 'disk',
     logLevel,
     metaUrl,
     ports: {
@@ -361,14 +356,21 @@ export const getConfiguration = (): Configuration => {
     userIdentity: {
       cacheTTL: 30 * 1000, // 30 seconds
     },
-    workroomMeta: {
+    tenantConfig: {
       features: {
         agentAuthoring: enabledFeature,
         agentConfiguration: enabledFeature,
         agentDetails: enabledFeature,
         agentEvals: enabledFeature,
         deploymentWizard: enabledFeature,
-        developerMode: enabledFeature,
+        developerMode: {
+          enabled:
+            isDevelopment ||
+            (process.env.SEMA4AI_WORKROOM_ENABLE_DEV_MODE
+              ? parseEnvVariableBoolean('SEMA4AI_WORKROOM_ENABLE_DEV_MODE')
+              : false),
+          reason: null,
+        },
         documentIntelligence: enabledFeature,
         mcpServersManagement: enabledFeature,
         publicAPI: enabledFeature,

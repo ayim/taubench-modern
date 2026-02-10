@@ -1,4 +1,5 @@
 import z from 'zod';
+import { TenantConfig } from '../../interfaces.js';
 import { authedProcedure } from '../trpc.js';
 
 export const getExternalConfigurationStatus = authedProcedure([])
@@ -16,4 +17,10 @@ export const getExternalConfigurationStatus = authedProcedure([])
     return {
       snowflakeEAIUrl: platform.snowflakeEAIUrl,
     };
+  });
+
+export const getTenantConfig = authedProcedure([])
+  .output(TenantConfig)
+  .query(async ({ ctx }) => {
+    return ctx.tenantConfig;
   });

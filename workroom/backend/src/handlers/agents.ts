@@ -170,22 +170,6 @@ const authorizePublicApiRequest = async (
   return { success: true, token: signResult.data };
 };
 
-/**
- * Get static agent meta
- * @see {} NOTE that this is dynamic on ACE, and this particular
- *  route is not called
- */
-export const createGetAgentMeta = () => (_req: ExpressRequest, res: ExpressResponse) => {
-  res.json({
-    workroomUi: {
-      feedback: { enabled: false },
-      conversations: { enabled: true },
-      chatInput: { enabled: true },
-    },
-    canSendFeedback: false,
-  });
-};
-
 type ProxyHandlerConfig =
   | {
       apiType: 'private';

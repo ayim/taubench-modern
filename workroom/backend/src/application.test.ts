@@ -55,7 +55,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
     },
   },
   eaiLinkUrl: null,
-  featuresUrl: null,
   files: {
     mode: 'disabled',
   },
@@ -82,7 +81,7 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   userIdentity: {
     cacheTTL: 300,
   },
-  workroomMeta: {
+  tenantConfig: {
     features: {
       agentAuthoring: {
         enabled: true,

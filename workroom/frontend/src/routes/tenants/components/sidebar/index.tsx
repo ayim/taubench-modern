@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { FC, useCallback, useMemo } from 'react';
 import { Badge, Box, Button, useScreenSize } from '@sema4ai/components';
 import {
   IconAgents,
@@ -17,6 +17,7 @@ import { SidebarMenu, useSidebarMenu } from '@sema4ai/layouts';
 import { SIDEBAR_STARTING_WIDTH_PX } from '~/lib/constants';
 import { RouterSideNavigationLink } from '~/components/RouterLink';
 import { useTenantContext, shouldDisplayConfigurationSidebarLink } from '~/lib/tenantContext';
+import { trpc } from '~/lib/trpc';
 import { ADMINISTRATION_ACCESS_PERMISSION } from '~/lib/userPermissions';
 import { useUserPermissionsQuery } from '~/queries/userPermissions';
 
@@ -96,6 +97,11 @@ const MenuToggle = () => {
   );
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  knowledgeWorker: 'Knowledge Worker',
+};
+
 export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
   const { tenantId } = useParams({ from: '/tenants/$tenantId' });
   const { features } = useTenantContext();
@@ -103,14 +109,40 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
   const { data: userPermissions } = useUserPermissionsQuery();
 
   const isAdmin = useMemo(() => {
-    // Prefer explicit role check when available (auth mode)
     if (userPermissions?.userRole) {
       return userPermissions.userRole === 'admin';
     }
-    // Fall back to permission check local no-auth mode or in ACE
-    // (use /tenants/id/auth/meta to see your user's permissions and role when on workroom)
     return userPermissions?.permissions.includes(ADMINISTRATION_ACCESS_PERMISSION);
   }, [userPermissions]);
+
+  const { mutateAsync: toggleRole } = trpc.userManagement.devToggleRole.useMutation({
+    onSuccess: () => {
+      window.location.reload();
+    },
+  });
+
+  const handleRoleToggle = useCallback(async () => {
+    await toggleRole();
+  }, [toggleRole]);
+
+  const roleBadge = useMemo(() => {
+    const userRole = userPermissions?.userRole;
+
+    if (features.developerMode.enabled && userRole) {
+      const label = ROLE_LABELS[userRole] ?? userRole;
+      return (
+        <Box onClick={handleRoleToggle} style={{ cursor: 'pointer' }}>
+          <Badge label={label} variant={isAdmin ? 'primary' : 'secondary'} size="small" />
+        </Box>
+      );
+    }
+
+    if (isAdmin) {
+      return <Badge label={ROLE_LABELS['admin']} variant="primary" size="small" />;
+    }
+
+    return null;
+  }, [userPermissions?.userRole, isAdmin, handleRoleToggle, features.developerMode.enabled]);
 
   return (
     <>
@@ -180,7 +212,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
 
         <Box display="flex" alignItems="center" gap="$4" mt="auto">
           <UserMenu profilePictureUrl={profilePictureUrl} />
-          {isAdmin && <Badge label="Admin" variant="primary" size="small" />}
+          {roleBadge}
         </Box>
       </SidebarMenu>
     </>

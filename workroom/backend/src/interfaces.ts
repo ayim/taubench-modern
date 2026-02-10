@@ -1,4 +1,3 @@
-import type { ErrorResponse as WorkRoomErrorResponse } from '@sema4ai/workroom-interface';
 import type { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 
@@ -6,9 +5,12 @@ export type ExpressNextFunction = NextFunction;
 
 export type ExpressRequest = Request;
 
-// SPAR UI expects all endpoints to follow the same shape, inherited from the "workroom interface"
-// Because some of the error responses are still handled on ACE / SPCS side (routers), we ensure that all share the same error shape
-export type ErrorResponse = WorkRoomErrorResponse;
+export type ErrorResponse = {
+  error: {
+    code: 'forbidden' | 'internal_error' | 'invalid_request' | 'not_found' | 'rate_limit_exceeded' | 'unauthorized';
+    message: string;
+  };
+};
 
 interface ExpressResponseLocals {
   apiKey?: {
@@ -59,6 +61,30 @@ export const OIDCTokens = z.object({
   state: z.string().nonempty(),
   tokenType: z.string().nonempty(),
 });
+
+const FeatureFlag = z.object({
+  enabled: z.boolean(),
+  reason: z.string().nullable(),
+});
+
+export const TenantConfig = z.object({
+  features: z.object({
+    agentAuthoring: FeatureFlag,
+    agentConfiguration: FeatureFlag,
+    agentDetails: FeatureFlag,
+    agentEvals: FeatureFlag,
+    deploymentWizard: FeatureFlag,
+    developerMode: FeatureFlag,
+    documentIntelligence: FeatureFlag,
+    mcpServersManagement: FeatureFlag,
+    publicAPI: FeatureFlag,
+    semanticDataModels: FeatureFlag,
+    settings: FeatureFlag,
+    userManagement: FeatureFlag,
+    workerAgents: FeatureFlag,
+  }),
+});
+export type TenantConfig = z.infer<typeof TenantConfig>;
 
 export const getExpectedLocal = <Key extends keyof ExpressResponseLocals>(
   res: ExpressResponse,

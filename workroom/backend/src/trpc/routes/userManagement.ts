@@ -6,7 +6,7 @@ import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/perm
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { User, UserRole } from '../../database/types/user.js';
 import { destroySessionsForUser } from '../../session/utils.js';
-import { authedProcedure } from '../trpc.js';
+import { authedProcedure, trpc } from '../trpc.js';
 
 export const listAvailablePermissions = authedProcedure(['users.read'])
   .output(
@@ -320,4 +320,85 @@ export const updateUser = authedProcedure(['users.write'])
         });
       }
     }
+  });
+
+const NEXT_ROLE: Record<UserRole, UserRole> = {
+  admin: 'knowledgeWorker',
+  knowledgeWorker: 'admin',
+};
+
+export const devToggleRole = trpc.procedure
+  .use(async ({ ctx, next }) => {
+    if (!ctx.tenantConfig.features.developerMode.enabled) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'This endpoint is only available in development mode',
+      });
+    }
+
+    return next();
+  })
+  .output(
+    z.object({
+      role: z.custom<UserRole>((val) => RoleIDs.includes(val as UserRole)),
+    }),
+  )
+  .mutation(async ({ ctx }) => {
+    const { database, monitoring, req, sessionManager, user } = ctx;
+
+    if (!user.id) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Cannot toggle role: user not authenticated',
+      });
+    }
+
+    const currentUserResult = await database.getUser({ id: user.id });
+    if (!currentUserResult.success) {
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to retrieve current user',
+      });
+    }
+
+    const currentRole = currentUserResult.data.role;
+    const nextRole = NEXT_ROLE[currentRole];
+
+    monitoring.logger.info(`Dev mode: toggling user role from ${currentRole} to ${nextRole}`, {
+      userId: user.id,
+      userRole: nextRole,
+    });
+
+    const updateResult = await database.updateUser({
+      user: { id: user.id, role: nextRole },
+    });
+
+    if (!updateResult.success) {
+      monitoring.logger.error('Dev mode: failed toggling user role', {
+        errorMessage: updateResult.error.message,
+        errorName: updateResult.error.code,
+        userId: user.id,
+      });
+
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to toggle user role',
+      });
+    }
+
+    const sessionResult = await sessionManager.extractSessionFromRequest(req);
+    if (sessionResult.success && sessionResult.data) {
+      const session = sessionResult.data;
+
+      if (session.auth.stage === 'authenticated') {
+        await sessionManager.setSessionOnRequest(
+          req,
+          session.authType === 'oidc'
+            ? { authType: 'oidc', auth: { ...session.auth, userRole: nextRole } }
+            : { authType: 'snowflake', auth: { ...session.auth, userRole: nextRole } },
+        );
+      }
+    }
+
+    return { role: nextRole };
   });

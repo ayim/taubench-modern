@@ -6,7 +6,7 @@ import type { AuthManager } from '../auth/AuthManager.js';
 import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import * as apiKeysRoutes from './routes/apiKeys.js';
-import * as externalConfigurationRoutes from './routes/externalConfiguration.js';
+import * as configurationRoutes from './routes/configuration.js';
 import { extractAuthenticatedUserIdentity } from '../middleware/auth/index.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/sessionManager.js';
@@ -18,8 +18,8 @@ export const sparRouter = trpc.router({
   apiKeys: {
     ...apiKeysRoutes,
   },
-  externalConfiguration: {
-    ...externalConfigurationRoutes,
+  configuration: {
+    ...configurationRoutes,
   },
   profile: {
     ...profileRoutes,
@@ -112,7 +112,9 @@ export const createRouterContext =
       platform: {
         snowflakeEAIUrl: configuration.eaiLinkUrl,
       },
+      req,
       sessionManager,
       user,
+      tenantConfig: configuration.tenantConfig,
     };
   };

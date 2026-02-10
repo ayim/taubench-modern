@@ -7,23 +7,6 @@ import { AgentDeploymentFormSchema } from '../components/AgentDeploymentForm/con
 import { formHeadersToApiHeaders } from '../components/MCPServers/schemas/mcpFormSchema';
 import { AgentDetailsSchema } from '../components/ChatDetails/components/context';
 
-export const getAgentMetaQueryKey = (agentId: string) => [agentId, 'meta'];
-
-/**
- * Get Agent Meta
- */
-export const getAgentMetaQueryOptions = createSparQueryOptions<{ agentId: string }>()(
-  ({ agentAPIClient, agentId }) => ({
-    queryKey: getAgentMetaQueryKey(agentId),
-    queryFn: async () => {
-      const response = await agentAPIClient.getAgentMeta({ agentId });
-      return response;
-    },
-  }),
-);
-
-export const useAgentMetaQuery = createSparQuery(getAgentMetaQueryOptions);
-
 /**
  * List Agents query
  */

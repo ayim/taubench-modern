@@ -1,5 +1,7 @@
-import { createWorkroomClient, operations } from '@sema4ai/workroom-interface';
+/* eslint-disable class-methods-use-this */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { fetchEventSource } from '@microsoft/fetch-event-source';
+import { OAuthProvider } from '@sema4ai/oauth-client';
 import { paths as agentServerPaths, operations as AgentServerOperations } from '@sema4ai/agent-server-interface';
 import createFetchClient, { ClientMethod, MaybeOptionalInit } from 'openapi-fetch';
 import {
@@ -11,7 +13,6 @@ import {
   SuccessResponseJSON,
 } from 'openapi-typescript-helpers';
 import { UserTenant } from '~/queries/tenants';
-import { OAuthProvider } from '@sema4ai/oauth-client';
 import { RequestError } from './Error';
 import { getTenantEnvironmentUrl, resolveWorkroomURL } from './utils';
 import { getMeta } from './meta';
@@ -196,217 +197,30 @@ export class AgentAPIClient {
     return tenantsList;
   }
 
-  public async getAgentMeta({
-    agentId,
-  }: {
+  public async getAgentPermissions(_params: {
     agentId: string;
-  }): Promise<operations['getAgentMeta']['responses'][200]['content']['application/json']> {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/meta', {
-      params: {
-        path: {
-          tenantId: this.getCurrentTenantId(),
-          agentId,
-        },
-      },
-    });
-
-    if (response.error) {
-      throw new RequestError(response.response.status, response.error.error.message);
-    }
-
-    return response.data;
+  }): Promise<{ isAuthorized: boolean; id: string; uri: string; providerType: OAuthProvider; scopes: string[] }[]> {
+    throw new Error('OAuth permissions not supported in Moonraker');
   }
 
-  public async getAgentPermissions({ agentId }: { agentId: string }) {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    try {
-      const response = await workroomClient.GET('/tenants/{tenantId}/workroom/agents/{agentId}/me/oauth/permissions', {
-        params: {
-          path: {
-            tenantId: this.getCurrentTenantId(),
-            agentId,
-          },
-          query: {
-            redirectUri: `${window.location.protocol}//${window.location.host}/tenants/${this.getCurrentTenantId()}/oauth`,
-          },
-        },
-      });
-
-      if (response.error) {
-        return [];
-      }
-
-      return response.data as {
-        isAuthorized: boolean;
-        id: string;
-        uri: string;
-        providerType: OAuthProvider;
-        scopes: string[];
-      }[];
-    } catch (_) {
-      // TODO-V2: This should not silently fail, we should have a flag present whether this endpoint is vene available
-      return [];
-    }
-  }
-
-  public async deleteOAuthConnection({
-    agentId,
-    connectionId,
-  }: {
+  public async deleteOAuthConnection(_params: {
     agentId: string;
     connectionId: string;
   }): Promise<{ agentId: string; connectionId: string }> {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.DELETE(
-      '/tenants/{tenantId}/workroom/agents/{agentId}/me/oauth/connections/{connectionId}',
-      {
-        params: {
-          path: {
-            tenantId: this.getCurrentTenantId(),
-            agentId,
-            connectionId,
-          },
-        },
-      },
-    );
-
-    if (response.error) {
-      throw new RequestError(response.response.status, response.error.error.message);
-    }
-
-    return response.data;
+    throw new Error('OAuth connection management not supported in Moonraker');
   }
 
   public async authorizeOAuth(): Promise<{ success: true } | { success: false; error: { code: string } }> {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-    const params = new URL(document.location.toString()).searchParams;
-
-    // Fix the scope by replacing single slashes with double slashes after 'https:'
-    // google will return scope=https:/www... for some reason
-    const fixUrlEncoding = (s: string) => s.replace(/https:\/(?!\/)/g, 'https://');
-    const scope = fixUrlEncoding(params.get('scope') || '');
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/oauth/authorize', {
-      params: {
-        path: {
-          tenantId: this.getCurrentTenantId(),
-        },
-        query: {
-          code: params.get('code') as string,
-          state: params.get('state') as string,
-          scope,
-        },
-      },
-    });
-
-    if (response.error) {
-      return {
-        success: false,
-        error: {
-          code: response.error.error.code,
-        },
-      } as const;
-    }
-
-    return {
-      success: true,
-    } as const;
+    throw new Error('OAuth authorization not supported in Moonraker');
   }
 
-  public async sendFeedback(payload: { agentId: string; threadId: string; feedback: string; comment: string }) {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.POST('/tenants/{tenantId}/workroom/feedback', {
-      params: {
-        path: {
-          tenantId: this.getCurrentTenantId(),
-        },
-      },
-      body: payload,
-    });
-
-    return !response.error;
-  }
-
-  public async listAuditLogs() {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/audit-logs', {
-      params: {
-        path: {
-          tenantId: this.getCurrentTenantId(),
-        },
-      },
-    });
-
-    if (response.error) {
-      return [];
-    }
-
-    return response.data;
+  public async sendFeedback(_params: {
+    agentId: string;
+    threadId: string;
+    feedback: string;
+    comment: string;
+  }): Promise<boolean> {
+    throw new Error('Feedback not supported in Moonraker');
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -536,98 +350,12 @@ export class AgentAPIClient {
     });
   }
 
-  private async prepareForRequest() {
-    const workroomToken = await this.getWorkroomToken();
-    const tenant = await this.getTenant(this.getCurrentTenantId());
-
-    if (!tenant) {
-      throw new RequestError(404, 'Workspace not found');
-    }
-
-    return { workroomToken, tenant };
-  }
-
-  public async getTenantMeta() {
-    const { workroomToken } = await this.prepareForRequest();
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const response = await workroomClient.GET('/tenants/{tenantId}/workroom/meta', {
-      params: {
-        path: {
-          tenantId: this.getCurrentTenantId(),
-        },
-      },
-    });
-
-    if (response.error) {
-      throw new RequestError(response.response.status, 'Unable to fetch Tenant Meta');
-    }
-
-    return response.data;
-  }
-
-  public async getActionLogHtml({
-    agentId,
-    threadId,
-    toolCallId,
-  }: {
+  public async getActionLogHtml(_params: {
     agentId: string;
     threadId: string;
     toolCallId: string;
   }): Promise<{ success: true; data: { html: string } } | { success: false; error: { message: string } }> {
-    const { workroomToken } = await this.prepareForRequest();
-
-    const workroomClient = createWorkroomClient({
-      baseUrl: '/',
-      bearerToken: workroomToken,
-    });
-
-    const getActionLogs = await workroomClient.GET(
-      '/tenants/{tenantId}/workroom/agents/{agentId}/threads/{threadId}/action-invocations/{actionInvocationId}',
-      {
-        params: {
-          path: {
-            tenantId: this.getCurrentTenantId(),
-            agentId,
-            threadId,
-            actionInvocationId: toolCallId,
-          },
-        },
-        parseAs: 'stream',
-      },
-    );
-
-    if (![200, 304].includes(getActionLogs.response.status) || !getActionLogs.data) {
-      return {
-        success: false,
-        error: {
-          message: getActionLogs.error?.error.message ?? 'Failed to retrieve the action logs',
-        },
-      };
-    }
-
-    const reader = getActionLogs.data.getReader();
-    const decoder = new TextDecoder();
-    const chunks: string[] = [];
-
-    let done = false;
-
-    while (!done) {
-      // eslint-disable-next-line no-await-in-loop
-      const { value, done: streamDone } = await reader.read();
-      done = streamDone;
-
-      if (value) {
-        const chunk = decoder.decode(value, { stream: true });
-        chunks.push(chunk);
-      }
-    }
-
-    return { success: true, data: { html: chunks.join('') } };
+    throw new Error('Action log HTML not supported in Moonraker');
   }
 
   /**

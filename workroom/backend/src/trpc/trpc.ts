@@ -5,6 +5,7 @@ import { Roles, type Permission } from '../auth/permissions.js';
 import type { Configuration } from '../configuration.js';
 import type { DatabaseClient } from '../database/DatabaseClient.js';
 import type { UserRole } from '../database/types/user.js';
+import type { ExpressRequest, TenantConfig } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/sessionManager.js';
 
@@ -17,11 +18,13 @@ export type RouterContext = {
   platform: {
     snowflakeEAIUrl: string | null;
   };
+  req: ExpressRequest;
   sessionManager: SessionManager;
   user: Readonly<{
     id: string | null;
     role: UserRole;
   }>;
+  tenantConfig: TenantConfig;
 };
 
 export const trpc = initTRPC.context<RouterContext>().create();

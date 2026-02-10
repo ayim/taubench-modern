@@ -42,7 +42,6 @@
     "@sema4ai/robocloud-ui-utils": "^1.5.1",
     "@sema4ai/shared-utils": "^0.9.0",
     "@sema4ai/theme": "^2.2.1",
-    "@sema4ai/workroom-interface": "^2.8.0",
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-router": "^1.114.29",
     "@tanstack/react-virtual": "^3.13.12",

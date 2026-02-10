@@ -7,14 +7,10 @@ import { useVioletAgentQuery } from '~/queries/violet';
 import { VioletChatPage } from './components/VioletChatPage';
 
 export const Route = createFileRoute('/tenants/$tenantId/violet/')({
-  loader: async ({ context: { agentAPIClient }, params: { tenantId } }) => {
-    const tenantMeta = await agentAPIClient.getTenantMeta();
+  loader: async ({ context: { trpc: trpcClient }, params: { tenantId } }) => {
+    const tenantConfig = await trpcClient.configuration.getTenantConfig.ensureData();
 
-    // Keep access behind a feature flag; currently mapped to developer mode
-    const { features } = tenantMeta ?? {};
-    const isEnabled = features?.developerMode?.enabled;
-
-    if (!isEnabled) {
+    if (!tenantConfig.features.developerMode.enabled) {
       throw redirect({ to: '/tenants/$tenantId/home', params: { tenantId } });
     }
   },

@@ -243,6 +243,10 @@
               "value": ""
             },
             {
+              "name": "SEMA4AI_WORKROOM_ENABLE_DEV_MODE",
+              "value": "true"
+            },
+            {
               "name": "AUTH_TYPE",
               "value": "jwt_local"
             },

@@ -13,7 +13,7 @@ import { autoPromoteUsersWithEmailsToAdmin } from './auth/utils/promotion.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
 import { createFilesManager } from './files/filesManagement.js';
-import { createGetAgentMeta, createProxyHandler } from './handlers/agents.js';
+import { createProxyHandler } from './handlers/agents.js';
 import { createAuthMetaHandler, createLogoutHandler } from './handlers/auth.js';
 import { createConfigureDocumentIntelligence } from './handlers/documentIntelligence.js';
 import { createFilesRouter } from './handlers/files.js';
@@ -28,7 +28,6 @@ import {
   initializeFrontendPlaceholders,
 } from './handlers/static.js';
 import { initializeWebSocketProxying } from './handlers/websocket.js';
-import { createGetWorkroomMeta } from './handlers/workroom.js';
 import type { ErrorResponse } from './interfaces.js';
 import {
   createApiKeyAuthMiddleware,
@@ -46,9 +45,6 @@ import { createSessionMiddleware } from './session/middleware.js';
 import { createSessionManager } from './session/sessionManager.js';
 import { SESSION_COOKIES_NOT_ACTIVE } from './session/utils.js';
 import { createRouterContext, sparRouter } from './trpc/index.js';
-
-// TODO: Add 'rate_limit_exceeded' to ErrorResponse in @sema4ai/workroom-interface
-type RateLimitErrorResponse = { error: { code: 'rate_limit_exceeded'; message: string } };
 
 const AUTH_BYPASSED_PAGES = ['/tenants/:tenantId/logged-out'] as const;
 
@@ -237,39 +233,12 @@ export const createApplication = async ({
   );
 
   tenantRouter.get(
-    `/workroom/meta`,
-    noCache,
-    createAuthMiddleware({
-      authentication: 'without-permissions-check',
-      authManager,
-      configuration,
-      database,
-      monitoring,
-      sessionManager,
-    }),
-    createGetWorkroomMeta({ configuration, monitoring }),
-  );
-
-  tenantRouter.get(
     '/workroom/oidc/callback',
     noCache,
     createOIDCCallbackHandler({ authManager, configuration, database, monitoring, sessionManager }),
   );
 
   // Agent server routes
-  tenantRouter.get(
-    '/workroom/agents/:agentId/meta',
-    noCache,
-    createAuthMiddleware({
-      authentication: 'without-permissions-check',
-      authManager,
-      configuration,
-      database,
-      monitoring,
-      sessionManager,
-    }),
-    createGetAgentMeta(),
-  );
   tenantRouter.all(
     '/agents/api/v2/*',
     noCache,
@@ -331,7 +300,7 @@ export const createApplication = async ({
     handler: (_req, res) => {
       res.status(429).json({
         error: { code: 'rate_limit_exceeded', message: 'Too many requests, please try again later' },
-      } satisfies RateLimitErrorResponse);
+      } satisfies ErrorResponse);
     },
   });
 

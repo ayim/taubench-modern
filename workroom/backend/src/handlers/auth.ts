@@ -1,9 +1,8 @@
-import type { ErrorResponse } from '@sema4ai/workroom-interface';
 import type { AuthManager } from '../auth/AuthManager.js';
 import { Roles } from '../auth/permissions.js';
 import type { Configuration } from '../configuration.js';
 import type { UserRole } from '../database/types/user.js';
-import type { ExpressRequest, ExpressResponse, OIDCTokenClaims } from '../interfaces.js';
+import type { ErrorResponse, ExpressRequest, ExpressResponse, OIDCTokenClaims } from '../interfaces.js';
 import type { MonitoringContext } from '../monitoring/index.js';
 import type { SessionManager } from '../session/sessionManager.js';
 import { getRequestBaseUrl } from '../utils/request.js';

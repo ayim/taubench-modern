@@ -12,17 +12,17 @@ import { Main } from './components/Main';
 import { Sidebar } from './components/sidebar';
 
 export const Route = createFileRoute('/tenants/$tenantId')({
-  loader: async ({ context: { agentAPIClient } }) => {
-    const tenantMeta = await agentAPIClient.getTenantMeta();
-    const applicationMeta = await getMeta();
+  loader: async ({ context: { trpc: trpcClient } }) => {
+    const [tenantConfig, applicationMeta] = await Promise.all([
+      trpcClient.configuration.getTenantConfig.ensureData(),
+      getMeta(),
+    ]);
 
     return {
-      tenantMeta: tenantMeta
-        ? {
-            ...tenantMeta,
-            branding: applicationMeta.branding,
-          }
-        : undefined,
+      tenantMeta: {
+        ...tenantConfig,
+        branding: applicationMeta.branding,
+      },
     };
   },
   component: View,
@@ -36,7 +36,7 @@ function View() {
   const profileData = trpc.profile.getProfile.useQuery();
   const profilePicture = (profileData.isSuccess && profileData.data.user.profilePicture) || undefined;
 
-  const extConfigStatus = trpc.externalConfiguration.getExternalConfigurationStatus.useQuery();
+  const extConfigStatus = trpc.configuration.getExternalConfigurationStatus.useQuery();
   const snowflakeEAIUrl = extConfigStatus.isSuccess ? extConfigStatus.data.snowflakeEAIUrl : null;
 
   const sparUIContext = useMemo(() => {
