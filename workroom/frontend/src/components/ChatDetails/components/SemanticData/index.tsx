@@ -15,7 +15,7 @@ type Props = {
   titleBadge?: ReactNode;
 };
 
-export const SemanticDataSection = ({ titleBadge }: Props) => {
+export const SemanticData = ({ titleBadge }: Props) => {
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
   const { agentId = '', threadId = '' } = useParams({ strict: false });
   const { data: semanticDataModelsWithoutValidation, isLoading } = useAgentSemanticDataQuery({ agentId });
@@ -31,6 +31,10 @@ export const SemanticDataSection = ({ titleBadge }: Props) => {
   };
 
   if (!isSemanticDataModelsAvailable || isLoading) {
+    return null;
+  }
+
+  if (!canCreateAgents && (!semanticDataModels || semanticDataModels.length === 0)) {
     return null;
   }
 

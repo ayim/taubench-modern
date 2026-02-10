@@ -2,7 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from '@sema4ai/components';
 import { FC, useMemo, useState } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { InputControlled } from '~/components/InputControlled';
+
+import { InputControlled } from '~/components/form/InputControlled';
 import { beautifyLabel, normalizeAzureEndpointUrl } from '~/lib/utils';
 import { useCreateLLMMutation, type CreatePlatformBody } from '~/queries/platforms';
 import { VertexServiceAccountUploadField } from './VertexServiceAccountUploadField';

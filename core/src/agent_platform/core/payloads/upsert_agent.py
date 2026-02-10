@@ -743,10 +743,6 @@ class UpsertAgentPayload:
                 "agent_architecture is required but was not provided: or derived from legacy fields.",
             )
 
-        # Ensure runbook text is valid
-        if not self.runbook and not self.structured_runbook:
-            raise ValueError("A runbook or structured runbook is required")
-
         # Null out runbook if structured runbook is present (prefer structured)
         if self.structured_runbook:
             self.runbook = None
@@ -812,6 +808,10 @@ class UpsertAgentPayload:
         if payload.agent_architecture is None:
             raise ValueError("agent_architecture is required")
 
+        # Validate runbook is provided when creating a new agent
+        if not existing_agent and not payload.runbook and not payload.structured_runbook:
+            raise ValueError("A runbook or structured_runbook is required")
+
         platform_configs = [
             cast(AnyPlatformParameters, PlatformParameters.model_validate(config))
             for config in payload.platform_configs
@@ -852,6 +852,8 @@ class UpsertAgentPayload:
             runbook_structured = Runbook(raw_text=payload.runbook, content=[], updated_at=datetime.now(UTC))
         elif payload.structured_runbook:
             runbook_structured = payload.structured_runbook.to_structured_runbook()
+        elif existing_agent:
+            runbook_structured = existing_agent.runbook_structured
         else:
             runbook_structured = Runbook(
                 raw_text="You are a helpful assistant.", content=[], updated_at=datetime.now(UTC)

@@ -34,7 +34,7 @@
     "@lexical/utils": "0.17.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@sema4ai/agent-server-interface": "*",
-    "@sema4ai/components": "^2.15.1",
+    "@sema4ai/components": "2.15.2-RC.1",
     "@sema4ai/data-interface": "^3.2.1",
     "@sema4ai/icons": "^2.4.1",
     "@sema4ai/layouts": "^2.8.4",

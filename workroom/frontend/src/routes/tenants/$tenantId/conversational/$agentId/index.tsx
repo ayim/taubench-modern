@@ -192,9 +192,10 @@ export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId
       },
     });
   },
-  validateSearch: (search): { initial_thread_message?: string } => {
+  validateSearch: (search): { initial_thread_message?: string; threadView?: string } => {
     return {
       initial_thread_message: search.initial_thread_message ? String(search.initial_thread_message) : undefined,
+      threadView: search.threadView ? String(search.threadView) : undefined,
     };
   },
   pendingComponent: () => <Progress variant="page" />,

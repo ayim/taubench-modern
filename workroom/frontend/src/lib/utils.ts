@@ -390,3 +390,17 @@ export const safeParseJson = (text: string | null | undefined) => {
     return text;
   }
 };
+
+// prettier-ignore
+export const generateUniqueName = (blacklist: string[] = []) => {
+  const adjectives = ["Astra","Nova","Silentis","Veloce","Lumen","Quantum","Prime","Void","Neural","Solaris","Arcane","Echo","Stellar","Crypto","Orbis","Hyper","Meta","Axiom","Flux","Vector"]
+  const nouns = ["Cortexa","Nexium","Operis","Sentara","Modulus","Archivex","Daemonis","Structa","Processa","Intellix","Vectrum","Automis","Signalum","Unitas","Protocola","Logica","Executa","Observera","Actoris"]
+
+  let name = "";
+
+  while (name.length === 0 || blacklist.includes(name)) {
+    name = `${adjectives[Math.floor(Math.random() * adjectives.length)]} ${nouns[Math.floor(Math.random() * nouns.length)]}`;
+  }
+
+  return name;
+}

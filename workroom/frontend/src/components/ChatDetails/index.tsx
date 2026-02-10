@@ -1,63 +1,115 @@
-import { components } from '@sema4ai/agent-server-interface';
-import { Box, Progress } from '@sema4ai/components';
-import { FC, useMemo } from 'react';
-import { useAgentDetailsQuery, useAgentOAuthStateQuery, useAgentQuery } from '~/queries/agents';
-import { ActionsSection } from './components/ActionsSection';
-import { DescriptionSection } from './components/DescriptionSection';
-import { LLMSection } from './components/LLMSection';
-import { MCPServerSection } from './components/MCPServerSection';
-import { OAuthProviderSection } from './components/OAuthProviderSection';
-import RunbookSection from './components/RunbookSection/index';
-import { SemanticDataSection } from './components/SemanticDataSection';
-import { useFeatureFlag, FeatureFlag } from '../../hooks';
+import { Box, Button, Progress, useSnackbar } from '@sema4ai/components';
+import { FC, useEffect } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FormProvider, useForm } from 'react-hook-form';
+import { styled } from '@sema4ai/theme';
 
-export type ActionPackage = components['schemas']['ActionPackageDetail'];
-export type MCPServer = components['schemas']['MCPServerDetail'];
+import { Accordion } from '~/components/Accordion';
+import { useAgentQuery, useUpdateAgentMutation } from '~/queries/agents';
+import { useFeatureFlag, FeatureFlag } from '~/hooks';
 
-const MCP_OFFLINE_POLL_INTERVAL = 3000;
+import { AgentDetailsSchema, getDefaultValues } from './components/context';
+import { AgentName } from './components/AgentName';
+import { AgentVersion } from './components/AgentVersion';
+import { ConversationStarter } from './components/ConversationStarter';
+import { LLM } from './components/LLM';
+import { MCPServers } from './components/MCPServers';
+import { Runbook } from './components/Runbook';
+import { SemanticData } from './components/SemanticData';
+
+const Actions = styled.div`
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: ${({ theme }) => theme.space.$8};
+  justify-content: flex-start;
+  flex-direction: row-reverse;
+  background: ${({ theme }) => theme.colors.background.primary.color};
+  padding: ${({ theme }) => theme.space.$24};
+  margin-top: ${({ theme }) => theme.space.$40};
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+`;
 
 export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
-  const { data: agentDetails, isLoading: isAgentDetailsLoading } = useAgentDetailsQuery({ agentId });
-
-  const hasOfflineMcpServers = useMemo(() => {
-    return agentDetails?.mcp_servers?.some((server) => server.status === 'offline') ?? false;
-  }, [agentDetails?.mcp_servers]);
-
-  // Poll for MCP server status updates when any server is offline
-  // This second hook shares the same query cache and triggers refetches
-  useAgentDetailsQuery({ agentId }, { refetchInterval: hasOfflineMcpServers ? MCP_OFFLINE_POLL_INTERVAL : undefined });
-
-  const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
-  const { data: agentOAuthState, isLoading: isAgentOAuthStateLoading } = useAgentOAuthStateQuery({ agentId });
+  const { addSnackbar } = useSnackbar();
   const { enabled: isAgentDetailsEnabled } = useFeatureFlag(FeatureFlag.agentDetails);
-  const { enabled: areSemanticDataModelsEnabled } = useFeatureFlag(FeatureFlag.semanticDataModels);
+  const { enabled: canConfigureAgents } = useFeatureFlag(FeatureFlag.canConfigureAgents);
+  const { mutateAsync: updateAgent, isPending: isUpdatingAgent } = useUpdateAgentMutation({ agentId });
+  const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
+
+  const agentDetailsForm = useForm<AgentDetailsSchema>({
+    resolver: zodResolver(AgentDetailsSchema),
+  });
+
+  const {
+    formState: { isDirty: isFormChanged },
+  } = agentDetailsForm;
+
+  useEffect(() => {
+    if (agent) {
+      agentDetailsForm.reset(getDefaultValues(agent));
+    }
+  }, [agent]);
+
+  const onSubmit = agentDetailsForm.handleSubmit(async (data) => {
+    await updateAgent(
+      { payload: data },
+      {
+        onSuccess: () => {
+          addSnackbar({ message: 'Agent updated successfully', variant: 'success' });
+        },
+        onError: (error) => {
+          addSnackbar({ message: error.message, variant: 'danger' });
+        },
+      },
+    );
+  });
 
   if (!isAgentDetailsEnabled) return null;
 
-  return (
-    <Box height="100%">
-      {isAgentDetailsLoading || isAgentLoading || isAgentOAuthStateLoading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" height="100%">
-          <Progress />
-        </Box>
-      ) : (
-        <Box display="flex" flexDirection="column" gap={20} p={8}>
-          {agent?.description && <DescriptionSection description={agent.description} />}
-          {agentDetails?.runbook && !!agentDetails.runbook.trim() && (
-            <RunbookSection agentName={agent?.name || ''} runbookMarkdown={agentDetails.runbook} />
-          )}
-          {agentDetails?.action_packages && agentDetails.action_packages.length > 0 && (
-            <ActionsSection actionPackages={agentDetails.action_packages} />
-          )}
-          {agentDetails?.mcp_servers && agentDetails.mcp_servers.length > 0 && (
-            <MCPServerSection mcpServers={agentDetails.mcp_servers} />
-          )}
-          {agentOAuthState && agentOAuthState.length > 0 && <OAuthProviderSection agentOAuthState={agentOAuthState} />}
-          {agent?.model && <LLMSection provider={agent.model.provider as string} name={agent.model.name as string} />}
+  if (isAgentLoading || !agent) {
+    return (
+      <Box display="flex" height="100%" justifyContent="center" alignItems="center">
+        <Progress />
+      </Box>
+    );
+  }
 
-          {areSemanticDataModelsEnabled && <SemanticDataSection />}
+  return (
+    <FormProvider {...agentDetailsForm}>
+      <Form onSubmit={onSubmit}>
+        <Box display="flex" flexDirection="column" gap="$24" p="$8" flex="1">
+          <AgentName />
+          <Runbook />
+          <SemanticData />
+          <LLM />
+          <MCPServers />
+          {canConfigureAgents && (
+            <Box>
+              <Accordion title="Advanced Options" size="small">
+                <Box display="flex" flexDirection="column" gap="$24">
+                  <AgentVersion />
+                  <ConversationStarter />
+                </Box>
+              </Accordion>
+            </Box>
+          )}
         </Box>
-      )}
-    </Box>
+        {isFormChanged && (
+          <Actions>
+            <Button type="submit" loading={isUpdatingAgent} round>
+              Update Agent
+            </Button>
+          </Actions>
+        )}
+      </Form>
+    </FormProvider>
   );
 };

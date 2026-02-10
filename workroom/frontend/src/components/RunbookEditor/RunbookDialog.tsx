@@ -23,6 +23,7 @@ import { MARKDOWN_TRANSFORMERS } from './plugins/lexical-markdown/MarkdownTransf
 type Props = {
   onClose: (value?: string) => void;
   value: string;
+  readOnly?: boolean;
 };
 
 const theme = {
@@ -90,7 +91,7 @@ const editorConfig = {
   theme,
 };
 
-const DialogContent: FC<Props> = ({ onClose, value }) => {
+const DialogContent: FC<Props> = ({ onClose, readOnly, value }) => {
   const [editor] = useLexicalComposerContext();
 
   const onSaveChanges = () => {
@@ -133,23 +134,23 @@ const DialogContent: FC<Props> = ({ onClose, value }) => {
         </Box>
       </Dialog.Content>
       <Dialog.Actions>
-        <Dialog.Actions>
+        {!readOnly ? (
           <Button variant="primary" onClick={onSaveChanges} round>
             Save
           </Button>
-          <Button variant="secondary" onClick={() => onClose()} round>
-            Cancel
-          </Button>
-        </Dialog.Actions>
+        ) : null}
+        <Button variant="secondary" onClick={() => onClose()} round>
+          Cancel
+        </Button>
       </Dialog.Actions>
     </Dialog>
   );
 };
 
-export const RunbookDialog: FC<Props> = ({ onClose, value }) => {
+export const RunbookDialog: FC<Props> = ({ onClose, value, readOnly }) => {
   return (
     <LexicalComposer initialConfig={editorConfig as InitialConfigType}>
-      <DialogContent onClose={onClose} value={value} />
+      <DialogContent onClose={onClose} value={value} readOnly={readOnly} />
     </LexicalComposer>
   );
 };

@@ -11,11 +11,11 @@ import { AgentDeploymentFormSchema, AgentDeploymentFormSection } from '../contex
 export const MCPServers: AgentDeploymentFormSection = ({ agentTemplate }) => {
   const [isNewServerDialogOpen, setIsNewServerDialogOpen] = useState(false);
   const { watch, setValue } = useFormContext<AgentDeploymentFormSchema>();
-  const { data: mcpServers = {}, isLoading } = useMcpServersQuery({});
+  const { data: mcpServers = [], isLoading } = useMcpServersQuery({});
 
   const selectedServerIds = watch('mcpServerIds') ?? [];
 
-  const mcpServerItems = Object.values(mcpServers).map((server) => ({
+  const mcpServerItems = mcpServers.map((server) => ({
     value: server.mcp_server_id,
     label: server.name,
   }));

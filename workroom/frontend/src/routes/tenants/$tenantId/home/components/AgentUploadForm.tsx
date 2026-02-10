@@ -1,13 +1,9 @@
-import { Box, Button, useSnackbar } from '@sema4ai/components';
+import { Dropzone, Typography, useSnackbar } from '@sema4ai/components';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileRejection, useDropzone } from 'react-dropzone';
-import { IconPlus } from '@sema4ai/icons';
 
 import { AgentPackageInspectionResponse, useInspectAgentPackageMutation } from '~/queries/agentPackageInspection';
-
-import { useTenantContext } from '~/lib/tenantContext';
 
 type Props = {
   setAgentPackageUploadData: (data: {
@@ -18,8 +14,7 @@ type Props = {
 
 export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
   const { addSnackbar } = useSnackbar();
-  const { mutateAsync: inspectAgentPackageMutation, isPending } = useInspectAgentPackageMutation({});
-  const { features } = useTenantContext();
+  const { mutateAsync: inspectAgentPackageMutation } = useInspectAgentPackageMutation({});
 
   const schema = z.object({
     file: z
@@ -31,17 +26,8 @@ export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
 
   const { setValue, trigger } = useForm<FormValues>({ resolver: zodResolver(schema), mode: 'onChange' });
 
-  const onDrop = async (files: File[], fileRejection: FileRejection[]) => {
+  const onDrop = async (files: File[]) => {
     const file = files[0];
-
-    const error = fileRejection?.[0]?.errors?.[0];
-    if (error && error.message) {
-      addSnackbar({
-        message: error.message,
-        variant: 'danger',
-      });
-      return;
-    }
 
     if (!file) {
       return;
@@ -75,27 +61,26 @@ export const AgentUploadForm = ({ setAgentPackageUploadData }: Props) => {
     }
   };
 
-  const { getInputProps, open } = useDropzone({
-    multiple: false,
-    accept: {
-      'application/zip': ['.zip'],
-    },
-    maxSize: 100_000_000,
-    onDrop,
-
-    // Disable click and keydown behavior since we're using a button
-    noClick: true,
-    noKeyboard: true,
-  });
-
   return (
-    <Box height="100%" display="flex" flexDirection="row" gap={2}>
-      <input {...getInputProps()} />
-      {features.deploymentWizard.enabled && (
-        <Button icon={IconPlus} round onClick={open} loading={isPending}>
-          Agent
-        </Button>
-      )}
-    </Box>
+    <Dropzone
+      onDrop={onDrop}
+      title={
+        <span>
+          Drag & drop or{' '}
+          <Typography color="content.accent" as="span">
+            select Agent .zip
+          </Typography>{' '}
+          to upload
+        </span>
+      }
+      dropTitle="Drop your files here"
+      description="Only supports ZIP files • Max size: 20MB"
+      dropzoneConfig={{
+        accept: {
+          'application/zip': ['.zip'],
+        },
+        maxSize: 100_000_000,
+      }}
+    />
   );
 };

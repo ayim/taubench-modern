@@ -5,6 +5,7 @@ import { AgentPackageInspectionResponse } from './agentPackageInspection';
 import { agentPackageSecretsToHeaderEntries } from '../utils/actionPackages';
 import { AgentDeploymentFormSchema } from '../components/AgentDeploymentForm/context';
 import { formHeadersToApiHeaders } from '../components/MCPServers/schemas/mcpFormSchema';
+import { AgentDetailsSchema } from '../components/ChatDetails/components/context';
 
 export const getAgentMetaQueryKey = (agentId: string) => [agentId, 'meta'];
 
@@ -177,6 +178,33 @@ export const searchAgentsByMetadataQueryOptions = createSparQueryOptions<{ metad
 export const useSearchAgentsByMetadataQuery = createSparQuery(searchAgentsByMetadataQueryOptions);
 
 /**
+ * Update Agent mutation
+ */
+export const useUpdateAgentMutation = createSparMutation<{ agentId: string }, { payload: AgentDetailsSchema }>()(
+  ({ agentAPIClient, queryClient, agentId }) => ({
+    mutationFn: async ({ payload }) => {
+      const response = await agentAPIClient.agentFetch('put', '/api/v2/agents/{aid}', {
+        params: { path: { aid: agentId } },
+        body: payload,
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to update agent', {
+          code: response.code,
+          resource: ResourceType.Agent,
+        });
+      }
+
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: agentsQueryKey() });
+      queryClient.invalidateQueries({ queryKey: agentQueryKey(agentId) });
+      queryClient.invalidateQueries({ queryKey: agentDetailsQueryKey(agentId) });
+    },
+  }),
+);
+/**
  * Delete Agent OAuth provider connection
  */
 export const useDeleteAgentOAuthMutation = createSparMutation<{ agentId: string }, { connectionId: string }>()(
@@ -318,7 +346,7 @@ export const useDeployAgentMutation = createSparMutation<
   {
     payload: AgentDeploymentFormSchema;
   }
->()(({ agentAPIClient }) => ({
+>()(({ agentAPIClient, queryClient }) => ({
   mutationFn: async ({ payload }) => {
     const response = await agentAPIClient.agentFetch('post', '/api/v2/agents/', {
       body: {
@@ -347,4 +375,34 @@ export const useDeployAgentMutation = createSparMutation<
 
     return response.data.agent_id;
   },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: agentsQueryKey() });
+  },
 }));
+
+/**
+ * List Agent Architectures query
+ */
+export const agentArchitecturesQueryKey = () => ['agentArchitectures'];
+
+export const agentArchitecturesQueryOptions = createSparQueryOptions<object>()(({ agentAPIClient }) => ({
+  queryKey: agentArchitecturesQueryKey(),
+  queryFn: async () => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/capabilities/architectures', {});
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch agent architectures', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
+    }
+
+    return response.data as {
+      name: string;
+      summary: string;
+      version: string;
+    }[];
+  },
+}));
+
+export const useAgentArchitecturesQuery = createSparQuery(agentArchitecturesQueryOptions);

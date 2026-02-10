@@ -47,7 +47,7 @@ export const LLM: AgentDeploymentFormSection = ({ agentTemplate }) => {
       description={
         <>
           Select the model used by this agent. The recommended option reflects the model configured in the agent
-          package, or you can. <Link to="/tenants/$tenantId/configuration/llm/new">Create New</Link>.
+          package, or you can <Link to="/tenants/$tenantId/configuration/llm/new">Create New</Link>.
         </>
       }
     />

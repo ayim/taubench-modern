@@ -1,16 +1,18 @@
 import { ChangeEvent, FC, useCallback, useMemo, useRef, useState } from 'react';
-import { Input, InputProps } from '@sema4ai/components';
+import { Input, InputProps, useForkRef } from '@sema4ai/components';
 import { IconEye, IconEyeLock } from '@sema4ai/icons';
 import { Controller, useFormContext } from 'react-hook-form';
 
 type Props = InputProps & {
   fieldName: string;
   errorMessage?: string;
+  ref?: React.RefObject<HTMLInputElement | null>;
 };
 
-export const InputControlled: FC<Props> = ({ fieldName, errorMessage, type, ...rest }) => {
+export const InputControlled: FC<Props> = ({ fieldName, errorMessage, type, ref, ...rest }) => {
   const [showSecretValue, setShowSecretValue] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const innerRef = useRef<HTMLInputElement>(null);
+  const inputRef = useForkRef(innerRef, ref);
   const { control } = useFormContext();
 
   const onToggleHideInputValue = () => {

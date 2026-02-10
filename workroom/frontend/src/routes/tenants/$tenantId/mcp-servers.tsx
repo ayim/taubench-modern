@@ -11,8 +11,7 @@ export const Route = createFileRoute('/tenants/$tenantId/mcp-servers')({
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { data: mcpServersById = {} } = useMcpServersQuery({});
-  const mcpServers = Object.values(mcpServersById);
+  const { data: mcpServers = [] } = useMcpServersQuery({});
 
   const onSearchQueryUpdate = useCallback(
     (searchQuery: string) => {

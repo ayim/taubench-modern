@@ -7,7 +7,7 @@ import z from 'zod';
 
 import { useDataConnectionsQuery } from '~/queries/dataConnections';
 import errorIllustration from '~/assets/error.svg';
-import { InputControlled } from '~/components/InputControlled';
+import { InputControlled } from '~/components/form/InputControlled';
 import { useTenantContext } from '~/lib/tenantContext';
 import { getApiKeyValue } from '~/queries/agent-interface-patches';
 import {
@@ -155,7 +155,6 @@ function View() {
             type="password"
             label="Document Intelligence API Key"
             placeholder="Your API Key"
-            {...formProps.register('documentIntelligenceApiKey')}
             error={formProps.formState.errors.documentIntelligenceApiKey?.message}
           />
         </Form.Fieldset>

@@ -3,7 +3,7 @@ import { Box, Button, Checkbox, Dialog, Form, Input, Select, useSnackbar } from 
 import { useRouter } from '@tanstack/react-router';
 import { FC, useEffect, useMemo } from 'react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
-import { InputControlled } from '~/components/InputControlled';
+import { InputControlled } from '~/components/form/InputControlled';
 import {
   AZURE_MODEL_VALUES,
   AZURE_FOUNDRY_MODEL_VALUES,

@@ -17,7 +17,8 @@ export const mcpServersQueryOptions = createSparQueryOptions<object>()(({ agentA
       });
     }
 
-    return response.data;
+    const mcpServers = Object.values(response.data);
+    return mcpServers;
   },
 }));
 
@@ -158,3 +159,27 @@ export const useValidateMcpServerCapabilitiesMutation = createSparMutation<
     return response.data;
   },
 }));
+
+export const mcpServerCapabilitiesQueryKey = (mcpServerId: string) => ['mcp-server-capabilities', mcpServerId];
+
+const mcpServerCapabilitiesQueryOptions = createSparQueryOptions<{ mcpServer: McpServerCreateInput }>()(
+  ({ agentAPIClient, mcpServer }) => ({
+    queryKey: mcpServerCapabilitiesQueryKey(mcpServer.name),
+    queryFn: async () => {
+      const response = await agentAPIClient.agentFetch('post', '/api/v2/capabilities/mcp/tools', {
+        body: { mcp_servers: [mcpServer] },
+      });
+
+      if (!response.success) {
+        throw new QueryError(response.message || 'Failed to fetch MCP server capabilities', {
+          code: response.code,
+          resource: ResourceType.McpServer,
+        });
+      }
+
+      return response.data;
+    },
+  }),
+);
+
+export const useMcpServerCapabilitiesQuery = createSparQuery(mcpServerCapabilitiesQueryOptions);
