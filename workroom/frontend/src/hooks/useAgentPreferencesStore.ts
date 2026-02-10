@@ -24,11 +24,14 @@ type AgentPreferencesActions = {
 
 type AgentPreferencesStore = AgentPreferencesState & AgentPreferencesActions;
 
+const EMPTY_FAVOURITES: string[] = [];
+const EMPTY_RECENT: RecentAgent[] = [];
+
 const getFavourites = (state: AgentPreferencesState, tenantId: string): string[] =>
-  state.favouritesByTenant[tenantId] ?? [];
+  state.favouritesByTenant[tenantId] ?? EMPTY_FAVOURITES;
 
 const getRecentAgents = (state: AgentPreferencesState, tenantId: string): RecentAgent[] =>
-  state.recentAgentsByTenant[tenantId] ?? [];
+  state.recentAgentsByTenant[tenantId] ?? EMPTY_RECENT;
 
 /**
  * Store managing user's favourite and recently-interacted agents.

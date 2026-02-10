@@ -5,7 +5,7 @@ import { IconDotsHorizontal } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 
 import { useDeleteAgentMutation } from '~/queries/agents';
-import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
+import { useAgentPreferencesStore, selectFavourites } from '~/hooks/useAgentPreferencesStore';
 import { useFeatureFlag, FeatureFlag } from '../../hooks';
 
 type Props = {
@@ -20,8 +20,9 @@ export const AgentContextMenu = ({ agent, onAgentDelete }: Props) => {
   const deleteAgentMutation = useDeleteAgentMutation({});
   const { addSnackbar } = useSnackbar();
   const { enabled: isDeploymentWizardEnabled } = useFeatureFlag(FeatureFlag.deploymentWizard);
-  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
-  const favourites = useAgentPreferencesStore((s) => s.favouritesByTenant[tenantId] ?? []);
+  const addFavourite = useAgentPreferencesStore((s) => s.addFavourite);
+  const removeFavourite = useAgentPreferencesStore((s) => s.removeFavourite);
+  const favourites = useAgentPreferencesStore((s) => selectFavourites(s, tenantId));
   const agentIsFavourite = agent.id ? favourites.includes(agent.id) : false;
 
   const onDeleteConfirm = useDeleteConfirm(

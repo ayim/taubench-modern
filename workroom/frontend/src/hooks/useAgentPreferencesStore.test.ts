@@ -203,4 +203,38 @@ describe('useAgentPreferencesStore', () => {
       expect(selectRecentAgents(useAgentPreferencesStore.getState(), 'unknown')).toEqual([]);
     });
   });
+
+  describe('selector reference stability', () => {
+    it('returns the same favourites reference for unknown tenants across calls', () => {
+      const state = useAgentPreferencesStore.getState();
+      const first = selectFavourites(state, 'no-such-tenant');
+      const second = selectFavourites(state, 'no-such-tenant');
+
+      expect(first).toBe(second);
+    });
+
+    it('returns the same recent agents reference for unknown tenants across calls', () => {
+      const state = useAgentPreferencesStore.getState();
+      const first = selectRecentAgents(state, 'no-such-tenant');
+      const second = selectRecentAgents(state, 'no-such-tenant');
+
+      expect(first).toBe(second);
+    });
+
+    it('returns the same favourites reference across different unknown tenants', () => {
+      const state = useAgentPreferencesStore.getState();
+      const a = selectFavourites(state, 'tenant-x');
+      const b = selectFavourites(state, 'tenant-y');
+
+      expect(a).toBe(b);
+    });
+
+    it('returns the same recent agents reference across different unknown tenants', () => {
+      const state = useAgentPreferencesStore.getState();
+      const a = selectRecentAgents(state, 'tenant-x');
+      const b = selectRecentAgents(state, 'tenant-y');
+
+      expect(a).toBe(b);
+    });
+  });
 });

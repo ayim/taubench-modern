@@ -7,7 +7,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 
 import { useAgentQuery } from '~/queries/agents';
 import { useThreadQuery } from '~/queries/threads';
-import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
+import { useAgentPreferencesStore, selectFavourites } from '~/hooks/useAgentPreferencesStore';
 import { FavouriteButton } from '../FavouriteButton';
 import { useFeatureFlag, FeatureFlag } from '../../hooks';
 import { useCreateThread } from '../../hooks/useCreateThread';
@@ -87,8 +87,9 @@ export const ThreadHeader: FC<Props> = ({ children }) => {
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
   const { data: thread } = useThreadQuery({ threadId });
-  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
-  const favourites = useAgentPreferencesStore((s) => s.favouritesByTenant[tenantId] ?? []);
+  const addFavourite = useAgentPreferencesStore((s) => s.addFavourite);
+  const removeFavourite = useAgentPreferencesStore((s) => s.removeFavourite);
+  const favourites = useAgentPreferencesStore((s) => selectFavourites(s, tenantId));
 
   // Check if this is an evaluation thread (has scenario_id in metadata)
   const isEvaluationThread = Boolean(thread?.metadata?.scenario_id);

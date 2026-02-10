@@ -6,7 +6,7 @@ import { styled } from '@sema4ai/theme';
 import { FC, ReactNode } from 'react';
 import { useLinkProps } from '~/components/link';
 import { useAgentQuery } from '~/queries/agents';
-import { useAgentPreferencesStore } from '~/hooks/useAgentPreferencesStore';
+import { useAgentPreferencesStore, selectFavourites } from '~/hooks/useAgentPreferencesStore';
 import { FavouriteButton } from '../FavouriteButton';
 import { useFeatureFlag, FeatureFlag } from '../../hooks';
 import { Container as HeaderContainer, MenuToggleButton } from '../ThreadHeader';
@@ -68,8 +68,9 @@ export const WorkerHeader: FC<Props> = ({ children, leftAction }) => {
   const { expanded: mainMenuExpanded } = useSidebarMenu('main-menu');
 
   const { data: agent, isLoading } = useAgentQuery({ agentId });
-  const { addFavourite, removeFavourite } = useAgentPreferencesStore();
-  const favourites = useAgentPreferencesStore((s) => s.favouritesByTenant[tenantId] ?? []);
+  const addFavourite = useAgentPreferencesStore((s) => s.addFavourite);
+  const removeFavourite = useAgentPreferencesStore((s) => s.removeFavourite);
+  const favourites = useAgentPreferencesStore((s) => selectFavourites(s, tenantId));
 
   const createWorkItemLinkProps = useLinkProps('/tenants/$tenantId/worker/$agentId/create', { agentId, tenantId });
   const agentIsFavourite = favourites.includes(agentId);
