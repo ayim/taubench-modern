@@ -510,6 +510,10 @@ class _DocumentTools:
             int | None,
             "Optional ending page number (1-indexed) for page range extraction.",
         ] = None,
+        system_prompt: Annotated[
+            str | None,
+            "Optional system prompt to help guide extraction.",
+        ] = None,
         force_reload: Annotated[
             bool,
             "If True, bypass cache and force re-extraction of the document.",
@@ -529,6 +533,7 @@ class _DocumentTools:
             file_ref: The filename of the document to extract from (required)
             start_page: Optional starting page for extraction (1-indexed)
             end_page: Optional ending page for extraction (1-indexed)
+            system_prompt: Optional system prompt to help guide extraction
             force_reload: If True, bypass cache and re-extract the document
 
         Returns:
@@ -618,6 +623,7 @@ class _DocumentTools:
                     force_reload=force_reload,
                     start_page=start_page,
                     end_page=end_page,
+                    prompt=system_prompt,
                 )
 
                 return result.model_dump()

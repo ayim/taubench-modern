@@ -72,8 +72,9 @@ async def test_extract_document_invalid_reducto_settings_returns_error():
     assert "invalid settings" in result["message"]
 
 
+@pytest.mark.parametrize("system_prompt", ["Extract invoice details", None])
 @pytest.mark.asyncio
-async def test_extract_document():
+async def test_extract_document(system_prompt: str | None):
     """Test extraction with start_page and end_page parameters."""
     from agent_platform.core.integrations.settings.reducto import ReductoSettings
     from agent_platform.core.utils import SecretString
@@ -113,9 +114,11 @@ async def test_extract_document():
             file_name="document.pdf",
             start_page=1,
             end_page=5,
+            system_prompt=system_prompt,
         )
 
         assert result == {"data": "extracted"}
         call_kwargs = mock_di_service.document_v2.extract_document.call_args[1]
         assert call_kwargs["start_page"] == 1
         assert call_kwargs["end_page"] == 5
+        assert call_kwargs["prompt"] == system_prompt
