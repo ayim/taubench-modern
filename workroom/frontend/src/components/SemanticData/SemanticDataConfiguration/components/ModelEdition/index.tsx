@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useCallback, useContext, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { IconInformation, IconPencil, IconPlus } from '@sema4ai/icons';
 import { Box, Button, Dialog, Typography, Link, Banner, Tabs } from '@sema4ai/components';
@@ -7,10 +7,19 @@ import { RenameDialog } from '~/components/dialogs/RenameDialog';
 import { EXTERNAL_LINKS } from '~/lib/constants';
 import { ConfigurationStep, ConfigurationStepView, DataConnectionFormContext, DataConnectionFormSchema } from '../form';
 import { ValidationErrorBanner } from '../ValidationErrorBanner';
+import { getTableDimensions } from '../../../../../lib/SemanticDataModels';
 import { TableTree } from './components/TableTree';
 import { ModelScore } from './components/ModelScore';
 import { VerifiedQueriesTable } from './components/VerifiedQueriesTable';
+import { SchemasTable } from './components/SchemasTable';
 import { BusinessContext } from './components/BusinessContext';
+import { InlineEditor } from './components/InlineEditor';
+import { SchemaForm } from './components/SchemaForm';
+import { VerifiedQueryForm } from './components/VerifiedQueryForm';
+import { useSchemaEditor } from './hooks/useSchemaEditor';
+import { useVerifiedQueryEditor } from './hooks/useVerifiedQueryEditor';
+
+type EditMode = { type: 'none' } | { type: 'schema'; index?: number } | { type: 'verified-query'; index?: number };
 
 type Props = {
   modelId: string;
@@ -20,8 +29,24 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
   const [activeTab, setActiveTab] = useState<number>(1);
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState<EditMode>({ type: 'none' });
 
   const { databaseInspectionState, validationErrors } = useContext(DataConnectionFormContext);
+
+  const handleBack = useCallback(() => {
+    setEditMode({ type: 'none' });
+  }, []);
+
+  const schemaEditor = useSchemaEditor({
+    index: editMode.type === 'schema' ? editMode.index : undefined,
+    onDone: handleBack,
+  });
+
+  const queryEditor = useVerifiedQueryEditor({
+    index: editMode.type === 'verified-query' ? editMode.index : undefined,
+    modelId,
+    onDone: handleBack,
+  });
 
   const onToggleRenameDialog = () => {
     setIsRenameDialogOpen(!isRenameDialogOpen);
@@ -32,7 +57,37 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
     setIsRenameDialogOpen(false);
   };
 
-  const { name, dataSelection, dataConnectionId } = watch();
+  const { name, dataSelection, dataConnectionId, schemas, tables } = watch();
+
+  const hasDisplayableTableContent = tables && tables.some((table) => getTableDimensions(table).length > 0);
+
+  if (editMode.type === 'schema') {
+    return (
+      <InlineEditor {...schemaEditor.editorProps}>
+        <SchemaForm
+          initialSchema={schemaEditor.editingSchema}
+          schemaIndex={editMode.index}
+          onFormDataChange={schemaEditor.handleFormDataChange}
+        />
+      </InlineEditor>
+    );
+  }
+
+  if (editMode.type === 'verified-query') {
+    return (
+      <InlineEditor {...queryEditor.editorProps}>
+        <VerifiedQueryForm
+          isNewQuery={editMode.index === undefined}
+          initialQuery={queryEditor.editingQuery}
+          semanticDataModel={queryEditor.semanticDataModel}
+          verifyMutation={queryEditor.verifyMutation}
+          onFormDataChange={queryEditor.handleFormDataChange}
+          onValidationErrorsChange={queryEditor.handleValidationErrorsChange}
+          errors={queryEditor.verifiedQueryErrors}
+        />
+      </InlineEditor>
+    );
+  }
 
   return (
     <>
@@ -90,33 +145,59 @@ export const ModelEdition: ConfigurationStepView<Props> = ({ modelId, onClose, s
             <Tabs.Tab>Business Context</Tabs.Tab>
             <Tabs.Tab>Data Model</Tabs.Tab>
             <Tabs.Tab>Verified Queries</Tabs.Tab>
+            <Tabs.Tab>Schemas</Tabs.Tab>
             <Tabs.Panel>
               <BusinessContext />
             </Tabs.Panel>
 
             <Tabs.Panel>
-              <Box display="flex" gap="$8" mb="$16">
-                {dataConnectionId && (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
-                    icon={IconPlus}
-                    round
-                  >
-                    Add Data
-                  </Button>
-                )}
-              </Box>
-              <TableTree modelId={modelId} />
+              {hasDisplayableTableContent && (
+                <Box display="flex" gap="$8" mb="$16">
+                  {dataConnectionId && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+                      icon={IconPlus}
+                      round
+                    >
+                      Add Data
+                    </Button>
+                  )}
+                </Box>
+              )}
+              <TableTree
+                modelId={modelId}
+                emptyAction={
+                  dataConnectionId ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setActiveStep(ConfigurationStep.DataSelection)}
+                      icon={IconPlus}
+                      round
+                    >
+                      Add Data
+                    </Button>
+                  ) : undefined
+                }
+              />
             </Tabs.Panel>
             <Tabs.Panel flex="1">
-              <VerifiedQueriesTable modelId={modelId} />
+              <VerifiedQueriesTable
+                onCreateQuery={() => setEditMode({ type: 'verified-query' })}
+                onEditQuery={(index) => setEditMode({ type: 'verified-query', index })}
+              />
+            </Tabs.Panel>
+            <Tabs.Panel flex="1">
+              <SchemasTable
+                onCreateSchema={() => setEditMode({ type: 'schema' })}
+                onEditSchema={(index) => setEditMode({ type: 'schema', index })}
+              />
             </Tabs.Panel>
           </Tabs>
         </Box>
       </Dialog.Content>
       <Dialog.Actions>
-        <Button disabled={dataSelection.length === 0} type="submit" round>
+        <Button disabled={dataSelection.length === 0 && schemas.length === 0} type="submit" round>
           Continue
         </Button>
         <Button variant="secondary" onClick={onClose} round>

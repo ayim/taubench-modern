@@ -1,7 +1,14 @@
-import { FC } from 'react';
-import { Box, Button, Typography } from '@sema4ai/components';
+import { FC, ReactNode } from 'react';
+import { Box, Button, EmptyState, Link, Typography } from '@sema4ai/components';
 import { TreeList } from '@sema4ai/layouts';
-import { IconCloseSmall, IconDbDatabase, IconDbSchema, IconDbSpreadsheet } from '@sema4ai/icons';
+import {
+  IconArrowUpRight,
+  IconCloseSmall,
+  IconDbDatabase,
+  IconDbSchema,
+  IconDbSpreadsheet,
+  IconInformation,
+} from '@sema4ai/icons';
 import { styled } from '@sema4ai/theme';
 import { useFormContext } from 'react-hook-form';
 
@@ -11,9 +18,11 @@ import { snakeCaseToCamelCase } from '~/components/helpers';
 import { TableTreeItem } from './TableTreeItem';
 import { DataConnectionFormSchema } from '../../form';
 import { getTableDimensions } from '../../../../../../lib/SemanticDataModels';
+import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 
 type Props = {
   modelId: string;
+  emptyAction?: ReactNode;
 };
 
 const ErrorMessage = styled(Typography)`
@@ -54,13 +63,36 @@ const Cell = styled.div`
 
 const dimensionTypes = ['dimensions', 'time_dimensions', 'facts', 'metrics'] as const;
 
-export const TableTree: FC<Props> = ({ modelId }) => {
+export const TableTree: FC<Props> = ({ modelId, emptyAction }) => {
   const { data: validation } = useSemanticDataValidationQuery({ modelId });
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const { tables, dataSelection } = watch();
 
-  if (!tables) {
-    return null;
+  const hasDisplayableContent = tables && tables.some((table) => getTableDimensions(table).length > 0);
+
+  if (!hasDisplayableContent) {
+    return (
+      <Box display="flex" flexDirection="column" justifyContent="center" height="100%">
+        <EmptyState
+          title="Data Model"
+          description="Select tables and columns from your data connection to build your data model. Add descriptions and synonyms to help your agent better understand the data."
+          action={emptyAction}
+          secondaryAction={
+            <Link
+              icon={IconInformation}
+              iconAfter={IconArrowUpRight}
+              href={EXTERNAL_LINKS.SEMANTIC_DATA_MODELS}
+              target="_blank"
+              rel="noopener"
+              variant="primary"
+              fontWeight="medium"
+            >
+              Learn More
+            </Link>
+          }
+        />
+      </Box>
+    );
   }
 
   const handleRemoveTable = (tableName: string, tableIndex: number) => {

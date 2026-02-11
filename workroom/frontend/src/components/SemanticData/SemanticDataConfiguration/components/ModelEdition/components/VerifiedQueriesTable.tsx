@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useMemo } from 'react';
 import { Box, Button, EmptyState, Link, Menu, Table, TableRowProps, Typography } from '@sema4ai/components';
 import { IconArrowUpRight, IconDotsHorizontal, IconInformation, IconPencil, IconPlus, IconTrash } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
@@ -7,7 +7,6 @@ import { useFormContext } from 'react-hook-form';
 import { VerifiedQuery } from '~/queries/semanticData';
 import { EXTERNAL_LINKS } from '../../../../../../lib/constants';
 import { DataConnectionFormSchema } from '../../form';
-import { EditVerifiedQueryDialog } from './EditVerifiedQueryDialog';
 
 type VerifiedQueryRowData = VerifiedQuery & {
   created: string;
@@ -100,14 +99,13 @@ const VerifiedQueriesTableRow: FC<TableRowProps<VerifiedQueryRowData, RowProps>>
 };
 
 type Props = {
-  modelId: string;
+  onCreateQuery: () => void;
+  onEditQuery: (index: number) => void;
 };
 
-export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
-  const [isCreateQueryDialogOpen, setIsCreateQueryDialogOpen] = useState(false);
+export const VerifiedQueriesTable: FC<Props> = ({ onCreateQuery, onEditQuery }) => {
   const { watch, setValue } = useFormContext<DataConnectionFormSchema>();
   const verifiedQueries = watch('verifiedQueries') || [];
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -173,7 +171,7 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
         },
         contentBefore: (
           <Box display="flex" gap="$8" alignItems="center">
-            <Button variant="secondary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+            <Button variant="secondary" icon={IconPlus} round onClick={onCreateQuery}>
               Verified Query
             </Button>
           </Box>
@@ -182,21 +180,10 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
     [],
   );
 
-  const handleEdit = (index: number) => {
-    setEditingIndex(index);
-  };
-
   const handleDelete = (index: number) => {
     const updatedQueries = verifiedQueries.filter((_, i) => i !== index);
     setValue('verifiedQueries', updatedQueries);
   };
-
-  const handleCloseDialog = () => {
-    setEditingIndex(null);
-  };
-
-  const editingQuery = editingIndex !== null ? verifiedQueries[editingIndex] : null;
-  const editingQueryIndex = editingIndex !== null ? editingIndex : -1;
 
   return (
     <>
@@ -208,7 +195,7 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
             frequently asked questions. Verified queries increase the accuracy, improve
             speed and save tokens."
             action={
-              <Button variant="primary" icon={IconPlus} round onClick={() => setIsCreateQueryDialogOpen(true)}>
+              <Button variant="primary" icon={IconPlus} round onClick={onCreateQuery}>
                 Create
               </Button>
             }
@@ -234,25 +221,9 @@ export const VerifiedQueriesTable: FC<Props> = ({ modelId }) => {
           data={tableData}
           row={VerifiedQueriesTableRow}
           rowProps={{
-            onEdit: handleEdit,
+            onEdit: onEditQuery,
             onDelete: handleDelete,
           }}
-        />
-      )}
-      {editingQuery && (
-        <EditVerifiedQueryDialog
-          open
-          onClose={handleCloseDialog}
-          queryIndex={editingQueryIndex}
-          query={editingQuery}
-          modelId={modelId}
-        />
-      )}
-      {isCreateQueryDialogOpen && (
-        <EditVerifiedQueryDialog
-          open={isCreateQueryDialogOpen}
-          onClose={() => setIsCreateQueryDialogOpen(false)}
-          modelId={modelId}
         />
       )}
     </>

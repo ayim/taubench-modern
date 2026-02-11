@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@sema4ai/components';
-import { IconCloseSmall, IconDbSchema } from '@sema4ai/icons';
+import { IconCloseSmall, IconDbSchema, IconPencil } from '@sema4ai/icons';
 import { FC } from 'react';
 
 import { SchemaFormItem } from '../../form';
@@ -7,9 +7,10 @@ import { SchemaFormItem } from '../../form';
 type Props = {
   schemas: SchemaFormItem[];
   onRemoveSchema: (index: number) => void;
+  onEditSchema?: (index: number) => void;
 };
 
-export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema }) => {
+export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema, onEditSchema }) => {
   if (schemas.length === 0) {
     return null;
   }
@@ -25,11 +26,13 @@ export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema }) => {
             key={`${schema.name}`}
             display="flex"
             flexDirection="row"
-            borderRadius={8}
+            borderRadius="$8"
             borderWidth={1}
             borderColor="border.subtle"
             backgroundColor="background.panels"
-            p={8}
+            p="$8"
+            onClick={onEditSchema ? () => onEditSchema(index) : undefined}
+            as={onEditSchema ? 'button' : 'div'}
           >
             <Box flex="1" display="flex" alignItems="center" gap="$8" px="$8">
               <IconDbSchema />
@@ -39,13 +42,28 @@ export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema }) => {
                   {schema.description}
                 </Typography>
               </Box>
-              <Box ml="auto">
+              <Box ml="auto" display="flex" gap="$4">
+                {onEditSchema && (
+                  <Button
+                    aria-label="Edit schema"
+                    variant="ghost-subtle"
+                    size="small"
+                    icon={IconPencil}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditSchema(index);
+                    }}
+                  />
+                )}
                 <Button
                   aria-label="Remove schema"
                   variant="ghost-subtle"
                   size="small"
                   icon={IconCloseSmall}
-                  onClick={() => onRemoveSchema(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveSchema(index);
+                  }}
                 />
               </Box>
             </Box>

@@ -20,11 +20,11 @@ export const FileList: FC<Props> = ({ files, onRemoveFile }) => {
       <Box
         display="flex"
         flexDirection="row"
-        borderRadius={8}
+        borderRadius="$8"
         borderWidth={1}
         borderColor="border.subtle"
         backgroundColor="background.panels"
-        p={8}
+        p="$8"
       >
         {files.map((file) => (
           <Box flex="1" key={file} display="flex" alignItems="center" gap="$8" px="$8">
