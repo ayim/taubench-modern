@@ -1299,6 +1299,9 @@ class SemanticDataModel(BaseModel):
                 base_table.pop("file_reference", None)
             table.pop("file", None)
 
+        # Strip identity field (not part of semantic structure)
+        data.pop("id", None)
+
         # Optionally exclude metadata
         if exclude_metadata:
             data.pop("metadata", None)

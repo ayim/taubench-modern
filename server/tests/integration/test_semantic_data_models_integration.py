@@ -210,9 +210,8 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
         created_model_id_and_references = agent_client.create_semantic_data_model(
             dict(semantic_model=semantic_model.model_dump(), thread_id=thread_id),
         )
-        assert semantic_model == agent_client.get_semantic_data_model(
-            created_model_id_and_references["semantic_data_model_id"]
-        )
+        retrieved = agent_client.get_semantic_data_model(created_model_id_and_references["semantic_data_model_id"])
+        assert semantic_model.model_dump(exclude={"id"}) == retrieved.model_dump(exclude={"id"})
         assert created_model_id_and_references["data_connection_ids"] == [data_connection_1["id"]]
         assert created_model_id_and_references["file_references"] == [{"thread_id": thread_id, "file_ref": name_file_1}]
 
@@ -234,7 +233,7 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Test getting the semantic data model
         retrieved_model = agent_client.get_semantic_data_model(model_id)
-        assert retrieved_model == semantic_model_with_specific_id
+        assert retrieved_model.model_dump(exclude={"id"}) == semantic_model_with_specific_id.model_dump(exclude={"id"})
 
         # Test updating the semantic data model (keep the same name as the model we're updating)
         updated_semantic_model = semantic_model = SemanticDataModel.model_validate(
@@ -306,7 +305,8 @@ def test_semantic_data_models_integration(base_url_agent_server_session, datadir
 
         # Verify the update
         retrieved_updated_model = agent_client.get_semantic_data_model(model_id)
-        assert retrieved_updated_model == SemanticDataModel.model_validate(updated_semantic_model)
+        expected = SemanticDataModel.model_validate(updated_semantic_model).model_dump(exclude={"id"})
+        assert retrieved_updated_model.model_dump(exclude={"id"}) == expected
 
         # Test deleting the semantic data model
         agent_client.delete_semantic_data_model(model_id)
@@ -911,7 +911,7 @@ def test_semantic_data_model_query_with_llm_integration(base_url_agent_server_se
         # Verify the model was assigned to the agent
         agent_models = agent_client.get_agent_semantic_data_models(agent_id)
         assert len(agent_models) == 1
-        assert semantic_data_model_id in agent_models[0]
+        assert agent_models[0]["id"] == semantic_data_model_id
 
         # Verify the model was created correctly
         _ = agent_client.get_semantic_data_model(semantic_data_model_id)
@@ -1008,7 +1008,6 @@ def test_generate_semantic_data_model_generation_integration(
     base_url_agent_server, resources_dir, data_regression, openai_api_key
 ):
     """Test generate semantic data model API endpoint integration."""
-    import yaml
     from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
     with AgentServerClient(base_url_agent_server) as agent_client:
@@ -1208,30 +1207,22 @@ def test_generate_semantic_data_model_generation_integration(
         agent_client.set_thread_semantic_data_models(thread_id, [semantic_data_model_id])
 
         thread_sdms = agent_client.get_thread_semantic_data_models(thread_id)
-        # Get the semantic model dict with nulls stripped consistently
-        # We need to use model_dump() on the SemanticDataModel directly (not through the parent)
-        # to ensure the custom serializer strips nulls properly
         from agent_platform.core.semantic_data_model.types import SemanticDataModel
 
-        semantic_model_dict = SemanticDataModel.model_validate(orig_model["semantic_model"]).model_dump()
-        expected_thread_sdms = [{semantic_data_model_id: semantic_model_dict}]
-        if thread_sdms != expected_thread_sdms:
-            import difflib
+        semantic_model_dict = SemanticDataModel.model_validate(orig_model["semantic_model"]).model_dump(exclude={"id"})
 
-            expected_yaml = yaml.safe_dump(expected_thread_sdms, default_flow_style=False, sort_keys=True)
-            actual_yaml = yaml.safe_dump(thread_sdms, default_flow_style=False, sort_keys=True)
-            diff = "\n".join(
-                difflib.unified_diff(
-                    expected_yaml.splitlines(),
-                    actual_yaml.splitlines(),
-                    fromfile="expected",
-                    tofile="actual",
-                    lineterm="",
-                )
-            )
-            pytest.fail(f"Thread SDMs differs from original SDM:\n{diff}")
+        # Thread SDMs endpoint returns flat SemanticDataModel dicts (with id included)
+        assert len(thread_sdms) == 1
+        thread_sdm = SemanticDataModel.model_validate(thread_sdms[0])
+        assert thread_sdm.id == semantic_data_model_id
+        assert thread_sdm.model_dump(exclude={"id"}) == semantic_model_dict
 
-        assert agent_client.get_agent_semantic_data_models(agent_id) == [{semantic_data_model_id: semantic_model_dict}]
+        # Agent SDMs endpoint also returns flat SemanticDataModel dicts
+        agent_sdms = agent_client.get_agent_semantic_data_models(agent_id)
+        assert len(agent_sdms) == 1
+        agent_sdm = SemanticDataModel.model_validate(agent_sdms[0])
+        assert agent_sdm.id == semantic_data_model_id
+        assert agent_sdm.model_dump(exclude={"id"}) == semantic_model_dict
 
         # Test the new list semantic data models API
         # List all semantic data models
@@ -1592,7 +1583,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         # Verify the model was assigned to the agent
         agent_models = agent_client.get_agent_semantic_data_models(agent_id)
         assert len(agent_models) == 1
-        assert semantic_data_model_id in agent_models[0]
+        assert agent_models[0]["id"] == semantic_data_model_id
 
         # Create a data frame from SQL query
         final_response, tool_calls = agent_client.send_message_to_agent_thread(

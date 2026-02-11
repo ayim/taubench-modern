@@ -826,8 +826,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    type: 'object',
-                    additionalProperties: true,
+                    $ref: '#/components/schemas/SemanticDataModel',
                   },
                   title:
                     'Response Set Agent Semantic Data Models Agents  Aid  Semantic Data Models Put',
@@ -872,8 +871,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    type: 'object',
-                    additionalProperties: true,
+                    $ref: '#/components/schemas/SemanticDataModel',
                   },
                   title:
                     'Response Get Agent Semantic Data Models Agents  Aid  Semantic Data Models Get',
@@ -2195,8 +2193,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    type: 'object',
-                    additionalProperties: true,
+                    $ref: '#/components/schemas/SemanticDataModel',
                   },
                   title:
                     'Response Set Thread Semantic Data Models Threads  Tid  Semantic Data Models Put',
@@ -2241,8 +2238,7 @@ export const spec = {
                 schema: {
                   type: 'array',
                   items: {
-                    type: 'object',
-                    additionalProperties: true,
+                    $ref: '#/components/schemas/SemanticDataModel',
                   },
                   title:
                     'Response Get Thread Semantic Data Models Threads  Tid  Semantic Data Models Get',

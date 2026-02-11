@@ -26,6 +26,7 @@ from agent_platform.core.payloads.semantic_data_model_payloads import (
     ValidateSemanticDataModelResultItem,
     _ValidateSemanticDataModelResultsSummary,
 )
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.base import ThreadMessage
 from agent_platform.core.thread.content.tool_usage import ThreadToolUsageContent
@@ -716,14 +717,16 @@ async def request_remote_file_upload(
 
 
 # Thread Semantic Data Models endpoints
-@router.put("/{tid}/semantic-data-models", response_model=list[dict])
+@router.put("/{tid}/semantic-data-models")
 async def set_thread_semantic_data_models(
     tid: str,
     payload: SetThreadSemanticDataModelsPayload,
     user: AuthedUser,
     storage: StorageDependency,
-) -> list[dict]:
+) -> list[SemanticDataModel]:
     """Set semantic data models for a thread (replace all existing associations)."""
+    from agent_platform.server.api.private_v2.agents import _to_agent_sdm_response
+
     # Verify thread exists and belongs to user
     thread = await storage.get_thread(user.user_id, tid)
     if not thread:
@@ -733,23 +736,27 @@ async def set_thread_semantic_data_models(
     await storage.set_thread_semantic_data_models(tid, payload.semantic_data_model_ids)
 
     # Return the updated semantic data models
-    return await storage.get_thread_semantic_data_models(tid)
+    db_values = await storage.get_thread_semantic_data_models(tid)
+    return _to_agent_sdm_response(db_values)
 
 
-@router.get("/{tid}/semantic-data-models", response_model=list[dict])
+@router.get("/{tid}/semantic-data-models")
 async def get_thread_semantic_data_models(
     tid: str,
     user: AuthedUser,
     storage: StorageDependency,
-) -> list[dict]:
+) -> list[SemanticDataModel]:
     """Get semantic data models associated with a thread."""
+    from agent_platform.server.api.private_v2.agents import _to_agent_sdm_response
+
     # Verify thread exists and belongs to user
     thread = await storage.get_thread(user.user_id, tid)
     if not thread:
         raise HTTPException(status_code=404, detail="Thread not found")
 
     # Return the semantic data models
-    return await storage.get_thread_semantic_data_models(tid)
+    db_values = await storage.get_thread_semantic_data_models(tid)
+    return _to_agent_sdm_response(db_values)
 
 
 @router.post("/{tid}/semantic-data-models/validate")

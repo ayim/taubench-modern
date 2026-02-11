@@ -2510,6 +2510,8 @@ class BaseStorage(AbstractStorage, CommonMixin):
                 verified_queries, semantic_data_model_id
             )
 
+        semantic_model_dict["id"] = semantic_data_model_id
+
         # Return as dict - callers should use SemanticDataModel.model_validate() if needed
         return semantic_model_dict
 

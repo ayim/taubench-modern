@@ -6,6 +6,7 @@ from http import HTTPStatus
 from typing import Any, TypedDict
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 from structlog import get_logger
 
 from agent_platform.core.actions.action_package import ActionDetail, ActionPackage, ActionPackageDetail, AgentDetails
@@ -25,6 +26,7 @@ from agent_platform.core.payloads import (
     SetAgentSemanticDataModelsPayload,
     UpsertAgentPayload,
 )
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.utils import SecretString
 from agent_platform.core.utils.url import safe_urljoin
 from agent_platform.server.api.agent_filters import filter_hidden_agents
@@ -586,14 +588,40 @@ async def get_agent_data_connections(
     return await storage.get_agent_data_connections(aid)
 
 
+class SetAgentSemanticDataModelsResponse(BaseModel):
+    """Payload for setting agent semantic data models."""
+
+    semantic_data_model_ids: list[str] = Field(
+        ...,
+        description="List of semantic data model IDs to associate with the agent.",
+    )
+
+
+def _to_agent_sdm_response(db_values: list[dict]) -> list[SemanticDataModel]:
+    """
+    Converts the silly list of dicts with one key-value pair where the key is the SDM ID and the value is the SDM JSON
+    to just a list of our SemanticDataModel objects. We should fix the storage layer too, but that looks like
+    an even bigger lift to unwind.
+    """
+    resp_list = []
+    # A list of dicts where the key is the SDM ID and the value is the JSON representation of the SDM
+    # [{"1234-123-123..", json_repr of an SDM}, {"1235-123-123..", json_repr of an SDM}, ...]
+    for d in db_values:
+        sdm_dicts = d.values()  # Only ever one value
+        for sdm_dict in sdm_dicts:
+            resp_list.append(SemanticDataModel.model_validate(sdm_dict))
+
+    return resp_list
+
+
 # Agent Semantic Data Models endpoints
-@router.put("/{aid}/semantic-data-models", response_model=list[dict])
+@router.put("/{aid}/semantic-data-models")
 async def set_agent_semantic_data_models(
     aid: str,
     payload: SetAgentSemanticDataModelsPayload,
     user: AuthedUser,
     storage: StorageDependency,
-) -> list[dict]:
+) -> list[SemanticDataModel]:
     """Set semantic data models for an agent (replace all existing associations)."""
     # Verify agent exists and belongs to user
     agent = await storage.get_agent(user.user_id, aid)
@@ -604,15 +632,17 @@ async def set_agent_semantic_data_models(
     await storage.set_agent_semantic_data_models(aid, payload.semantic_data_model_ids)
 
     # Return the updated semantic data models
-    return await storage.get_agent_semantic_data_models(aid)
+    db_values = await storage.get_agent_semantic_data_models(aid)
+
+    return _to_agent_sdm_response(db_values)
 
 
-@router.get("/{aid}/semantic-data-models", response_model=list[dict])
+@router.get("/{aid}/semantic-data-models")
 async def get_agent_semantic_data_models(
     aid: str,
     user: AuthedUser,
     storage: StorageDependency,
-) -> list[dict]:
+) -> list[SemanticDataModel]:
     """Get semantic data models associated with an agent."""
     # Verify agent exists and belongs to user
     agent = await storage.get_agent(user.user_id, aid)
@@ -620,7 +650,9 @@ async def get_agent_semantic_data_models(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     # Return the semantic data models
-    return await storage.get_agent_semantic_data_models(aid)
+    db_values = await storage.get_agent_semantic_data_models(aid)
+
+    return _to_agent_sdm_response(db_values)
 
 
 @router.get("/{agent_id}/user-interfaces", response_model=list[AgentUserInterface])

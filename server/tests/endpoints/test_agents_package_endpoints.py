@@ -1988,6 +1988,24 @@ class TestSemanticDataModelImport:
         sdms = await sqlite_storage.get_agent_semantic_data_models(result.agent_id)
         assert len(sdms) == 0
 
+    def test_to_agent_sdm_response(self):
+        """Test _to_agent_sdm_response converts storage format to SemanticDataModel list."""
+        from agent_platform.core.semantic_data_model.types import SemanticDataModel
+        from agent_platform.server.api.private_v2.agents import _to_agent_sdm_response
+
+        db_values = [
+            {"sdm-id-1": {"name": "Model A", "tables": []}},
+            {"sdm-id-2": {"name": "Model B", "description": "desc", "tables": []}},
+        ]
+
+        result = _to_agent_sdm_response(db_values)
+
+        assert len(result) == 2
+        assert all(isinstance(sdm, SemanticDataModel) for sdm in result)
+        assert result[0].name == "Model A"
+        assert result[1].name == "Model B"
+        assert result[1].description == "desc"
+
 
 class TestCreateAgentProjectZipPackage:
     """Test cases for POST /api/v2/package/create endpoint."""

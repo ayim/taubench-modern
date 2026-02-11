@@ -1303,10 +1303,12 @@ async def verify_verified_query(
             )
 
             try:
-                # Convert existing parameter dicts to QueryParameter objects for the function
+                # Use model_construct to skip validation — we only need parameter names
+                # to detect missing ones. Invalid parameters (e.g., bad example_value)
+                # will be caught by the main VerifiedQuery.model_validate call below.
                 existing_params_dicts = verified_query_dict.get("parameters") or []
                 existing_params = [
-                    QueryParameter.model_validate(p) if isinstance(p, dict) else p for p in existing_params_dicts
+                    QueryParameter.model_construct(**p) if isinstance(p, dict) else p for p in existing_params_dicts
                 ]
 
                 missing_params = extract_missing_parameters(

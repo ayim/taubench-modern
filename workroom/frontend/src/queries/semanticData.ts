@@ -172,16 +172,13 @@ const agentSemanticDataQueryOptions = createSparQueryOptions<{ agentId: string }
       });
     }
 
-    const semanticModels = response.data.flatMap((curr) => {
-      return Object.entries<SemanticModel>(curr as Record<string, SemanticModel>).map(([id, model]) => ({
-        id,
-        name: model.name,
-        description: model.description,
-        tables: model.tables,
-        relationships: model.relationships,
-        verified_queries: model.verified_queries,
-      }));
-    });
+    const semanticModels = response.data.map((model) =>
+      SemanticModel.parse({
+        ...model,
+        id: model.id ?? '',
+        description: model.description ?? '',
+      }),
+    );
 
     return semanticModels;
   },
@@ -399,9 +396,7 @@ export const useCreateSemanticDataMutation = createSparMutation<
       });
     }
 
-    const existingModelIds = existingModels.data.flatMap((curr) => {
-      return Object.entries<SemanticModel>(curr as Record<string, SemanticModel>).map(([id]) => id);
-    });
+    const existingModelIds = existingModels.data.map((model) => model.id).filter((id): id is string => id != null);
 
     const attachResponse = await agentAPIClient.agentFetch('put', '/api/v2/agents/{aid}/semantic-data-models', {
       body: {
