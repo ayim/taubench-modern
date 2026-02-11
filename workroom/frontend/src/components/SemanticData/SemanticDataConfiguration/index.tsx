@@ -224,7 +224,7 @@ export const SemanticDataConfiguration: FC<Props> = ({ onClose, modelId: initial
         });
 
         await inspectDataConnection(
-          { dataConnectionId, semanticModel },
+          { dataConnectionId, semanticModel, lazyLoad: true },
           {
             onError: (error) => {
               setDatabaseInspectionState({

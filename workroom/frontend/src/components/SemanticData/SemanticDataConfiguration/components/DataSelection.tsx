@@ -13,7 +13,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
   } = useContext(DataConnectionFormContext);
   const { watch } = useFormContext<DataConnectionFormSchema>();
 
-  const { dataSelection } = watch();
+  const { dataSelection, dataConnectionId } = watch();
 
   return (
     <>
@@ -38,7 +38,7 @@ export const DataSelection: ConfigurationStepView = ({ onClose }) => {
             placeholder="Paste or write here anything that helps us understand the business context of your data. More detailed explanations will lead to a more accurate semantic data model."
           />
 
-          <DataSelector data={inspectionResult?.tables || []} />
+          <DataSelector data={inspectionResult?.tables || []} dataConnectionId={dataConnectionId} />
         </Box>
       </Dialog.Content>
 

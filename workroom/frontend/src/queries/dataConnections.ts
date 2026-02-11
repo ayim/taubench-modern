@@ -148,18 +148,21 @@ export const useDeleteDataConnectionMutation = createSparMutation<
 
 /**
  * Inspect a database type data Connection data model
+ *
+ * @param lazyLoad - When true, skips fetching column sample values (n_sample_rows: 0).
+ *                   Samples can be fetched later on-demand using useColumnSamplesQuery.
  */
 export const useDataConnectionDatabaseInspectMutation = createSparMutation<
   object,
-  { dataConnectionId: string; semanticModel?: SemanticModel }
+  { dataConnectionId: string; semanticModel?: SemanticModel; lazyLoad?: boolean }
 >()(({ agentAPIClient }) => ({
-  mutationFn: async ({ dataConnectionId, semanticModel }) => {
+  mutationFn: async ({ dataConnectionId, semanticModel, lazyLoad }) => {
     const response = await agentAPIClient.agentFetch('post', '/api/v2/data-connections/{connection_id}/inspect', {
       params: { path: { connection_id: dataConnectionId } },
       body: {
         tables_to_inspect: [],
         inspect_columns: true,
-        n_sample_rows: 10,
+        n_sample_rows: lazyLoad ? 0 : 10,
       },
     });
 
@@ -239,3 +242,129 @@ export const useDataConnectionFileInspectMutation = createSparMutation<
     return response.data;
   },
 }));
+
+/**
+ * Table profile query - fetches row count for a table
+ */
+export type TableProfileResponse = ServerResponse<
+  'get',
+  '/api/v2/data-connections/{connection_id}/tables/{table_name}/profile'
+>;
+
+export const tableProfileQueryKey = (params: {
+  connectionId: string;
+  tableName: string;
+  database?: string;
+  schema?: string;
+}) => [
+  'dataConnection',
+  params.connectionId,
+  'tables',
+  params.tableName,
+  'profile',
+  params.database ?? '',
+  params.schema ?? '',
+];
+
+export const tableProfileQueryOptions = createSparQueryOptions<{
+  connectionId: string;
+  tableName: string;
+  database?: string;
+  schema?: string;
+}>()<TableProfileResponse>(({ agentAPIClient, connectionId, tableName, database, schema }) => ({
+  queryKey: tableProfileQueryKey({ connectionId, tableName, database, schema }),
+  queryFn: async (): Promise<TableProfileResponse> => {
+    const params: Record<string, string> = {};
+    if (database) params.database = database;
+    if (schema) params.schema = schema;
+
+    const response = await agentAPIClient.agentFetch(
+      'get',
+      `/api/v2/data-connections/{connection_id}/tables/{table_name}/profile`,
+      {
+        params: {
+          path: { connection_id: connectionId, table_name: tableName },
+          query: params as never,
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch table profile', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useTableProfileQuery = createSparQuery(tableProfileQueryOptions);
+
+/**
+ * Column samples query - fetches sample values for a column
+ */
+export type ColumnSamplesResponse = ServerResponse<
+  'get',
+  '/api/v2/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples'
+>;
+
+export const columnSamplesQueryKey = (params: {
+  connectionId: string;
+  tableName: string;
+  columnName: string;
+  database?: string;
+  schema?: string;
+  nSamples?: number;
+}) => [
+  'dataConnection',
+  params.connectionId,
+  'tables',
+  params.tableName,
+  'columns',
+  params.columnName,
+  'samples',
+  params.database ?? '',
+  params.schema ?? '',
+  params.nSamples ?? 10,
+];
+
+export const columnSamplesQueryOptions = createSparQueryOptions<{
+  connectionId: string;
+  tableName: string;
+  columnName: string;
+  database?: string;
+  schema?: string;
+  nSamples?: number;
+}>()<ColumnSamplesResponse>(({ agentAPIClient, connectionId, tableName, columnName, database, schema, nSamples }) => ({
+  queryKey: columnSamplesQueryKey({ connectionId, tableName, columnName, database, schema, nSamples }),
+  queryFn: async (): Promise<ColumnSamplesResponse> => {
+    const params: Record<string, string | number> = {};
+    if (database) params.database = database;
+    if (schema) params.schema = schema;
+    if (nSamples !== undefined) params.n_samples = nSamples;
+
+    const response = await agentAPIClient.agentFetch(
+      'get',
+      `/api/v2/data-connections/{connection_id}/tables/{table_name}/columns/{column_name}/samples`,
+      {
+        params: {
+          path: { connection_id: connectionId, table_name: tableName, column_name: columnName },
+          query: params as never,
+        },
+      },
+    );
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch column samples', {
+        code: response.code,
+        resource: ResourceType.DataConnection,
+      });
+    }
+
+    return response.data;
+  },
+}));
+
+export const useColumnSamplesQuery = createSparQuery(columnSamplesQueryOptions);
