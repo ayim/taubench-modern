@@ -35,19 +35,23 @@ const extractLogDetailsForOIDCError = (
 export class OIDCClient {
   private monitoring: MonitoringContext;
   private oidcClientConfiguration: ClientConfiguration;
+  private organizationAuthParam: string | null;
   private scopes: Array<string>;
 
   constructor({
     monitoring,
     oidcClientConfiguration,
+    organizationAuthParam,
     scopes,
   }: {
     monitoring: MonitoringContext;
     oidcClientConfiguration: ClientConfiguration;
+    organizationAuthParam: string | null;
     scopes: Array<string>;
   }) {
     this.monitoring = monitoring;
     this.oidcClientConfiguration = oidcClientConfiguration;
+    this.organizationAuthParam = organizationAuthParam;
     this.scopes = scopes;
   }
 
@@ -130,6 +134,10 @@ export class OIDCClient {
       // we always do, because a little time spent consenting now means a more streamlined
       // experience later.
       authParams.prompt = 'consent';
+    }
+
+    if (this.organizationAuthParam) {
+      authParams.organization = this.organizationAuthParam;
     }
 
     authParams.scope = this.scopes.join(' ');
@@ -266,6 +274,7 @@ export class OIDCClient {
     return new OIDCClient({
       monitoring,
       oidcClientConfiguration: config,
+      organizationAuthParam: configuration.auth.organizationAuthParam,
       scopes: configuration.auth.scopes,
     });
   }

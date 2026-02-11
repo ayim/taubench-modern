@@ -19,6 +19,38 @@ When setting up a new OIDC-enabled SPAR instance, the **first user** to sign in 
 
 This behaviour can pose problems when those with development/infrastructure access need to login. An additional environment variable, `SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE`, can be used to automatically promote users to `admin` role status when the **server starts up**.
 
+### Groups Claim
+
+SPAR determines user roles from the OIDC token's groups claim. The expected values are `admin` and `knowledgeWorker`.
+
+By default, SPAR reads from the `groups` claim. If your OIDC provider uses a different claim name (e.g. Auth0's `auth0_org_roles`), set `SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME` to the desired claim name.
+
+**Future improvement**: currently, group names must match SPAR roles exactly (`admin`, `knowledgeWorker`). Two options to support arbitrary group-to-role mapping:
+
+- _JSON config_ (low effort, worse UX) - a configuration-based mapping, requires redeployment on changes
+- _SSO management view_ (bigger effort, better UX) - a runtime UI for mapping groups to roles, likely requires a dedicated role above `admin` to manage SSO settings
+
+## Required Environment Variables
+
+To run SPAR in OIDC mode, the following environment variables must be set:
+
+| Variable | Description |
+| --- | --- |
+| `SEMA4AI_WORKROOM_AUTH_MODE` | Must be set to `oidc` |
+| `SEMA4AI_WORKROOM_OIDC_SERVER` | OIDC provider URL (discovery at `<url>/.well-known/openid-configuration`) |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID` | OAuth client ID |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET` | OAuth client secret |
+| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64` | Base64-encoded private key for signing JWTs |
+
+### Optional Environment Variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME` | `groups` | Name of the token claim containing user roles |
+| `SEMA4AI_WORKROOM_OIDC_SCOPES` | `offline_access openid email profile` | Space-separated list of OAuth scopes |
+| `SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM` | - | Organization parameter passed to the auth request |
+| `SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE` | - | Comma-separated emails to auto-promote to `admin` on server start |
+
 ## Auth Payload Examples
 
 ### Okta

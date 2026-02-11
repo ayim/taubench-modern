@@ -26,8 +26,9 @@ describe('OIDCClient', () => {
 
   it('can be instantiated', () => {
     const client = new OIDCClient({
-      oidcClientConfiguration: getConfiguration(),
       monitoring,
+      oidcClientConfiguration: getConfiguration(),
+      organizationAuthParam: null,
       scopes: ['offline_access', 'openid'],
     });
 
@@ -45,8 +46,9 @@ describe('OIDCClient', () => {
 
     beforeEach(() => {
       client = new OIDCClient({
-        oidcClientConfiguration: getConfiguration(),
         monitoring,
+        oidcClientConfiguration: getConfiguration(),
+        organizationAuthParam: null,
         scopes: ['offline_access', 'openid'],
       });
     });

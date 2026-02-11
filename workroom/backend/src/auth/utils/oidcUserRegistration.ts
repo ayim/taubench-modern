@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type { Result } from '@sema4ai/shared-utils';
+import type { AsyncResult, Result } from '@sema4ai/shared-utils';
+import { extractRoleFromOIDCGroupsClaim } from './groupsClaimRole.js';
 import { getNextUserRole } from './userRegistration.js';
+import type { Configuration } from '../../configuration.js';
 import type { DatabaseClient, UpdateUserIdentityPayload, UpdateUserPayload } from '../../database/DatabaseClient.js';
 import type { UserRole } from '../../database/types/user.js';
 import type { OIDCTokenClaims } from '../../interfaces.js';
@@ -37,15 +39,14 @@ const extractNamesFromClaims = (claims: OIDCTokenClaims): { first: string; last:
       };
 };
 
-export const upsertOIDCUser = async ({
-  claims,
-  database,
-  monitoring,
-}: {
-  claims: OIDCTokenClaims;
-  database: DatabaseClient;
-  monitoring: MonitoringContext;
-}): Promise<
+export const upsertOIDCUser = async (
+  {
+    database,
+    monitoring,
+    configuration,
+  }: { database: DatabaseClient; monitoring: MonitoringContext; configuration: Configuration },
+  { claims }: { claims: OIDCTokenClaims },
+): Promise<
   Result<{
     userId: string;
     userRole: UserRole;
@@ -55,6 +56,7 @@ export const upsertOIDCUser = async ({
   const names = extractNamesFromClaims(claims);
   const profilePicture = claims.picture ?? null;
   const email = extractEmailFromClaims(claims);
+  const roleFromClaims = extractRoleFromOIDCGroupsClaim({ monitoring, configuration }, { claims });
 
   monitoring.logger.info('Ingest OIDC user', {
     oidcUserId,
@@ -87,6 +89,10 @@ export const upsertOIDCUser = async ({
 
     if (profilePicture) {
       updateUserPayload.profile_picture_url = profilePicture;
+    }
+
+    if (roleFromClaims) {
+      updateUserPayload.role = roleFromClaims;
     }
 
     const updateResult = await database.updateUser({
@@ -140,7 +146,19 @@ export const upsertOIDCUser = async ({
   // identity at the same time
   const newUserId = randomUUID();
 
-  const nextUserRoleResult = await getNextUserRole({ database });
+  const nextUserRoleResult = await (async (): AsyncResult<UserRole> => {
+    if (roleFromClaims) {
+      return { success: true, data: roleFromClaims };
+    }
+
+    const nextUserRoleResult = await getNextUserRole({ database });
+    if (!nextUserRoleResult.success) {
+      return nextUserRoleResult;
+    }
+
+    return { success: true, data: nextUserRoleResult.data };
+  })();
+
   if (!nextUserRoleResult.success) {
     return {
       success: false,

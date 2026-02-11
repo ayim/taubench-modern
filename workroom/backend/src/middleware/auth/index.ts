@@ -176,6 +176,7 @@ export const createAuthRedirectMiddleware =
 
         const refreshResult = await refreshOIDCToken({
           authManager,
+          configuration,
           database,
           monitoring,
           req,

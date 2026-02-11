@@ -11,6 +11,7 @@ export interface LogAttributes {
   authSkip: boolean;
   contentDispositionType: string;
   count: number;
+  oidcDroppedGroups: string;
   /**
    * Time taken for an operation, in milliseconds
    */
@@ -24,11 +25,14 @@ export interface LogAttributes {
   errorMessage: string;
   errorName: string;
   errorStack: string;
+  oidcExpectedRoles: string;
   expiresInMin: number;
   fileId: string;
   fileName: string;
   fileSize: number;
   fileType: string;
+  oidcGroupsClaimName: string;
+  oidcGroupsClaimType: string;
   logLevel: LogSeverity;
   migrationDirection: string;
   migrationName: string;
@@ -41,6 +45,7 @@ export interface LogAttributes {
   oidcUserId: string;
   port: number;
   processSignal: string;
+  oidcReceivedGroups: string;
   requestMethod: string;
   requestUrl: string;
   secretId: string;

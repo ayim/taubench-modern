@@ -1,12 +1,10 @@
-# Agent Platform Multi-project Repository
+# Moonraker Multi-project Repository
 
-## Triggering a new release
+The latest version of Moonraker is available at [https://moonraker.sema4ai.dev/tenants/main](https://moonraker.sema4ai.dev/tenants/main).
 
-Releasing the `agent-server` AND `interface` is only necessary for Studio (ACE automatically gets `main`).
+It is automatically deployed ~5 to 10min after a PR is merged to `main` thanks to this [workflow](.github/workflows/spar-build.yaml)
 
-1. **Trigger a new release [here](https://github.com/Sema4AI/agent-platform/actions/workflows/agent-server-release-open-pr.yaml)**
-2. This will open a PR that, once approved, will trigger the build for the release (ultimately creating a new [agent-platform release](https://github.com/Sema4AI/agent-platform/releases))
-3. Once the release is done, a PR for the interface will be opened automatically. Upon approval, the interface will be published
+[Moonraker SSO-enabled](./docs/spar/oidc.md)
 
 ## Overview
 

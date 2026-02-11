@@ -27,9 +27,11 @@ export interface Configuration {
     | {
         clientId: string;
         clientSecret: string;
+        oidcGroupsClaim: string;
         intermediaryCallbackRedirectUrl: string | null;
         jwtPrivateKeyB64: string;
         oidcServer: string;
+        organizationAuthParam: string | null;
         scopes: Array<string>;
         type: 'oidc';
       }
@@ -143,7 +145,16 @@ export const getConfiguration = (): Configuration => {
         };
       }
       case 'oidc': {
+        // We parse the roles from the "groups" claim by default. If they are passed via another claim (such as in Auth0), this env variable can be used to specify the claim to look up
+        const oidcGroupsClaim = process.env.SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME
+          ? parseEnvVariable('SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME')
+          : 'groups';
+
         const oidcServer = parseEnvVariable('SEMA4AI_WORKROOM_OIDC_SERVER');
+
+        const organizationAuthParam = process.env.SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM
+          ? parseEnvVariable('SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM')
+          : null;
 
         // Standard, required scopes:
         //  offline_access  => Refresh tokens
@@ -158,12 +169,14 @@ export const getConfiguration = (): Configuration => {
           autoPromoteEmails,
           clientId: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_ID'),
           clientSecret: parseEnvVariable('SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET'),
+          oidcGroupsClaim,
           intermediaryCallbackRedirectUrl: process.env.SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL
             ? parseEnvVariable('SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL')
             : null,
           jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          roleManagement: true,
           oidcServer,
+          organizationAuthParam,
+          roleManagement: true,
           scopes,
           tokenIssuer,
           type: 'oidc',

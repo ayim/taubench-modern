@@ -47,6 +47,9 @@ export const OIDCTokenClaims = z
     email_verified: z.boolean().optional(),
     // Maybe email:
     preferred_username: z.string().optional(), // Microsoft OIDC
+
+    groups: z.array(z.string()).optional(),
+    roles: z.array(z.string()).optional(),
   })
   .passthrough();
 

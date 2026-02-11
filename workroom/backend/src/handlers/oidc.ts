@@ -126,11 +126,12 @@ export const createOIDCCallbackHandler =
       } satisfies ErrorResponse);
     }
 
-    const userResult = await upsertOIDCUser({
-      claims: tokensResult.data.claims,
-      database,
-      monitoring,
-    });
+    const userResult = await upsertOIDCUser(
+      { configuration, database, monitoring },
+      {
+        claims: tokensResult.data.claims,
+      },
+    );
     if (!userResult.success) {
       monitoring.logger.error('User upsert failed', {
         errorName: userResult.error.code,
