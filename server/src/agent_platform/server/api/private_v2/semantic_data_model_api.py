@@ -409,6 +409,34 @@ async def generate_semantic_data_model(
     )
 
     try:
+        # Enrich partial metadata before generation by fetching missing column samples
+        if payload.data_connections_info:
+            from agent_platform.core.payloads.data_connection import DataConnectionsInspectRequest
+            from agent_platform.server.kernel.data_connection_inspector import DataConnectionInspector
+
+            for dc_info in payload.data_connections_info:
+                db_data_connection = await storage.get_data_connection(dc_info.data_connection_id)
+                request = DataConnectionsInspectRequest(
+                    tables_to_inspect=None,
+                    inspect_columns=True,
+                    n_sample_rows=10,
+                )
+                async with DataConnectionInspector(db_data_connection, request) as inspector:
+                    enrichment_result = await inspector.enrich_missing_column_samples(dc_info.tables_info)
+                if enrichment_result.columns_enriched > 0:
+                    logger.info(
+                        "Enriched partial metadata",
+                        data_connection_id=dc_info.data_connection_id,
+                        columns_enriched=enrichment_result.columns_enriched,
+                        columns_failed=enrichment_result.columns_failed,
+                    )
+                if enrichment_result.errors:
+                    logger.warning(
+                        "Some enrichment operations failed",
+                        data_connection_id=dc_info.data_connection_id,
+                        errors=enrichment_result.errors,
+                    )
+
         generator = SemanticDataModelGenerator(storage=storage)
         semantic_model = await generator.generate_semantic_data_model(
             name=payload.name,

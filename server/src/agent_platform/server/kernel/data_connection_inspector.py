@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import typing
+from dataclasses import dataclass, field
 from typing import Any
 
 from structlog import get_logger
@@ -19,6 +20,9 @@ if typing.TYPE_CHECKING:
         DataConnectionsInspectResponse,
         TableInfo,
         TableToInspect,
+    )
+    from agent_platform.core.payloads.semantic_data_model_payloads import (
+        TableInfo as SdmTableInfo,
     )
     from agent_platform.server.kernel.ibis import (
         AsyncIbisConnection,
@@ -40,6 +44,29 @@ CONNECTION_POOL_SIZE = 5
 
 # Maximum time to wait for row count query (seconds)
 ROW_COUNT_TIMEOUT = 10.0
+
+# Maximum number of sample values to fetch per column (defensive cap)
+MAX_SAMPLE_ROWS = 100
+# Maximum concurrent table enrichments
+MAX_TABLE_ENRICH_CONCURRENCY = 5
+
+
+@dataclass
+class EnrichmentResult:
+    """Result of metadata enrichment operation."""
+
+    columns_enriched: int = 0
+    columns_failed: int = 0
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class TableLookupKey:
+    """Key for table lookup map during enrichment."""
+
+    database: str | None
+    schema: str | None
+    name: str
 
 
 class TableNotFoundError(DataConnectionInspectorError):
@@ -433,8 +460,21 @@ class DataConnectionInspector:
             )
             return []
 
-    async def _inspect_table(self, connection: AsyncIbisConnection, table_spec: TableToInspect) -> TableInfo:
-        """Inspect a specific table and return its metadata."""
+    async def _inspect_table(
+        self,
+        connection: AsyncIbisConnection,
+        table_spec: TableToInspect,
+        *,
+        n_sample_rows: int | None = None,
+    ) -> TableInfo:
+        """Inspect a specific table and return its metadata.
+
+        Args:
+            connection: Async ibis connection to use for table metadata
+            table_spec: Specification of the table to inspect
+            n_sample_rows: Optional override for distinct sample values per column
+                (capped to 1..MAX_SAMPLE_ROWS when provided)
+        """
         from agent_platform.core.payloads.data_connection import TableInfo
 
         # Use _get_table to get proper error handling with TableNotFoundError
@@ -455,7 +495,13 @@ class DataConnectionInspector:
 
             # Create tasks for all columns
             tasks = [
-                self._inspect_column_with_pool_connection(table_spec, table, column_name, connection_pool)
+                self._inspect_column_with_pool_connection(
+                    table_spec,
+                    table,
+                    column_name,
+                    connection_pool,
+                    n_sample_rows=n_sample_rows,
+                )
                 for column_name in columns_to_inspect
             ]
             column_results = await asyncio.gather(*tasks)
@@ -478,6 +524,8 @@ class DataConnectionInspector:
         table: AsyncIbisTable,
         column_name: str,
         connection_pool: asyncio.Queue[AsyncIbisConnection],
+        *,
+        n_sample_rows: int | None = None,
     ) -> ColumnInfo:
         """Inspect a single column using a connection from the pool to avoid transaction nesting.
 
@@ -493,6 +541,8 @@ class DataConnectionInspector:
             table: The async table wrapper from the main connection (used for column type lookup)
             column_name: Name of the column to inspect
             connection_pool: Queue containing available connections from the pool
+            n_sample_rows: Optional override for distinct sample values per column
+                (capped to 1..MAX_SAMPLE_ROWS when provided)
 
         Returns:
             ColumnInfo - always returns a ColumnInfo, even if inspection partially failed
@@ -530,7 +580,11 @@ class DataConnectionInspector:
 
             # Fetch samples using the pool connection
             try:
-                column_info = await self._inspect_column(pool_table, column_name)
+                column_info = await self._inspect_column(
+                    pool_table,
+                    column_name,
+                    n_sample_rows=n_sample_rows,
+                )
                 # Update the column type (in case we got it from pool_table)
                 return ColumnInfo(
                     name=column_info.name,
@@ -610,11 +664,19 @@ class DataConnectionInspector:
         self,
         table: AsyncIbisTable,
         column_name: str,
+        *,
+        n_sample_rows: int | None = None,
     ) -> ColumnInfo:
         """Inspect a specific column and return its metadata.
 
         Fetches distinct sample values directly from the database using DISTINCT + LIMIT.
         No client-side re-sampling or deduplication needed.
+
+        Args:
+            table: The async table wrapper
+            column_name: Name of the column to inspect
+            n_sample_rows: Optional override for distinct sample values (capped to
+                1..MAX_SAMPLE_ROWS when provided). Uses request default when None.
         """
         from agent_platform.core.payloads.data_connection import ColumnInfo
         from agent_platform.server.data_frames.data_node import (
@@ -639,8 +701,12 @@ class DataConnectionInspector:
 
         # Fetch distinct samples directly from database if sampling is requested
         sample_values: list[Any] | None = None
-        if self.request.n_sample_rows > 0:
-            raw_samples = await self._fetch_distinct_column_samples(table, column_name, self.request.n_sample_rows)
+        if n_sample_rows is None:
+            resolved_sample_rows = self.request.n_sample_rows
+        else:
+            resolved_sample_rows = min(max(n_sample_rows, 1), MAX_SAMPLE_ROWS)
+        if resolved_sample_rows > 0:
+            raw_samples = await self._fetch_distinct_column_samples(table, column_name, resolved_sample_rows)
             # Only sanitize (remove null bytes, truncate long strings) and convert to JSON types
             # Database already handled uniqueness with DISTINCT, but truncation could create duplicates,
             # so we use a set to deduplicate while preserving first-seen order
@@ -765,3 +831,121 @@ class DataConnectionInspector:
                 error_type=type(e).__name__,
             )
             return "unknown", None
+
+    async def enrich_missing_column_samples(
+        self,
+        tables_info: list[SdmTableInfo],
+    ) -> EnrichmentResult:
+        """Enrich missing column samples for the provided tables.
+
+        This method mutates the provided tables_info in place, filling in
+        column sample_values when they are missing (None).
+
+        Returns:
+            EnrichmentResult with counts of enriched/failed columns. errors is populated
+            when table inspection fails; columns_failed counts columns that could not be
+            enriched (either due to table errors or missing samples).
+        """
+        from agent_platform.core.payloads.data_connection import TableToInspect
+
+        requested_rows = self.request.n_sample_rows
+        if requested_rows < 1:
+            logger.warning(
+                "n_sample_rows below minimum for enrichment, using 1",
+                requested=requested_rows,
+            )
+        elif requested_rows > MAX_SAMPLE_ROWS:
+            logger.warning(
+                "n_sample_rows above maximum for enrichment, capping",
+                requested=requested_rows,
+                capped=MAX_SAMPLE_ROWS,
+            )
+        n_sample_rows = min(max(requested_rows, 1), MAX_SAMPLE_ROWS)
+
+        result = EnrichmentResult()
+
+        table_specs: list[TableToInspect] = []
+        table_lookup: dict[TableLookupKey, SdmTableInfo] = {}
+
+        for table_info in tables_info:
+            missing_columns = [col.name for col in table_info.columns if col.sample_values is None]
+            if not missing_columns:
+                continue
+            table_spec = TableToInspect(
+                name=table_info.name,
+                database=table_info.database,
+                schema=table_info.schema_,
+                columns_to_inspect=missing_columns,
+            )
+            table_specs.append(table_spec)
+            table_lookup[
+                TableLookupKey(
+                    database=table_info.database,
+                    schema=table_info.schema_,
+                    name=table_info.name,
+                )
+            ] = table_info
+
+        if not table_specs:
+            return result
+
+        connection = await self.connection
+
+        table_semaphore = asyncio.Semaphore(MAX_TABLE_ENRICH_CONCURRENCY)
+
+        async def inspect_table(
+            table_spec: TableToInspect,
+        ) -> tuple[TableToInspect, TableInfo | None, Exception | None]:
+            async with table_semaphore:
+                try:
+                    inspected_table = await self._inspect_table(
+                        connection,
+                        table_spec,
+                        n_sample_rows=n_sample_rows,
+                    )
+                    return table_spec, inspected_table, None
+                except Exception as exc:
+                    return table_spec, None, exc
+
+        inspect_results = await asyncio.gather(*[inspect_table(table_spec) for table_spec in table_specs])
+
+        for table_spec, inspected_table, exc in inspect_results:
+            if exc is not None:
+                error_msg = f"Failed to inspect table for enrichment: {exc}"
+                logger.warning(
+                    error_msg,
+                    table=table_spec.name,
+                    error=str(exc),
+                    exc_info=True,
+                )
+                result.errors.append(error_msg)
+                result.columns_failed += len(table_spec.columns_to_inspect or [])
+                continue
+
+            table_key = TableLookupKey(
+                database=table_spec.database,
+                schema=table_spec.schema,
+                name=table_spec.name,
+            )
+            source_table = table_lookup.get(table_key)
+            if source_table is None:
+                continue
+
+            if inspected_table is None:
+                continue
+
+            inspected_columns_by_name = {column.name: column for column in inspected_table.columns}
+            for column in source_table.columns:
+                if column.sample_values is not None:
+                    continue
+                inspected_column = inspected_columns_by_name.get(column.name)
+                if inspected_column is None or inspected_column.sample_values is None:
+                    result.columns_failed += 1
+                    continue
+
+                column.sample_values = inspected_column.sample_values
+                if column.data_type == "unknown" and inspected_column.data_type != "unknown":
+                    column.data_type = inspected_column.data_type
+                result.columns_enriched += 1
+
+        return result
