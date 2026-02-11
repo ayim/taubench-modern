@@ -307,25 +307,58 @@ def test_delete_platform_not_found(client: TestClient):
     assert response.status_code == 404
 
 
-async def test_delete_platform_used_in_global_eval_config(
+async def test_delete_platform_used_as_default_llm_clears_config(
     client: TestClient,
     storage,
     sample_openai_platform_payload: dict,
 ):
-    """Test deleting a platform used by the global eval config returns 409 Conflict."""
+    """Test deleting the default LLM platform clears the config instead of returning 409."""
     from agent_platform.core.configurations.config_validation import ConfigType
 
     create_response = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
     assert create_response.status_code == 200
     platform_id = create_response.json()["platform_id"]
 
-    await storage.set_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID, platform_id)
+    await storage.set_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID, platform_id)
 
     response = client.delete(f"/api/v2/private/platforms/{platform_id}")
-    assert response.status_code == 409
+    assert response.status_code == 204
 
     get_response_after = client.get(f"/api/v2/private/platforms/{platform_id}")
-    assert get_response_after.status_code == 200
+    assert get_response_after.status_code == 404
+
+    config = await storage.get_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID)
+    assert config.config_value == ""
+
+
+async def test_delete_non_default_platform_preserves_config(
+    client: TestClient,
+    storage,
+    sample_openai_platform_payload: dict,
+    sample_azure_platform_payload: dict,
+):
+    """Test deleting a non-default platform does not affect the default LLM config."""
+    from agent_platform.core.configurations.config_validation import ConfigType
+
+    # Create two platforms
+    resp1 = client.post("/api/v2/private/platforms/", json=sample_openai_platform_payload)
+    assert resp1.status_code == 200
+    default_id = resp1.json()["platform_id"]
+
+    resp2 = client.post("/api/v2/private/platforms/", json=sample_azure_platform_payload)
+    assert resp2.status_code == 200
+    other_id = resp2.json()["platform_id"]
+
+    # Set the first one as default
+    await storage.set_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID, default_id)
+
+    # Delete the non-default platform
+    response = client.delete(f"/api/v2/private/platforms/{other_id}")
+    assert response.status_code == 204
+
+    # Default config should be unchanged
+    config = await storage.get_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID)
+    assert config.config_value == default_id
 
 
 def test_create_platform_validation_error_missing_required_fields(client: TestClient):

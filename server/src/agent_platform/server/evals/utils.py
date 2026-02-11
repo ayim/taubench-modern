@@ -15,13 +15,13 @@ async def resolve_global_eval_model(
     )
 
     try:
-        eval_config = await storage.get_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID)
+        eval_config = await storage.get_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID)
     except ConfigNotFoundError:
         return ("", None)
 
     config_value = eval_config.config_value
     if not isinstance(config_value, str):
-        raise ValueError("GLOBAL_EVAL_PLATFORM_PARAMS_ID config_value must be a string")
+        raise ValueError("DEFAULT_LLM_PLATFORM_PARAMS_ID config_value must be a string")
 
     config_value = config_value.strip()
     if config_value == "":

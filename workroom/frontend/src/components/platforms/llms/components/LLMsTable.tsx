@@ -1,7 +1,7 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable react/no-unstable-nested-components */
 import type { TableRowProps } from '@sema4ai/components';
-import { Box, Button, Menu, Select, Table } from '@sema4ai/components';
+import { Badge, Box, Button, Menu, Select, Table } from '@sema4ai/components';
 import { IconDotsHorizontal, IconPlus } from '@sema4ai/icons';
 import { TableWithFilter, TableWithFilterConfiguration } from '@sema4ai/layouts';
 import { FC, useState } from 'react';
@@ -24,6 +24,8 @@ type Props = {
   selectable?: boolean;
   selectedId?: string | null;
   onSelect?: (item: LLMTableItem) => void;
+  defaultPlatformId?: string;
+  onSetDefault?: (item: LLMTableItem) => void;
 };
 
 type Platform = (typeof PLATFORMS)[number];
@@ -36,6 +38,8 @@ export const LLMsTable: FC<Props> = ({
   selectable = false,
   selectedId = null,
   onSelect,
+  defaultPlatformId,
+  onSetDefault,
 }) => {
   const [platformFilter, setPlatformFilter] = useState<'all' | Platform>('all');
   const Row: FC<TableRowProps<LLMTableItem>> = ({ rowData }) => (
@@ -43,14 +47,22 @@ export const LLMsTable: FC<Props> = ({
       onClick={selectable && onSelect ? () => onSelect(rowData) : onEdit ? () => onEdit?.(rowData) : undefined}
       aria-selected={selectable && selectedId === rowData.id}
     >
-      <Table.Cell>{rowData.name}</Table.Cell>
+      <Table.Cell>
+        <Box display="flex" gap="$8" alignItems="center">
+          {rowData.name}
+          {rowData.id === defaultPlatformId && <Badge label="Default" variant="primary" size="small" />}
+        </Box>
+      </Table.Cell>
       <Table.Cell>{rowData.platform}</Table.Cell>
       <Table.Cell>{rowData.model}</Table.Cell>
       <Table.Cell>{rowData.createdAt ? formatDatetime(rowData.createdAt) : ''}</Table.Cell>
       <Table.Cell controls>
-        {(onEdit || onDelete) && (
+        {(onEdit || onDelete || onSetDefault) && (
           <Menu trigger={<Button aria-label="action" icon={IconDotsHorizontal} variant="ghost" size="small" />}>
             {onEdit && <Menu.Item onClick={() => onEdit?.(rowData)}>Edit</Menu.Item>}
+            {onSetDefault && rowData.id !== defaultPlatformId && (
+              <Menu.Item onClick={() => onSetDefault(rowData)}>Set as default</Menu.Item>
+            )}
             {onDelete && <Menu.Item onClick={() => onDelete?.(rowData)}>Delete</Menu.Item>}
           </Menu>
         )}

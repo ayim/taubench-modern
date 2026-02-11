@@ -1,5 +1,4 @@
 /* eslint-disable camelcase */
-import { useMemo } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Form, Box, Input, Button, useSnackbar } from '@sema4ai/components';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -7,9 +6,6 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { getGetConfigQueryOptions, useUpdateConfigMutation } from '~/queries/settings';
 import { notNil } from '@sema4ai/shared-utils';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
-import { usePlatformsQuery } from '~/queries/platforms';
-import { getAllowedModelFromPlatform } from '~/lib/utils';
-import { SelectControlled } from '~/components/form/SelectControlled';
 
 const beautifyConfigType = (key: string): string => {
   switch (key) {
@@ -48,18 +44,6 @@ function Settings() {
     defaultValues: Object.fromEntries(config.map(({ config_type, config_value }) => [config_type, config_value])),
   });
   const { addSnackbar } = useSnackbar();
-
-  const { data: platforms, isLoading: isLoadingPlatforms, error: platformsError } = usePlatformsQuery({});
-
-  const evalModelItems = useMemo((): Array<{ value: string; label: string; optgroup?: string }> => {
-    const configuredPlatforms = (platforms ?? []).map((platform) => ({
-      value: platform.platform_id,
-      label: `${platform.name} (${getAllowedModelFromPlatform(platform)})`,
-      optgroup: platform.kind,
-    }));
-
-    return [{ value: '', label: 'No default model' }, ...configuredPlatforms];
-  }, [platforms]);
 
   const { mutateAsync: updateConfig, isPending: isUpdatingConfig } = useUpdateConfigMutation();
 
@@ -101,29 +85,17 @@ function Settings() {
   return (
     <Form onSubmit={onSubmit} busy={isUpdatingConfig}>
       <FormProvider {...formProps}>
-        {config.map((configEntry) => (
-          <Form.Fieldset key={configEntry.config_type}>
-            {configEntry.config_type === 'GLOBAL_EVAL_PLATFORM_PARAMS_ID' ? (
-              <SelectControlled
-                name={configEntry.config_type}
-                label={beautifyConfigType(configEntry.config_type)}
-                description={
-                  platformsError ? 'Failed to load available models. Please try again.' : configEntry.description
-                }
-                items={evalModelItems}
-                disabled={isLoadingPlatforms}
-                error={formProps.formState.errors[configEntry.config_type]?.message ?? ''}
-                placeholder="Select a model"
-              />
-            ) : (
+        {config
+          .filter((configEntry) => configEntry.config_type !== 'DEFAULT_LLM_PLATFORM_PARAMS_ID')
+          .map((configEntry) => (
+            <Form.Fieldset key={configEntry.config_type}>
               <Input
                 label={beautifyConfigType(configEntry.config_type)}
                 description={configEntry.description}
                 {...formProps.register(configEntry.config_type)}
               />
-            )}
-          </Form.Fieldset>
-        ))}
+            </Form.Fieldset>
+          ))}
         <Box display="flex" justifyContent="flex-end">
           <Button type="submit" variant="primary" loading={isUpdatingConfig} round>
             Submit

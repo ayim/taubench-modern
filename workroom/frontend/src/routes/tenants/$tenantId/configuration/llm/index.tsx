@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useNavigate, useRouteContext } from '@tanstack/react-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, Button, useSnackbar } from '@sema4ai/components';
 
@@ -7,6 +7,7 @@ import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/
 import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 import { getAllowedModelFromPlatform } from '~/lib/utils';
 import { usePlatformsQuery } from '~/queries/llms';
+import { useConfigQuery, useSetDefaultLLMMutation } from '~/queries/settings';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   component: RouteComponent,
@@ -22,6 +23,74 @@ function RouteComponent() {
 
   const deleteMutation = useDeleteLLMMutation();
   const { data } = usePlatformsQuery({});
+  const { data: configData } = useConfigQuery({});
+
+  const defaultPlatformId = useMemo(() => {
+    if (!configData || !configData.success) return '';
+    const entry = configData.data.find((c) => c.config_type === 'DEFAULT_LLM_PLATFORM_PARAMS_ID');
+    return entry?.config_value ?? '';
+  }, [configData]);
+
+  const setDefaultMutation = useSetDefaultLLMMutation();
+  const setDefaultMutateRef = useRef(setDefaultMutation.mutate);
+  setDefaultMutateRef.current = setDefaultMutation.mutate;
+
+  const items = useMemo<LLMTableItem[]>(() => {
+    const platforms: ListPlatformsResponse | undefined = data ?? queryClient.getQueryData(['platforms', tenantId]);
+    return (platforms || [])
+      .filter((p) => Boolean(p.platform_id))
+      .map((p) => ({
+        id: p.platform_id as string,
+        name: p.name,
+        platform: p.kind,
+        model: getAllowedModelFromPlatform(p),
+        createdAt: p.created_at || '',
+      }));
+  }, [data, queryClient, tenantId]);
+
+  // Auto-select first LLM as default if none is set or stored value is stale
+  const autoSelectRan = useRef(false);
+  useEffect(() => {
+    if (autoSelectRan.current || items.length === 0 || configData === undefined) return;
+
+    const matchesExisting = items.some((item) => item.id === defaultPlatformId);
+
+    if (!matchesExisting) {
+      autoSelectRan.current = true;
+      const firstItem = items[0];
+
+      setDefaultMutateRef.current(firstItem.id, {
+        onSuccess: () => {
+          if (defaultPlatformId) {
+            addSnackbar({
+              message: `The previous default LLM is no longer available. ${firstItem.name} has been set as the new default.`,
+              variant: 'default',
+            });
+          }
+        },
+      });
+    }
+  }, [items, defaultPlatformId, configData, addSnackbar]);
+
+  const handleSetDefault = useCallback(
+    (item: LLMTableItem) => {
+      setDefaultMutation.mutate(item.id, {
+        onSuccess: () => {
+          addSnackbar({
+            message: `${item.name} has been set as the default LLM.`,
+            variant: 'success',
+          });
+        },
+        onError: (e) => {
+          addSnackbar({
+            message: e instanceof Error ? e.message : 'Failed to set default LLM',
+            variant: 'danger',
+          });
+        },
+      });
+    },
+    [setDefaultMutation, addSnackbar],
+  );
 
   const handleDelete = () => {
     if (deleteTarget) {
@@ -46,23 +115,12 @@ function RouteComponent() {
     }
   };
 
-  const items = useMemo<LLMTableItem[]>(() => {
-    const platforms: ListPlatformsResponse | undefined = data ?? queryClient.getQueryData(['platforms', tenantId]);
-    return (platforms || [])
-      .filter((p) => Boolean(p.platform_id))
-      .map((p) => ({
-        id: p.platform_id as string,
-        name: p.name,
-        platform: p.kind,
-        model: getAllowedModelFromPlatform(p),
-        createdAt: p.created_at || '',
-      }));
-  }, [data, queryClient, tenantId]);
-
   return (
     <>
       <LLMsTable
         items={items}
+        defaultPlatformId={defaultPlatformId}
+        onSetDefault={handleSetDefault}
         onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/llm/new', params: { tenantId } })}
         onEdit={(i) =>
           navigate({

@@ -1,8 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouteContext } from '@tanstack/react-router';
 import { sequentialMap } from '@sema4ai/shared-utils';
 import { AgentServerConfigType } from '~/lib/AgentAPIClient';
-import { createSparQueryOptions } from './shared';
+import { createSparQuery, createSparQueryOptions } from './shared';
 
 export const getGetConfigQueryKey = () => ['config'];
 
@@ -15,6 +15,34 @@ export const getGetConfigQueryOptions = createSparQueryOptions()(({ agentAPIClie
     });
   },
 }));
+
+export const useConfigQuery = createSparQuery(getGetConfigQueryOptions);
+
+export const useSetDefaultLLMMutation = () => {
+  const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (platformId: string) => {
+      const result = await agentAPIClient.agentFetch('post', '/api/v2/config/', {
+        body: {
+          config_type: 'DEFAULT_LLM_PLATFORM_PARAMS_ID' as AgentServerConfigType,
+          current_value: platformId,
+        },
+        errorMsg: 'Failed to set default LLM',
+      });
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getGetConfigQueryKey() });
+    },
+  });
+};
 
 export const useUpdateConfigMutation = () => {
   const { agentAPIClient } = useRouteContext({ from: '/tenants/$tenantId' });

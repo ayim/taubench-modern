@@ -1,6 +1,6 @@
 from typing import cast
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from agent_platform.core.payloads.upsert_platform_config import UpsertPlatformConfigPayload
 from agent_platform.core.platforms import AnyPlatformParameters
@@ -93,15 +93,13 @@ async def delete_platform(
     from agent_platform.server.storage.errors import ConfigNotFoundError
 
     try:
-        eval_config = await storage.get_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID)
+        eval_config = await storage.get_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID)
     except ConfigNotFoundError:
         eval_config = None
 
     if eval_config and eval_config.config_value == platform_id:
-        raise HTTPException(
-            status_code=409,
-            detail="Platform configuration is set as the global eval platform and cannot be deleted.",
-        )
+        await storage.set_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID, "")
+
     await storage.delete_platform_params(platform_id)
 
 

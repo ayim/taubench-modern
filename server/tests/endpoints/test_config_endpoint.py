@@ -154,7 +154,7 @@ class TestSetConfigEndpoint:
         """Test that all defined config types are accepted."""
         for config_type in ConfigType:
             current_value = "100"
-            if config_type is ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID:
+            if config_type is ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID:
                 current_value = "00000000-0000-0000-0000-000000000000"
 
             payload = {"config_type": config_type, "current_value": current_value}
@@ -190,13 +190,35 @@ class TestSetConfigEndpoint:
         response = client.post("/api/v2/private/config/", json={})
         assert response.status_code == 422
 
-    def test_set_config_global_eval_platform_params_requires_uuid(self, client: TestClient, mock_storage):
-        """Test that global eval platform params config rejects non-UUID values."""
-        payload = {"config_type": "GLOBAL_EVAL_PLATFORM_PARAMS_ID", "current_value": "not-a-uuid"}
+    def test_set_config_default_llm_platform_params_requires_uuid(self, client: TestClient, mock_storage):
+        """Test that default LLM platform params config rejects non-UUID values."""
+        payload = {"config_type": "DEFAULT_LLM_PLATFORM_PARAMS_ID", "current_value": "not-a-uuid"}
 
         response = client.post("/api/v2/private/config/", json=payload)
 
         assert response.status_code == 422
+
+    def test_set_default_llm_platform_params_with_valid_uuid(self, client: TestClient, mock_storage):
+        """Test that setting default LLM platform params with a valid UUID succeeds."""
+        valid_uuid = "12345678-1234-1234-1234-123456789abc"
+        payload = {"config_type": "DEFAULT_LLM_PLATFORM_PARAMS_ID", "current_value": valid_uuid}
+
+        response = client.post("/api/v2/private/config/", json=payload)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["message"] == "Configuration set successfully"
+        assert data["config_type"] == "DEFAULT_LLM_PLATFORM_PARAMS_ID"
+        mock_storage.set_config.assert_called_once_with("DEFAULT_LLM_PLATFORM_PARAMS_ID", valid_uuid)
+
+    def test_set_default_llm_platform_params_empty_string_clears(self, client: TestClient, mock_storage):
+        """Test that setting default LLM platform params to empty string clears it."""
+        payload = {"config_type": "DEFAULT_LLM_PLATFORM_PARAMS_ID", "current_value": ""}
+
+        response = client.post("/api/v2/private/config/", json=payload)
+
+        assert response.status_code == 200
+        mock_storage.set_config.assert_called_once_with("DEFAULT_LLM_PLATFORM_PARAMS_ID", "")
 
 
 class TestGetAllConfigsEndpoint:
@@ -221,7 +243,7 @@ class TestGetAllConfigsEndpoint:
             "MAX_PARALLEL_WORK_ITEMS_IN_PROCESS",
             "MAX_MCP_SERVERS_IN_AGENT",
             "POSTGRES_POOL_MAX_SIZE",
-            "GLOBAL_EVAL_PLATFORM_PARAMS_ID",
+            "DEFAULT_LLM_PLATFORM_PARAMS_ID",
         }
         assert config_types == expected_config_types
 
@@ -241,11 +263,26 @@ class TestGetAllConfigsEndpoint:
         data = response.json()
         assert data == [
             {
-                "config_type": "GLOBAL_EVAL_PLATFORM_PARAMS_ID",
+                "config_type": "DEFAULT_LLM_PLATFORM_PARAMS_ID",
                 "config_value": "",
-                "description": "Default platform configuration used for evaluation runs.",
+                "description": "Default LLM platform configuration",
             }
         ]
+
+    def test_get_all_configs_includes_default_llm_description(self, client: TestClient, mock_quotas_service):
+        """Test that the DEFAULT_LLM_PLATFORM_PARAMS_ID config has the correct description."""
+        response = client.get("/api/v2/private/config/")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        llm_config = next(
+            (item for item in data if item["config_type"] == "DEFAULT_LLM_PLATFORM_PARAMS_ID"),
+            None,
+        )
+        assert llm_config is not None
+        assert llm_config["description"] == "Default LLM platform configuration"
+        assert llm_config["config_value"] == ""
 
 
 class TestConfigValidationIntegration:

@@ -36,21 +36,21 @@ async def set_config(
     """Set a configuration value by config_type and current_value."""
     logger.info("Setting configuration", config_type=payload.config_type, user_id=user.user_id)
 
-    if payload.config_type is ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID:
+    if payload.config_type is ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID:
         from agent_platform.server.storage import StorageService
 
         storage = StorageService.get_instance()
         current_value = payload.current_value
         if current_value is not None and current_value.strip() == "":
             current_value = ""
-        if current_value is not None:
+        if current_value is not None and current_value != "":
             from uuid import UUID
 
             try:
                 UUID(current_value)
             except ValueError as e:
                 raise HTTPException(
-                    status_code=422, detail="Global eval platform params ID must be a valid UUID"
+                    status_code=422, detail="Default LLM platform params ID must be a valid UUID"
                 ) from e
         await storage.set_config(payload.config_type, current_value)
     else:
@@ -88,14 +88,14 @@ async def get_all_configs(
         for quota_data in all_quotas.values()
     ]
 
-    eval_platform_params_description = "Default platform configuration used for evaluation runs."
+    eval_platform_params_description = "Default LLM platform configuration"
     eval_platform_params_value = ""
     try:
         from agent_platform.server.storage import StorageService
         from agent_platform.server.storage.errors import ConfigNotFoundError
 
         storage = StorageService.get_instance()
-        eval_config = await storage.get_config(ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID)
+        eval_config = await storage.get_config(ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID)
         eval_platform_params_value = eval_config.config_value
     except ConfigNotFoundError:
         eval_platform_params_value = ""
@@ -105,7 +105,7 @@ async def get_all_configs(
 
     configs.append(
         ConfigResponse(
-            config_type=ConfigType.GLOBAL_EVAL_PLATFORM_PARAMS_ID,
+            config_type=ConfigType.DEFAULT_LLM_PLATFORM_PARAMS_ID,
             config_value=eval_platform_params_value,
             description=eval_platform_params_description,
         )

@@ -138,7 +138,7 @@ export const Sidebar: FC<Props> = ({ profilePictureUrl }) => {
     }
 
     if (isAdmin) {
-      return <Badge label={ROLE_LABELS['admin']} variant="primary" size="small" />;
+      return <Badge label={ROLE_LABELS.admin} variant="primary" size="small" />;
     }
 
     return null;

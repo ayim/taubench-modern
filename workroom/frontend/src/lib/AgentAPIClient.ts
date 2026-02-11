@@ -222,7 +222,6 @@ export class AgentAPIClient {
     throw new Error('Feedback not supported in Moonraker');
   }
 
-  // eslint-disable-next-line class-methods-use-this
   private createClient<Paths extends EmptyObjectType>(pathIdentifier: string) {
     // eslint-disable-next-line func-names, @typescript-eslint/no-shadow
     return (function <Paths extends Record<string, Record<HttpMethod, EmptyObjectType>>>() {

@@ -1,0 +1,3 @@
+UPDATE v2_agent_config
+SET config_type = 'GLOBAL_EVAL_PLATFORM_PARAMS_ID'
+WHERE config_type = 'DEFAULT_LLM_PLATFORM_PARAMS_ID';
