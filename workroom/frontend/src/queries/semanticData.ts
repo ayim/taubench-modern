@@ -127,29 +127,29 @@ export const SemanticModel = z.object({
       base_table: z.object({
         data_connection_id: z.string().optional(),
         data_connection_name: z.string().optional(),
-        database: z.string().nullable().optional(),
-        schema: z.string().nullable().optional(),
+        database: z.string().nullish(),
+        schema: z.string().nullish(),
         table: z.string(),
         file_reference: z
           .object({
             thread_id: z.string(),
             file_ref: z.string(),
-            sheet_name: z.string().nullable().optional(),
+            sheet_name: z.string().nullish(),
           })
           .optional(),
       }),
-      description: z.string().nullable().optional(),
-      dimensions: z.array(Dimension).optional(),
-      time_dimensions: z.array(Dimension).optional(),
-      facts: z.array(Dimension).optional(),
-      metrics: z.array(Dimension).optional(),
-      errors: z.array(ValidationMessage).optional(),
+      description: z.string().nullish(),
+      dimensions: z.array(Dimension).nullish(),
+      time_dimensions: z.array(Dimension).nullish(),
+      facts: z.array(Dimension).nullish(),
+      metrics: z.array(Dimension).nullish(),
+      errors: z.array(ValidationMessage).nullish(),
     }),
   ),
-  schemas: z.array(Schema).optional(),
-  relationships: z.array(Relationship).optional(),
-  verified_queries: z.array(VerifiedQuery).optional(),
-  errors: z.array(ValidationMessage).optional(),
+  schemas: z.array(Schema).nullish(),
+  relationships: z.array(Relationship).nullish(),
+  verified_queries: z.array(VerifiedQuery).nullish(),
+  errors: z.array(ValidationMessage).nullish(),
 });
 export type SemanticModel = z.infer<typeof SemanticModel>;
 
