@@ -14,10 +14,11 @@ resource "aws_secretsmanager_secret_version" "auth-configuration" {
   secret_string = jsonencode({
     _informative_oidc_client_url = "REPLACE_ME with a link to OIDC client configuration (e.g. https://console.cloud.google.com/auth/clients/xxx, *informative*)"
 
-    oidc_client_id      = "REPLACE_ME_WITH_OIDC_CLIENT_ID"
-    oidc_client_secret  = "REPLACE_ME_WITH_OIDC_CLIENT_SECRET"
-    oidc_server         = "REPLACE_ME_WITH_OIDC_SERVER_URL"
-    session_secret      = random_password.session_secret.result
+    oidc_client_id               = "REPLACE_ME_WITH_OIDC_CLIENT_ID"
+    oidc_client_secret           = "REPLACE_ME_WITH_OIDC_CLIENT_SECRET"
+    oidc_organization_auth_param = "REPLACE_ME_WITH_AUTH0_ORG_ID_FOR_MOONRAKER"
+    oidc_server                  = "REPLACE_ME_WITH_OIDC_SERVER_URL"
+    session_secret               = random_password.session_secret.result
   })
   lifecycle {
     ignore_changes = [secret_string]

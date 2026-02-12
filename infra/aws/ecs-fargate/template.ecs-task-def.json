@@ -64,6 +64,10 @@
           "name": "SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET",
           "valueFrom": "${AUTH_CONFIGURATION_SECRET_ARN}:oidc_client_secret::"
         },
+        {
+          "name": "SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM",
+          "valueFrom": "${AUTH_CONFIGURATION_SECRET_ARN}:oidc_organization_auth_param::"
+        },
         { "name": "SEMA4AI_WORKROOM_OIDC_SERVER", "valueFrom": "${AUTH_CONFIGURATION_SECRET_ARN}:oidc_server::" },
         {
           "name": "SEMA4AI_WORKROOM_SESSION_SECRET",
