@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { FC, ReactNode } from 'react';
 import {
   QueryClient,

@@ -1,3 +1,4 @@
+import { SchemaFormData } from './ModelEdition/components/SchemaForm';
 import { SchemaFormItem } from './form';
 
 export const normalizeSchemaName = (name: string): string => {
@@ -12,7 +13,7 @@ export const buildSchemaFromFormData = ({
   formData,
   existingSchema,
 }: {
-  formData: { name: string; description: string; jsonText: string };
+  formData: SchemaFormData;
   existingSchema?: SchemaFormItem;
 }): SchemaFormItem => {
   const parsed = JSON.parse(formData.jsonText);
@@ -22,5 +23,11 @@ export const buildSchemaFromFormData = ({
     json_schema: parsed,
     validations: existingSchema?.validations || [],
     transformations: existingSchema?.transformations || [],
+    document_extraction: formData.useDocumentExtraction
+      ? {
+          system_prompt: formData.systemPrompt.trim(),
+          configuration: formData.configurationText.trim() ? JSON.parse(formData.configurationText) : {},
+        }
+      : undefined,
   };
 };

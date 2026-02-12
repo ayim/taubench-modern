@@ -1,5 +1,5 @@
 import { FC, useState, useEffect, useCallback } from 'react';
-import { Box, Code, Input, Link, Typography, useDebounce } from '@sema4ai/components';
+import { Box, Code, Input, Link, Switch, Typography, useDebounce } from '@sema4ai/components';
 import { useFormContext } from 'react-hook-form';
 
 import { useValidateJsonSchemaMutation } from '~/queries/semanticData';
@@ -16,6 +16,9 @@ export type SchemaFormData = {
   name: string;
   description: string;
   jsonText: string;
+  useDocumentExtraction: boolean;
+  systemPrompt: string;
+  configurationText: string;
 };
 
 type Props = {
@@ -43,6 +46,17 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
   const [validationErrors, setValidationErrors] = useState<SchemaValidationError[]>([]);
   const [jsonParseError, setJsonParseError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+
+  const [useDocumentExtraction, setUseDocumentExtraction] = useState(initialSchema?.document_extraction != null);
+  const [systemPrompt, setSystemPrompt] = useState(initialSchema?.document_extraction?.system_prompt ?? '');
+  const [configurationText, setConfigurationText] = useState(() => {
+    const config = initialSchema?.document_extraction?.configuration;
+    if (config && Object.keys(config).length > 0) {
+      return JSON.stringify(config, null, 2);
+    }
+    return '{}';
+  });
+  const [configJsonError, setConfigJsonError] = useState<string | null>(null);
 
   const debouncedJsonText = useDebounce(jsonText, 500);
 
@@ -72,8 +86,25 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
     validateJsonSchema();
   }, [debouncedJsonText, validateSchema]);
 
+  useEffect(() => {
+    if (!useDocumentExtraction || !configurationText.trim()) {
+      setConfigJsonError(null);
+      return;
+    }
+    try {
+      JSON.parse(configurationText);
+      setConfigJsonError(null);
+    } catch {
+      setConfigJsonError('Invalid JSON syntax');
+    }
+  }, [configurationText, useDocumentExtraction]);
+
   const handleJsonChange = useCallback((value: string) => {
     setJsonText(value);
+  }, []);
+
+  const handleConfigChange = useCallback((value: string) => {
+    setConfigurationText(value);
   }, []);
 
   const hasErrors = !!jsonParseError || validationErrors.length > 0;
@@ -84,6 +115,7 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
   const isDuplicateName =
     normalizedName.length > 0 &&
     schemas.some((s, i) => s.name.toLowerCase() === normalizedName.toLowerCase() && (!isEditMode || i !== schemaIndex));
+  const hasDIConfigError = useDocumentExtraction && configJsonError;
 
   const isFormValid =
     !hasErrors &&
@@ -91,12 +123,32 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
     !isDuplicateName &&
     !isValidating &&
     trimmedName.length > 0 &&
-    schemaDescription.trim().length > 0;
+    schemaDescription.trim().length > 0 &&
+    !hasDIConfigError;
 
   // Notify parent of form data and validity changes
   useEffect(() => {
-    onFormDataChange({ name: schemaName, description: schemaDescription, jsonText }, isFormValid);
-  }, [schemaName, schemaDescription, jsonText, isFormValid, onFormDataChange]);
+    onFormDataChange(
+      {
+        name: schemaName,
+        description: schemaDescription,
+        jsonText,
+        useDocumentExtraction,
+        systemPrompt,
+        configurationText,
+      },
+      isFormValid,
+    );
+  }, [
+    schemaName,
+    schemaDescription,
+    jsonText,
+    useDocumentExtraction,
+    systemPrompt,
+    configurationText,
+    isFormValid,
+    onFormDataChange,
+  ]);
 
   const getStatusMessage = (): string => {
     if (hasErrors) return errorMessage || '';
@@ -154,10 +206,56 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
           placeholder='{"type": "object", "properties": {}}'
           rows={12}
         />
-        <Typography variant="body-small" color={hasErrors ? 'content.danger' : 'content.subtle'} mt="$4">
-          {getStatusMessage()}
+      </Box>
+      <Typography variant="body-small" color={hasErrors ? 'content.danger' : 'content.subtle'}>
+        {getStatusMessage()}
+      </Typography>
+
+      <Box>
+        <Box display="flex" alignItems="center" gap="$8" mb="$8">
+          <Switch
+            aria-label="Use with Document Intelligence"
+            checked={useDocumentExtraction}
+            onChange={(e) => setUseDocumentExtraction(e.target.checked)}
+          />
+          <Typography fontWeight="medium">Use with Document Intelligence</Typography>
+        </Box>
+        <Typography variant="body-small" color="content.subtle">
+          Enable to configure how this schema is used with Document Intelligence for data extraction.
         </Typography>
       </Box>
+
+      {useDocumentExtraction && (
+        <Box display="flex" flexDirection="column" gap="$16">
+          <Input
+            label="System Prompt"
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            placeholder="Optional prompt to guide the extraction model"
+            rows={4}
+          />
+
+          <Box>
+            <Typography fontWeight="medium" mb="$8">
+              Advanced Configuration
+            </Typography>
+            <Code
+              value={configurationText}
+              onChange={handleConfigChange}
+              lang="json"
+              title="Advanced Configuration JSON"
+              aria-label="Advanced Configuration"
+              placeholder="{}"
+              rows={6}
+            />
+            {configJsonError && (
+              <Typography variant="body-small" color="content.danger" mt="$4">
+                {configJsonError}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

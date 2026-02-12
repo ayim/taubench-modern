@@ -48,6 +48,7 @@ class TestSchema:
         assert schema.json_schema == {"type": "object", "properties": {}}
         assert schema.validations == []
         assert schema.transformations == []
+        assert schema.document_extraction is None
 
     def test_schema_creation_with_all_fields(self):
         """Test creating a schema with all fields populated."""
@@ -296,6 +297,51 @@ class TestSchema:
         }
         schema = Schema.model_validate(data)
         assert schema.name == "test"
+
+    def test_schema_creation_with_document_extraction_none_fields(self):
+        """Test creating a schema with document_extraction having None sub-fields."""
+        from agent_platform.core.semantic_data_model.schemas import DocumentExtraction
+
+        schema = Schema(
+            name="test",
+            description="Test",
+            json_schema={"type": "object", "properties": {}},
+            document_extraction=DocumentExtraction(),
+        )
+        assert schema.document_extraction is not None
+        assert schema.document_extraction.system_prompt is not None
+        assert schema.document_extraction.configuration is not None
+
+    def test_schema_model_dump_document_extraction_none(self):
+        """Test that model_dump includes document_extraction as None when not set."""
+        schema = Schema(
+            name="test",
+            description="Test schema",
+            json_schema={"type": "object", "properties": {}},
+        )
+        dumped = schema.model_dump()
+        assert dumped["document_extraction"] is None
+
+    def test_schema_model_validate_roundtrip_with_document_extraction(self):
+        """Test model_validate roundtrip preserves document_extraction."""
+        data = {
+            "name": "test",
+            "description": "Test",
+            "json_schema": {"type": "object", "properties": {}},
+            "document_extraction": {
+                "system_prompt": "Extract carefully",
+                "configuration": {"mode": "strict"},
+            },
+        }
+        schema = Schema.model_validate(data)
+        assert schema.document_extraction is not None
+        assert schema.document_extraction.system_prompt == "Extract carefully"
+
+        dumped = schema.model_dump()
+        restored = Schema.model_validate(dumped)
+        assert restored.document_extraction is not None
+        assert restored.document_extraction.system_prompt == "Extract carefully"
+        assert restored.document_extraction.configuration == {"mode": "strict"}
 
 
 class TestSemanticDataModelWithSchemas:

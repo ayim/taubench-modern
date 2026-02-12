@@ -5806,15 +5806,16 @@ export interface components {
       /**
        * System Prompt
        * @description Optional system prompt to guide the extraction model.
+       * @default
        */
-      system_prompt?: string | null;
+      system_prompt: string;
       /**
        * Configuration
        * @description Opaque configuration dict for the extraction engine.
        */
       configuration?: {
         [key: string]: unknown;
-      } | null;
+      };
     };
     /** DocumentIntelligenceConfigPayload */
     DocumentIntelligenceConfigPayload: {

@@ -102,12 +102,12 @@ class DocumentExtraction(BaseModel):
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    system_prompt: str | None = Field(
-        default=None,
+    system_prompt: str = Field(
+        default="",
         description="Optional system prompt to guide the extraction model.",
     )
-    configuration: dict[str, Any] | None = Field(
-        default=None,
+    configuration: dict[str, Any] = Field(
+        default_factory=dict,
         description="Opaque configuration dict for the extraction engine.",
     )
 

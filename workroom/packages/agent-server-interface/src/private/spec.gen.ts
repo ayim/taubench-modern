@@ -14271,28 +14271,15 @@ export const spec = {
       DocumentExtraction: {
         properties: {
           system_prompt: {
-            anyOf: [
-              {
-                type: 'string',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            type: 'string',
             title: 'System Prompt',
             description:
               'Optional system prompt to guide the extraction model.',
+            default: '',
           },
           configuration: {
-            anyOf: [
-              {
-                additionalProperties: true,
-                type: 'object',
-              },
-              {
-                type: 'null',
-              },
-            ],
+            additionalProperties: true,
+            type: 'object',
             title: 'Configuration',
             description: 'Opaque configuration dict for the extraction engine.',
           },

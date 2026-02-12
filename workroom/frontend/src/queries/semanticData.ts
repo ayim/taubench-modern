@@ -92,6 +92,12 @@ export const Relationship = z.object({
 });
 export type Relationship = z.infer<typeof Relationship>;
 
+export const DocumentExtraction = z.object({
+  system_prompt: z.string().catch(''),
+  configuration: z.record(z.string(), z.unknown()).catch({}),
+});
+export type DocumentExtraction = z.infer<typeof DocumentExtraction>;
+
 export const Schema = z.object({
   name: z.string(),
   description: z.string(),
@@ -113,6 +119,7 @@ export const Schema = z.object({
       }),
     )
     .optional(),
+  document_extraction: DocumentExtraction.nullish(),
 });
 
 export const SemanticModel = z.object({

@@ -205,6 +205,46 @@ class TestCreateSdmWithSchemas:
         sdm = await _get_sdm_from_storage(storage, sdm_id)
         assert sdm.schemas is None or sdm.schemas == []
 
+    @pytest.mark.asyncio
+    async def test_create_sdm_with_schema_having_document_extraction(
+        self, storage: SQLiteStorage | PostgresStorage, client: TestClient
+    ):
+        """Can create an SDM with a schema that has document_extraction."""
+        payload = _make_sdm_payload(
+            name="Extraction Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice extraction schema",
+                    json_schema={
+                        "type": "object",
+                        "properties": {
+                            "invoice_number": {"type": "string"},
+                            "amount": {"type": "number"},
+                        },
+                    },
+                    document_extraction=DocumentExtraction(
+                        system_prompt="Extract invoice data accurately",
+                        configuration={"engine": "reducto", "confidence_threshold": 0.9},
+                    ),
+                )
+            ],
+        )
+
+        response = client.post("/api/v2/semantic-data-models/", json=payload)
+        assert response.status_code == 200, f"Failed: {response.text}"
+
+        sdm_id = response.json()["semantic_data_model_id"]
+        sdm = await _get_sdm_from_storage(storage, sdm_id)
+        assert sdm.schemas is not None
+        assert len(sdm.schemas) == 1
+        assert sdm.schemas[0].document_extraction is not None
+        assert sdm.schemas[0].document_extraction.system_prompt == "Extract invoice data accurately"
+        assert sdm.schemas[0].document_extraction.configuration == {
+            "engine": "reducto",
+            "confidence_threshold": 0.9,
+        }
+
 
 class TestGetSdmWithSchemas:
     """Tests for retrieving SDMs with schemas via GET /api/v2/semantic-data-models/{id}"""
@@ -449,6 +489,141 @@ class TestUpdateSdmSchemas:
 
         sdm = await _get_sdm_from_storage(storage, sdm_id)
         assert sdm.schemas == []
+
+    @pytest.mark.asyncio
+    async def test_add_document_extraction_to_existing_schema(
+        self, storage: SQLiteStorage | PostgresStorage, client: TestClient
+    ):
+        """Can update a schema to add document_extraction."""
+        sdm = _make_sdm_with_table_and_schemas(
+            name="Test Model",
+            schemas=[
+                _make_schema(name="Invoice", description="Invoice schema"),
+            ],
+        )
+        sdm_id = await storage.set_semantic_data_model(
+            semantic_data_model_id=None,
+            semantic_model=sdm,
+            data_connection_ids=[],
+            file_references=[],
+        )
+
+        # Verify initially no document_extraction
+        stored = await _get_sdm_from_storage(storage, sdm_id)
+        assert stored.schemas is not None
+        assert stored.schemas[0].document_extraction is None
+
+        # Update to add document_extraction
+        payload = _make_sdm_payload(
+            name="Test Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice schema",
+                    document_extraction=DocumentExtraction(
+                        system_prompt="Extract invoice fields",
+                        configuration={"engine": "reducto"},
+                    ),
+                ),
+            ],
+        )
+        response = client.put(f"/api/v2/semantic-data-models/{sdm_id}", json=payload)
+        assert response.status_code == 200, f"Failed: {response.text}"
+
+        sdm = await _get_sdm_from_storage(storage, sdm_id)
+        assert sdm.schemas is not None
+        assert sdm.schemas[0].document_extraction is not None
+        assert sdm.schemas[0].document_extraction.system_prompt == "Extract invoice fields"
+
+    @pytest.mark.asyncio
+    async def test_modify_document_extraction_on_schema(
+        self, storage: SQLiteStorage | PostgresStorage, client: TestClient
+    ):
+        """Can update a schema's existing document_extraction."""
+        sdm = _make_sdm_with_table_and_schemas(
+            name="Test Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice schema",
+                    document_extraction=DocumentExtraction(
+                        system_prompt="Old prompt",
+                        configuration={"engine": "v1"},
+                    ),
+                ),
+            ],
+        )
+        sdm_id = await storage.set_semantic_data_model(
+            semantic_data_model_id=None,
+            semantic_model=sdm,
+            data_connection_ids=[],
+            file_references=[],
+        )
+
+        payload = _make_sdm_payload(
+            name="Test Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice schema",
+                    document_extraction=DocumentExtraction(
+                        system_prompt="Updated prompt",
+                        configuration={"engine": "v2", "extra": True},
+                    ),
+                ),
+            ],
+        )
+        response = client.put(f"/api/v2/semantic-data-models/{sdm_id}", json=payload)
+        assert response.status_code == 200, f"Failed: {response.text}"
+
+        sdm = await _get_sdm_from_storage(storage, sdm_id)
+        assert sdm.schemas is not None
+        assert sdm.schemas[0].document_extraction is not None
+        assert sdm.schemas[0].document_extraction.system_prompt == "Updated prompt"
+        assert sdm.schemas[0].document_extraction.configuration == {"engine": "v2", "extra": True}
+
+    @pytest.mark.asyncio
+    async def test_remove_document_extraction_from_schema(
+        self, storage: SQLiteStorage | PostgresStorage, client: TestClient
+    ):
+        """Can remove document_extraction from a schema by setting it to None."""
+        sdm = _make_sdm_with_table_and_schemas(
+            name="Test Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice schema",
+                    document_extraction=DocumentExtraction(
+                        system_prompt="Some prompt",
+                        configuration={"engine": "reducto"},
+                    ),
+                ),
+            ],
+        )
+        sdm_id = await storage.set_semantic_data_model(
+            semantic_data_model_id=None,
+            semantic_model=sdm,
+            data_connection_ids=[],
+            file_references=[],
+        )
+
+        # Update without document_extraction (None)
+        payload = _make_sdm_payload(
+            name="Test Model",
+            schemas=[
+                _make_schema(
+                    name="Invoice",
+                    description="Invoice schema",
+                    document_extraction=None,
+                ),
+            ],
+        )
+        response = client.put(f"/api/v2/semantic-data-models/{sdm_id}", json=payload)
+        assert response.status_code == 200, f"Failed: {response.text}"
+
+        sdm = await _get_sdm_from_storage(storage, sdm_id)
+        assert sdm.schemas is not None
+        assert sdm.schemas[0].document_extraction is None
 
 
 class TestDeleteSdmWithSchemas:
