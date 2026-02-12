@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useState, useCallback } from 'react';
 import { Box, Button, Menu, Tooltip, Typography, useSnackbar } from '@sema4ai/components';
 import { IconChemicalBottle, IconDotsHorizontal, IconLoading } from '@sema4ai/icons';
 import { useDeleteConfirm } from '@sema4ai/layouts';
@@ -8,12 +8,20 @@ import type { ServerResponse } from '@sema4ai/agent-server-interface';
 import { RenameDialog } from '~/components/dialogs/RenameDialog';
 import { formatDateTime } from '~/components/helpers';
 import { ListItemLink } from '~/components/link';
+
 import { downloadMarkdown } from '~/lib/utils';
-import { useDeleteThreadMutation, useThreadMessagesQuery, useUpdateThreadMutation } from '~/queries/threads';
+import {
+  useDeleteThreadMutation,
+  useThreadMessagesQuery,
+  useUpdateThreadMutation,
+  useFetchTraceUrlsMutation,
+} from '~/queries/threads';
+import { useObservabilityIntegrationsQuery } from '~/queries/integrations';
 import { useFeatureFlag, FeatureFlag } from '../../../hooks';
 import { ThreadNameDisplay } from './ThreadNameDisplay';
 import { getThreadMakrdown } from '../../Chat/utils/threadContentMarkdown';
 import { ThreadListLinkContainer } from './ThreadsList/styles';
+import { isTraceUrlSupported } from './utils';
 
 type ThreadItemProps = {
   item: ServerResponse<'get', '/api/v2/threads/'>[number] & {
@@ -57,11 +65,15 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
   const { mutate: deleteThread, isPending: isDeleting } = useDeleteThreadMutation({ agentId });
   const { mutate: updateThread, isSuccess: isManualThreadRenameSuccess } = useUpdateThreadMutation({ agentId });
   const { refetch: fetchThreadMessages } = useThreadMessagesQuery({ threadId: activeThreadId }, { enabled: false });
+  const { mutate: fetchTraceUrls } = useFetchTraceUrlsMutation({});
 
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const [isRenaming, setIsRenaming] = useState(false);
   const { enabled: isChatInteractive } = useFeatureFlag(FeatureFlag.agentChatInput);
+  const { data: integrations } = useObservabilityIntegrationsQuery({});
+
+  const supportsTraceUrls = isTraceUrlSupported(integrations);
 
   const onDeleteConfirm = useDeleteConfirm(
     {
@@ -126,6 +138,30 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
     }
   };
 
+  const handleViewTrace = useCallback(() => {
+    fetchTraceUrls(
+      { threadId: thread.thread_id || '' },
+      {
+        onSuccess: (url) => {
+          if (url) {
+            window.open(url, '_blank');
+          } else {
+            addSnackbar({
+              message: 'No trace URL available for this thread',
+              variant: 'default',
+            });
+          }
+        },
+        onError: (error) => {
+          addSnackbar({
+            message: error.message,
+            variant: 'danger',
+          });
+        },
+      },
+    );
+  }, [fetchTraceUrls, addSnackbar, thread.thread_id]);
+
   const ItemIcon = thread.scenarioId ? IconChemicalBottle : undefined;
   return (
     <>
@@ -154,6 +190,9 @@ export const ThreadItem: FC<ThreadItemProps> = ({ item: thread }) => {
               >
                 <Menu.Item onClick={() => setIsRenaming(true)}>Rename</Menu.Item>
                 <Menu.Item onClick={onThreadTranscriptDownload}>Download</Menu.Item>
+                {thread.parent_trace_id && supportsTraceUrls && (
+                  <Menu.Item onClick={handleViewTrace}>View trace</Menu.Item>
+                )}
                 <Menu.Item onClick={onThreadDelete}>Delete</Menu.Item>
               </Menu>
             }

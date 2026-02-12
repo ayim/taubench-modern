@@ -4,6 +4,9 @@ import { apiSecretValueToString } from '~/components/helpers';
 
 export const otelProviders = ['langsmith', 'grafana', 'otlp_basic_auth', 'otlp_custom_headers'] as const;
 
+export const traceUITypeEnum = z.enum(['grafana', 'jaeger', 'unknown']);
+export type TraceUIType = z.infer<typeof traceUITypeEnum>;
+
 export const observabilitySettingsSchema = z.discriminatedUnion('provider', [
   z.object({
     is_enabled: z.boolean(),
@@ -26,7 +29,7 @@ export const observabilitySettingsSchema = z.discriminatedUnion('provider', [
     url: z.string().url('Invalid URL'),
     username: z.string().min(1, 'Username is required'),
     password: z.string().min(1, 'Password is required'),
-    trace_ui_type: z.enum(['grafana', 'jaeger', 'unknown']),
+    trace_ui_type: traceUITypeEnum,
   }),
   z.object({
     is_enabled: z.boolean(),
@@ -35,7 +38,7 @@ export const observabilitySettingsSchema = z.discriminatedUnion('provider', [
     headers: z.record(z.string(), z.string()).refine((headers) => Object.keys(headers).length > 0, {
       message: 'At least one header is required',
     }),
-    trace_ui_type: z.enum(['grafana', 'jaeger', 'unknown']),
+    trace_ui_type: traceUITypeEnum,
   }),
 ]);
 

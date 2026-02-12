@@ -94,6 +94,34 @@ export const threadMessagesQueryOptions = createSparQueryOptions<{ threadId: str
 export const useThreadMessagesQuery = createSparQuery(threadMessagesQueryOptions);
 
 /**
+ * Fetch trace URLs for a thread
+ */
+export const useFetchTraceUrlsMutation = createSparMutation<object, { threadId: string }>()(({ agentAPIClient }) => ({
+  mutationFn: async ({ threadId }): Promise<string | undefined> => {
+    const response = await agentAPIClient.agentFetch('get', '/api/v2/threads/{tid}/trace-urls', {
+      params: { path: { tid: threadId } },
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to fetch trace URLs', {
+        code: response.code,
+        resource: ResourceType.Thread,
+      });
+    }
+
+    const traceUrls: Record<string, string> = response.data.trace_urls;
+    const traceUrlValues = Object.values(traceUrls);
+
+    // Return the first trace URL - we currently support only one observability integration
+    if (traceUrlValues.length > 0) {
+      return traceUrlValues[0];
+    }
+
+    return undefined;
+  },
+}));
+
+/**
  * Create Thread
  */
 export const useCreateThreadMutation = createSparMutation<

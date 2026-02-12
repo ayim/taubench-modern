@@ -5,7 +5,7 @@ import { IconSnowflake } from '@sema4ai/icons/logos';
 import { ObservabilitySettings } from '~/queries/integrations';
 import { InputControlled } from '~/components/form/InputControlled';
 import { KeyValueRecordField } from '~/components/form/SchemaFormFields/components/KeyValueRecordField';
-import { ObservabilitySettingsFormSchema } from './observabilitySettingsSchema';
+import { ObservabilitySettingsFormSchema, TraceUIType, traceUITypeEnum } from './observabilitySettingsSchema';
 import { useSparUIContext } from '../../../api/context';
 
 type ObservabilityProviderOption = {
@@ -51,6 +51,35 @@ export const GrafanaSettingsFields = () => {
   );
 };
 
+type TraceUIOption = {
+  value: TraceUIType;
+  label: string;
+};
+
+const traceUIOptions: TraceUIOption[] = [
+  { value: 'unknown', label: 'None' },
+  { value: 'grafana', label: 'Grafana' },
+  { value: 'jaeger', label: 'Jaeger' },
+];
+
+const TraceUITypeSelect = () => {
+  const { watch, setValue } = useFormContext<ObservabilitySettingsFormSchema>();
+  const traceUIType = watch('trace_ui_type');
+
+  return (
+    <Select
+      aria-label="Trace UI Type"
+      label="Trace UI Type (Optional)"
+      description="Tracing backend hint to enable deep tracing integration."
+      items={traceUIOptions}
+      value={traceUIType}
+      onChange={(value) => {
+        setValue('trace_ui_type', traceUITypeEnum.parse(value), { shouldDirty: true });
+      }}
+    />
+  );
+};
+
 const OtlpBasicAuthSettingsFields = () => {
   return (
     <>
@@ -59,6 +88,8 @@ const OtlpBasicAuthSettingsFields = () => {
       <InputControlled fieldName="username" label="Username" description="Basic auth username" />
 
       <InputControlled fieldName="password" label="Password" description="Basic auth password" type="password" />
+
+      <TraceUITypeSelect />
     </>
   );
 };
@@ -74,6 +105,8 @@ const OtlpCustomHeadersSettingsFields = () => {
         description="Custom HTTP headers to send with the request"
         isOptional={false}
       />
+
+      <TraceUITypeSelect />
     </>
   );
 };
@@ -164,10 +197,23 @@ export const ObservabilitySettingsForm = ({ defaultValues }: Props) => {
               reset({ provider: 'grafana', url: '', is_enabled: true, api_token: '', grafana_instance_id: '' });
               break;
             case 'otlp_basic_auth':
-              reset({ provider: 'otlp_basic_auth', url: '', is_enabled: true, username: '', password: '' });
+              reset({
+                provider: 'otlp_basic_auth',
+                url: '',
+                is_enabled: true,
+                username: '',
+                password: '',
+                trace_ui_type: 'unknown',
+              });
               break;
             case 'otlp_custom_headers':
-              reset({ provider: 'otlp_custom_headers', url: '', is_enabled: true, headers: {} });
+              reset({
+                provider: 'otlp_custom_headers',
+                url: '',
+                is_enabled: true,
+                headers: {},
+                trace_ui_type: 'unknown',
+              });
               break;
             default:
               break;
