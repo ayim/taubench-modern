@@ -107,6 +107,11 @@ config:
     authMode: 'oidc'
     allowInsecureRequests: 'true'
     disablePostgresSsl: 'false'
+    oidcClientId: ''
+    oidcClientSecret: ''
+    oidcServer: ''
+    oidcOrganizationAuthParam: ''
+    sessionSecret: ''
     tenantId: 'spar'
     enableSparOnlyFeatures: 'true'
 

@@ -23,8 +23,17 @@ spec:
     imagePullSecrets:
       - name: '{{repl ImagePullSecretName }}'
 
-    # PostgreSQL configuration from user input
     config:
+      # OIDC authentication from user input
+      workroom:
+        authMode: 'repl{{ ConfigOption "auth_mode" }}'
+        oidcClientId: 'repl{{ ConfigOption "oidc_client_id" }}'
+        oidcClientSecret: 'repl{{ ConfigOption "oidc_client_secret" }}'
+        oidcServer: 'repl{{ ConfigOption "oidc_server" }}'
+        oidcOrganizationAuthParam: 'repl{{ ConfigOption "oidc_organization_auth_param" }}'
+        sessionSecret: 'repl{{ ConfigOption "session_secret" }}'
+
+      # PostgreSQL configuration from user input
       postgres:
         host: 'repl{{ ConfigOption "postgres_host" }}'
         port: 'repl{{ ConfigOption "postgres_port" }}'

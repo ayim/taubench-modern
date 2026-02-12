@@ -15,6 +15,13 @@ data:
   SEMA4AI_WORKROOM_PORT: {{ .Values.config.workroom.port | quote }}
   SEMA4AI_WORKROOM_PORT_INTERNAL: {{ .Values.config.workroom.portInternal | quote }}
   SEMA4AI_WORKROOM_AUTH_MODE: {{ .Values.config.workroom.authMode | quote }}
+  SEMA4AI_WORKROOM_OIDC_CLIENT_ID: {{ .Values.config.workroom.oidcClientId | quote }}
+  SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET: {{ .Values.config.workroom.oidcClientSecret | quote }}
+  SEMA4AI_WORKROOM_OIDC_SERVER: {{ .Values.config.workroom.oidcServer | quote }}
+  {{- if .Values.config.workroom.oidcOrganizationAuthParam }}
+  SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM: {{ .Values.config.workroom.oidcOrganizationAuthParam | quote }}
+  {{- end }}
+  SEMA4AI_WORKROOM_SESSION_SECRET: {{ .Values.config.workroom.sessionSecret | quote }}
   SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: {{ .Values.config.workroom.allowInsecureRequests | quote }}
   SEMA4AI_WORKROOM_DISABLE_POSTGRES_SSL: {{ .Values.config.workroom.disablePostgresSsl | quote }}
   SEMA4AI_WORKROOM_TENANT_ID: {{ .Values.config.workroom.tenantId | quote }}

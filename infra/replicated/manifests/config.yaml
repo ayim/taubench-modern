@@ -40,3 +40,43 @@ spec:
           type: password
           required: true
           help_text: Password for the PostgreSQL user (encrypted at rest)
+
+    - name: oidc
+      title: OIDC Authentication
+      description: OpenID Connect configuration for user authentication
+      items:
+        - name: auth_mode
+          title: Authentication Mode
+          type: text
+          required: true
+          default: 'oidc'
+          help_text: Authentication mode for the workroom
+
+        - name: oidc_client_id
+          title: OIDC Client ID
+          type: text
+          required: true
+          help_text: The OIDC application client ID
+
+        - name: oidc_client_secret
+          title: OIDC Client Secret
+          type: password
+          required: true
+          help_text: The OIDC application client secret
+
+        - name: oidc_server
+          title: OIDC Server URL
+          type: text
+          required: true
+          help_text: The OIDC issuer URL
+
+        - name: oidc_organization_auth_param
+          title: OIDC Organization Auth Param
+          type: text
+          help_text: The OIDC organization auth parameter scoping this deployment
+
+        - name: session_secret
+          title: Session Secret
+          type: password
+          required: true
+          help_text: Secret used to encrypt session cookies
