@@ -40,10 +40,7 @@ set -euo pipefail
 
 script_dir="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
 task_definition_template="${script_dir}/../../template.ecs-task-def.json"
-data_server_tag=$(cat compose.yml | sed -n '/x-data-server-image:/s/.*data-server:\([^"]*\).*/\1/p')
-
 export DB_NAME="agents_${RELEASE_NAME}"
-export DATA_SERVER_IMAGE_REF="024848458368.dkr.ecr.us-east-1.amazonaws.com/ci/data/data-server:${data_server_tag}"
 export PSQL_IMAGE_REF="024848458362.dkr.ecr.us-east-1.amazonaws.com/docker-hub/library/postgres:17-alpine"
 # Intermediary OIDC redirect URI, exported from infra/aws/modules/oidc-bounce-lambda/outputs.tf
 export OIDC_BOUNCE_FUNCTION_URL="https://gh3hejttujva6f73f2uvi3f5rq0ywnzb.lambda-url.us-east-1.on.aws/"

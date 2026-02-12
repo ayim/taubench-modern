@@ -277,44 +277,6 @@
               "successThreshold": 1
             }
           ]
-        },
-        {
-          "image": "${DATA_SERVER_IMAGE_REF}",
-          "name": "data-server",
-          "command": null,
-          "args": null,
-          "env": [
-            {
-              "name": "SKIP_CONFIGURATION",
-              "value": "true",
-              "secretRef": null
-            }
-          ],
-          "resources": {
-            "cpu": 1.0,
-            "memory": "2.0Gi",
-            "ephemeralStorage": null
-          },
-          "volumeMounts": null,
-          "probes": [
-            {
-              "failureThreshold": 3,
-              "httpGet": {
-                "host": null,
-                "httpHeaders": null,
-                "path": "/health",
-                "port": 8080,
-                "scheme": null
-              },
-              "initialDelaySeconds": 60,
-              "periodSeconds": 30,
-              "successThreshold": null,
-              "tcpSocket": null,
-              "terminationGracePeriodSeconds": null,
-              "timeoutSeconds": 5,
-              "type": "liveness"
-            }
-          ]
         }
       ],
       "scale": {

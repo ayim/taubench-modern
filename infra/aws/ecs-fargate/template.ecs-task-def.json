@@ -2,8 +2,8 @@
   "family": "${RELEASE_NAME}",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "4096",
-  "memory": "12288",
+  "cpu": "2048",
+  "memory": "8192",
   "executionRoleArn": "${ECS_TASK_EXECUTION_ROLE_ARN}",
   "taskRoleArn": "${ECS_TASK_RUNTIME_ROLE_ARN}",
   "containerDefinitions": [
@@ -102,34 +102,6 @@
       ],
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -sf http://localhost:8001/ || exit 1"],
-        "interval": 30,
-        "timeout": 5,
-        "retries": 3,
-        "startPeriod": 60
-      }
-    },
-    {
-      "name": "data-server",
-      "image": "${DATA_SERVER_IMAGE_REF}",
-      "cpu": 1024,
-      "memory": 4608,
-      "essential": true,
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/${ECS_CLUSTER_NAME}/${RELEASE_NAME}",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs",
-          "awslogs-create-group": "true"
-        }
-      },
-      "portMappings": [
-        { "containerPort": 47334, "protocol": "tcp" },
-        { "containerPort": 47335, "protocol": "tcp" }
-      ],
-      "environment": [{ "name": "SKIP_CONFIGURATION", "value": "true" }],
-      "healthCheck": {
-        "command": ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
