@@ -34,6 +34,7 @@ from agent_platform.server.api.dependencies import (
     FileManagerDependency,
     StorageDependency,
 )
+from agent_platform.server.api.private_v2.observability.models import TraceUrlsResponse
 from agent_platform.server.auth import AuthedUser
 from agent_platform.server.storage import (
     AgentNotFoundError,
@@ -63,7 +64,19 @@ class MessageMetadataOpsPayload(BaseModel):
 async def create_thread(
     user: AuthedUser, payload: UpsertThreadPayload, storage: StorageDependency, request: Request
 ) -> Thread:
+    from agent_platform.core.telemetry.helpers import create_thread_trace_context
+
     thread = UpsertThreadPayload.to_thread(payload, user.user_id)
+
+    # Generate trace context
+    trace_id, span_id = create_thread_trace_context(
+        thread_name=thread.name,
+        thread_id=thread.thread_id,
+        agent_id=thread.agent_id,
+        user_id=user.user_id,
+    )
+    thread.parent_trace_id = trace_id
+    thread.parent_span_id = span_id
 
     server_context = AgentServerContext.from_request(
         request=request,
@@ -282,6 +295,49 @@ async def get_thread(
     # to get messages
     thread.messages = []
     return thread
+
+
+async def _compute_trace_urls(thread: Thread, storage: StorageDependency) -> TraceUrlsResponse:
+    """Compute trace URLs from observability integrations for a thread.
+
+    Args:
+        thread: The thread to compute trace URLs for.
+        storage: Storage dependency for fetching integrations.
+
+    Returns:
+        A dict mapping integration IDs to trace URLs, or None if no URLs.
+        Example: {"integration-uuid-1234": "http://localhost:3000/explore?..."}
+    """
+    if not thread.parent_trace_id or not thread.agent_id:
+        return TraceUrlsResponse(trace_urls={})
+
+    from agent_platform.core.integrations.settings.observability import ObservabilityIntegrationSettings
+
+    integrations = await storage.get_observability_integrations_for_agent(thread.agent_id)
+    computed_urls: dict[str, str] = {}
+
+    for integration in integrations:
+        if not isinstance(integration.settings, ObservabilityIntegrationSettings):
+            continue
+
+        provider_settings = integration.settings.settings.provider_settings
+        url = provider_settings.get_trace_url(thread.parent_trace_id)
+        if url:
+            # We use integration ID to differentiate between two integrations
+            # of the same provider kind.
+            computed_urls[integration.id] = url
+
+    return TraceUrlsResponse(trace_urls=computed_urls)
+
+
+@router.get("/{tid}/trace-urls", response_model=TraceUrlsResponse)
+async def get_thread_trace_urls(user: AuthedUser, tid: str, storage: StorageDependency) -> TraceUrlsResponse:
+    """Get trace URLs for a thread."""
+    thread = await storage.get_thread(user.user_id, tid)
+    if thread is None:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    return await _compute_trace_urls(thread, storage)
 
 
 # Backwards compatibility

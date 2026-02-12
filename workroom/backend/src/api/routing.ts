@@ -92,6 +92,7 @@ function getRouteMap(): {
     'post /api/v2/threads/{tid}/messages/{message_id}/edit': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'patch /api/v2/threads/{tid}/messages/{message_id}/metadata/ops': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/threads/{tid}/state': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
+    'get /api/v2/threads/{tid}/trace-urls': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],
     'get /api/v2/agents/{aid}/agent-details': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'delete /api/v2/agents/{aid}': [ALLOWED, SIGN_WITH_USER, agentWritePermissions],
     'get /api/v2/work-items': [ALLOWED, SIGN_WITH_USER, agentReadPermissions],

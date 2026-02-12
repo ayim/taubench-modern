@@ -1543,6 +1543,47 @@ export const spec = {
         },
       },
     },
+    '/api/v2/threads/{tid}/trace-urls': {
+      get: {
+        tags: ['threads'],
+        summary: 'Get Thread Trace Urls',
+        description: 'Get trace URLs for a thread.',
+        operationId: 'get_thread_trace_urls_threads__tid__trace_urls_get',
+        parameters: [
+          {
+            name: 'tid',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              title: 'Tid',
+            },
+          },
+        ],
+        responses: {
+          '200': {
+            description: 'Successful Response',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/TraceUrlsResponse',
+                },
+              },
+            },
+          },
+          '422': {
+            description: 'Validation Error',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorEnvelope',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     '/api/v2/threads/{tid}/state': {
       get: {
         tags: ['threads'],
@@ -19548,6 +19589,13 @@ export const spec = {
             title: 'Password',
             description: 'Basic auth password',
           },
+          trace_ui_type: {
+            type: 'string',
+            enum: ['grafana', 'jaeger', 'unknown'],
+            title: 'Trace Ui Type',
+            description: 'Type of trace UI to use for viewing traces.',
+            default: 'unknown',
+          },
           is_enabled: {
             type: 'boolean',
             title: 'Is Enabled',
@@ -19579,6 +19627,13 @@ export const spec = {
             type: 'object',
             title: 'Headers',
             description: 'Custom HTTP headers to send with the request',
+          },
+          trace_ui_type: {
+            type: 'string',
+            enum: ['grafana', 'jaeger', 'unknown'],
+            title: 'Trace Ui Type',
+            description: 'Type of trace UI to use for viewing traces.',
+            default: 'unknown',
           },
           is_enabled: {
             type: 'boolean',
@@ -25471,6 +25526,21 @@ export const spec = {
         type: 'object',
         required: ['name', 'description', 'input_schema'],
         title: 'ToolDefinitionPayload',
+      },
+      TraceUrlsResponse: {
+        properties: {
+          trace_urls: {
+            additionalProperties: {
+              type: 'string',
+            },
+            type: 'object',
+            title: 'Trace Urls',
+          },
+        },
+        type: 'object',
+        required: ['trace_urls'],
+        title: 'TraceUrlsResponse',
+        description: 'Response containing trace URLs for a thread.',
       },
       Transformation: {
         properties: {

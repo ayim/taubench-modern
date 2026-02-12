@@ -444,6 +444,26 @@ export interface paths {
     patch: operations['apply_thread_message_metadata_ops_threads__tid__messages__message_id__metadata_ops_patch'];
     trace?: never;
   };
+  '/api/v2/threads/{tid}/trace-urls': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Thread Trace Urls
+     * @description Get trace URLs for a thread.
+     */
+    get: operations['get_thread_trace_urls_threads__tid__trace_urls_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v2/threads/{tid}/state': {
     parameters: {
       query?: never;
@@ -8024,6 +8044,13 @@ export interface components {
        */
       password: string;
       /**
+       * Trace Ui Type
+       * @description Type of trace UI to use for viewing traces.
+       * @default unknown
+       * @enum {string}
+       */
+      trace_ui_type: 'grafana' | 'jaeger' | 'unknown';
+      /**
        * Is Enabled
        * @default true
        */
@@ -8051,6 +8078,13 @@ export interface components {
       headers: {
         [key: string]: string;
       };
+      /**
+       * Trace Ui Type
+       * @description Type of trace UI to use for viewing traces.
+       * @default unknown
+       * @enum {string}
+       */
+      trace_ui_type: 'grafana' | 'jaeger' | 'unknown';
       /**
        * Is Enabled
        * @default true
@@ -10998,6 +11032,16 @@ export interface components {
         | 'mcp-tool'
         | 'client-exec-tool'
         | 'client-info-tool';
+    };
+    /**
+     * TraceUrlsResponse
+     * @description Response containing trace URLs for a thread.
+     */
+    TraceUrlsResponse: {
+      /** Trace Urls */
+      trace_urls: {
+        [key: string]: string;
+      };
     };
     /**
      * Transformation
@@ -17684,6 +17728,37 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorEnvelope'];
+        };
+      };
+    };
+  };
+  get_thread_trace_urls_threads__tid__trace_urls_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        tid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TraceUrlsResponse'];
         };
       };
       /** @description Validation Error */

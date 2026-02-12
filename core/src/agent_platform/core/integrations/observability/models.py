@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Literal, cast
 
@@ -7,6 +8,44 @@ from agent_platform.core.errors import ErrorCode, PlatformHTTPError
 from agent_platform.core.utils import SecretString
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+class GenericOtlpObservabilitySettings(ABC):
+    """Base class for generic OTLP observability providers with trace URL support.
+
+    Subclasses must define `url` and `trace_ui_type` attributes (typically via dataclass fields).
+    This base class provides the common `get_trace_url` implementation.
+    """
+
+    url: str
+    trace_ui_type: Literal["grafana", "jaeger", "unknown"]
+
+    def get_trace_url(self, trace_id: str) -> str | None:
+        """Generate a trace URL for viewing a trace in the configured UI.
+
+        Args:
+            trace_id: The OTEL trace ID (32-character hex string).
+
+        Returns:
+            The URL to view the trace, or None if trace_ui_type is 'unknown'.
+        """
+        if self.trace_ui_type == "unknown":
+            return None
+
+        import json
+        import urllib.parse
+
+        # Extract base URL (scheme + host + port) from the OTLP endpoint URL
+        parsed = urllib.parse.urlparse(self.url)
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+
+        if self.trace_ui_type == "jaeger":
+            return f"{base_url}/trace/{trace_id}"
+        elif self.trace_ui_type == "grafana":
+            left = json.dumps({"queries": [{"refId": "A", "query": trace_id}]})
+            return f"{base_url}/explore?orgId=1&left={urllib.parse.quote(left)}"
+
+        return None
 
 
 def _to_plain_str(value: str | SecretString | None) -> str | None:
@@ -88,6 +127,10 @@ class GrafanaObservabilitySettings:
             }
         return data
 
+    def get_trace_url(self, trace_id: str) -> str | None:
+        """Generate a trace URL for viewing a trace. Not supported for Grafana Cloud."""
+        return None
+
 
 @dataclass(frozen=True)
 class LangSmithObservabilitySettings:
@@ -115,15 +158,23 @@ class LangSmithObservabilitySettings:
             "api_key": _secret_or_redact(self.api_key, redact_secret),
         }
 
+    def get_trace_url(self, trace_id: str) -> str | None:
+        """Generate a trace URL for viewing a trace. Not supported for LangSmith."""
+        return None
+
 
 @dataclass(frozen=True)
-class OtlpBasicAuthObservabilitySettings:
+class OtlpBasicAuthObservabilitySettings(GenericOtlpObservabilitySettings):
     """Generic OTLP observability with Basic Authentication."""
 
     url: str = field(metadata={"description": "OTLP endpoint URL"})
     username: str = field(metadata={"description": "Basic auth username"})
     password: str | SecretString = field(
         metadata={"description": "Basic auth password."},
+    )
+    trace_ui_type: Literal["grafana", "jaeger", "unknown"] = field(
+        default="unknown",
+        metadata={"description": "Type of trace UI to use for viewing traces."},
     )
 
     @classmethod
@@ -133,23 +184,38 @@ class OtlpBasicAuthObservabilitySettings:
         for required in ("url", "username", "password"):
             if required not in data:
                 raise ValueError(f"OTLP Basic Auth settings require '{required}'.")
-        return cls(str(data["url"]), str(data["username"]), str(data["password"]))
+
+        trace_ui_type = data.get("trace_ui_type", "unknown")
+        if trace_ui_type not in ("grafana", "jaeger", "unknown"):
+            raise ValueError("trace_ui_type must be 'grafana', 'jaeger', or 'unknown'.")
+
+        return cls(
+            url=str(data["url"]),
+            username=str(data["username"]),
+            password=str(data["password"]),
+            trace_ui_type=trace_ui_type,
+        )
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
         return {
             "url": self.url,
             "username": self.username,
             "password": _secret_or_redact(self.password, redact_secret),
+            "trace_ui_type": self.trace_ui_type,
         }
 
 
 @dataclass(frozen=True)
-class OtlpCustomHeadersObservabilitySettings:
+class OtlpCustomHeadersObservabilitySettings(GenericOtlpObservabilitySettings):
     """Generic OTLP observability with custom headers."""
 
     url: str = field(metadata={"description": "OTLP endpoint URL"})
     headers: dict[str, str] = field(
         metadata={"description": "Custom HTTP headers to send with the request."},
+    )
+    trace_ui_type: Literal["grafana", "jaeger", "unknown"] = field(
+        default="unknown",
+        metadata={"description": "Type of trace UI to use for viewing traces."},
     )
     DISALLOWED_HEADERS: ClassVar[set[str]] = {"content-type", "host"}
 
@@ -174,15 +240,21 @@ class OtlpCustomHeadersObservabilitySettings:
                     message=f"{key} may not be specified as an HTTP header",
                 )
 
+        trace_ui_type = data.get("trace_ui_type", "unknown")
+        if trace_ui_type not in ("grafana", "jaeger", "unknown"):
+            raise ValueError("trace_ui_type must be 'grafana', 'jaeger', or 'unknown'.")
+
         return cls(
             url=str(data["url"]),
             headers=headers,
+            trace_ui_type=trace_ui_type,
         )
 
     def model_dump(self, *, redact_secret: bool = True) -> dict[str, Any]:
         return {
             "url": self.url,
             "headers": {key: _secret_or_redact(value, redact_secret) for key, value in self.headers.items()},
+            "trace_ui_type": self.trace_ui_type,
         }
 
 

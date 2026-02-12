@@ -171,11 +171,13 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                     """
                     INSERT INTO v2_thread (
                         thread_id, name, user_id, agent_id,
-                        created_at, updated_at, metadata, work_item_id, trial_id
+                        created_at, updated_at, metadata, work_item_id, trial_id,
+                        parent_trace_id, parent_span_id
                     )
                     VALUES (
                         :thread_id, :name, :user_id, :agent_id,
-                        :created_at, :updated_at, :metadata, :work_item_id, :trial_id
+                        :created_at, :updated_at, :metadata, :work_item_id, :trial_id,
+                        :parent_trace_id, :parent_span_id
                     )
                     ON CONFLICT(thread_id) DO UPDATE SET
                         name = excluded.name,
@@ -183,7 +185,9 @@ class SQLiteStorageThreadsMixin(SQLiteStorageMessagesMixin):
                         updated_at = excluded.updated_at,
                         metadata = excluded.metadata,
                         work_item_id = excluded.work_item_id,
-                        trial_id = excluded.trial_id
+                        trial_id = excluded.trial_id,
+                        parent_trace_id = COALESCE(v2_thread.parent_trace_id, excluded.parent_trace_id),
+                        parent_span_id = COALESCE(v2_thread.parent_span_id, excluded.parent_span_id)
                     WHERE v2_check_user_access(v2_thread.user_id, :requester_user_id) = 1
                     RETURNING thread_id
                     """,

@@ -3,11 +3,8 @@
 import json
 from asyncio import FIRST_COMPLETED, create_task, wait
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 from uuid import uuid4
-
-if TYPE_CHECKING:
-    from opentelemetry.trace import Span
 
 import structlog
 
@@ -23,7 +20,10 @@ from agent_platform.core.streaming.delta import (
     StreamingDeltaMessageBegin,
     StreamingDeltaMessageContent,
 )
-from agent_platform.core.telemetry.helpers import thread_span_context
+from agent_platform.core.telemetry.helpers import (
+    create_thread_trace_context,
+    thread_span_context,
+)
 from agent_platform.core.thread import Thread
 from agent_platform.core.thread.messages import ThreadAgentMessage
 from agent_platform.core.user import User
@@ -33,6 +33,47 @@ from agent_platform.server.services import maybe_auto_name_thread
 from agent_platform.server.storage import BaseStorage, ThreadNotFoundError
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
+
+
+async def _ensure_thread_trace_context(
+    thread_state: Thread,
+    storage: BaseStorage,
+) -> None:
+    """Ensure thread has trace context, backfilling for legacy threads.
+
+    For threads created before trace context was added at creation time,
+    this creates and persists trace context on first run.
+
+    Args:
+        thread_state: The thread to check/update. Modified in place.
+        storage: Storage for persisting trace context.
+    """
+    if thread_state.parent_trace_id is not None and thread_state.parent_span_id is not None:
+        return
+
+    logger.warning(
+        "Backfilling trace context for legacy thread",
+        thread_id=thread_state.thread_id,
+    )
+
+    trace_id, span_id = create_thread_trace_context(
+        thread_name=thread_state.name,
+        thread_id=thread_state.thread_id,
+        agent_id=thread_state.agent_id,
+        user_id=thread_state.user_id,
+    )
+
+    # Update thread state in place
+    thread_state.parent_trace_id = trace_id
+    thread_state.parent_span_id = span_id
+
+    # Persist to database
+    await storage.set_thread_trace_context(
+        thread_state.user_id,
+        thread_state.thread_id,
+        parent_trace_id=trace_id,
+        parent_span_id=span_id,
+    )
 
 
 async def _upsert_thread_and_messages(
@@ -128,8 +169,11 @@ async def invoke_agent_sync(
     # 1. Upsert thread and messages (before establishing trace context)
     thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
 
-    # Establish thread trace context for grouping runs under a common parent
-    async with thread_span_context(thread_state=thread_state, user_id=user.user_id) as thread_span:
+    # 2. Backfill trace context for legacy threads
+    await _ensure_thread_trace_context(thread_state, storage)
+
+    # 3. Establish thread trace context for grouping runs under a common parent
+    async with thread_span_context(thread_state=thread_state):
         return await _invoke_agent_sync(
             agent=agent,
             user=user,
@@ -137,7 +181,6 @@ async def invoke_agent_sync(
             server_context=server_context,
             initial_payload=initial_payload,
             thread_state=thread_state,
-            thread_span=thread_span,
         )
 
 
@@ -148,7 +191,6 @@ async def _invoke_agent_sync(
     server_context: AgentServerContext,
     initial_payload: InitiateStreamPayload,
     thread_state: Thread,
-    thread_span: "Span | None" = None,
 ) -> tuple[Thread, list[ThreadAgentMessage]]:
     """Invoke an agent synchronously and return the thread and agent messages.
     This is the internal API for running an agent to completion without HTTP dependencies.
@@ -160,7 +202,6 @@ async def _invoke_agent_sync(
         server_context: The server context for tracing/logging
         initial_payload: The initial payload with thread and messages
         thread_state: The thread state
-        thread_span: The top-level thread span
     Returns:
         Tuple of (Thread, list of ThreadAgentMessages)
     Raises:
@@ -292,14 +333,8 @@ async def _invoke_agent_sync(
 
         # 13. Stop the runner
         await runner.stop()
-        new_thread_name = None
         if auto_name_task is not None:
-            new_thread_name = await auto_name_task
-
-        # Update thread span name with the final thread name
-        final_name = new_thread_name or thread_state.name
-        if thread_span:
-            thread_span.update_name(final_name)
+            await auto_name_task
 
         # 14. Mark run as completed
         await _update_run_status(

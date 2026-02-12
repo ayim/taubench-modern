@@ -132,3 +132,66 @@ class TestOtlpCustomHeadersSettings:
             match="OTLP Custom Headers settings payload must be an object",
         ):
             OtlpCustomHeadersObservabilitySettings.model_validate("not a dict")
+
+    def test_model_validate_with_trace_ui_type(self):
+        """Test that model_validate correctly parses trace_ui_type."""
+        data = {
+            "url": "http://localhost:14318",
+            "headers": {"X-Custom": "value"},
+            "trace_ui_type": "grafana",
+        }
+
+        settings = OtlpCustomHeadersObservabilitySettings.model_validate(data)
+
+        assert settings.trace_ui_type == "grafana"
+
+    def test_model_validate_invalid_trace_ui_type(self):
+        """Test that model_validate rejects invalid trace_ui_type."""
+        data = {
+            "url": "http://localhost:14318",
+            "headers": {"X-Custom": "value"},
+            "trace_ui_type": "invalid",
+        }
+
+        with pytest.raises(ValueError, match="trace_ui_type must be 'grafana', 'jaeger', or 'unknown'"):
+            OtlpCustomHeadersObservabilitySettings.model_validate(data)
+
+    def test_model_dump_includes_trace_ui_type_when_set(self):
+        """Test that model_dump includes trace_ui_type when set."""
+        settings = OtlpCustomHeadersObservabilitySettings(
+            url="http://localhost:14318",
+            headers={"X-Custom": "value"},
+            trace_ui_type="jaeger",
+        )
+
+        dumped = settings.model_dump()
+        assert dumped["trace_ui_type"] == "jaeger"
+
+    def test_model_dump_defaults_trace_ui_type_to_unknown(self):
+        """Test that model_dump includes trace_ui_type as 'unknown' when not explicitly set."""
+        settings = OtlpCustomHeadersObservabilitySettings(
+            url="http://localhost:14318",
+            headers={"X-Custom": "value"},
+        )
+
+        dumped = settings.model_dump()
+        assert dumped["trace_ui_type"] == "unknown"
+
+    def test_get_trace_url_returns_none_when_unknown(self):
+        """Test that get_trace_url returns None when trace_ui_type is 'unknown'."""
+        settings = OtlpCustomHeadersObservabilitySettings(
+            url="http://localhost:14318",
+            headers={"X-Custom": "value"},
+            trace_ui_type="unknown",
+        )
+        assert settings.get_trace_url("abc123") is None
+
+    def test_get_trace_url_returns_url_when_configured(self):
+        """Test that get_trace_url returns a URL when trace_ui_type is configured."""
+        settings = OtlpCustomHeadersObservabilitySettings(
+            url="http://localhost:16686/v1/traces",
+            headers={"X-Custom": "value"},
+            trace_ui_type="jaeger",
+        )
+        result = settings.get_trace_url("abc123")
+        assert result == "http://localhost:16686/trace/abc123"

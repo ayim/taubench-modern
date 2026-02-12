@@ -101,6 +101,55 @@ def extract_agent_id(span) -> str | None:
     return None
 
 
+def create_thread_trace_context(
+    thread_name: str,
+    thread_id: str,
+    agent_id: str,
+    user_id: str,
+) -> tuple[str, str]:
+    """Create and export a thread-level span at thread creation time.
+
+    This creates an actual recording span that gets exported to the observability
+    backend immediately. The returned trace_id and span_id should be persisted
+    on the Thread so that future runs can use them as parent context via
+    NonRecordingSpan.
+
+    Args:
+        thread_name: Display name for the span.
+        thread_id: The thread's unique identifier.
+        agent_id: The agent's unique identifier.
+        user_id: The user's unique identifier.
+
+    Returns:
+        Tuple of (trace_id, span_id) as 32-char and 16-char hex strings.
+    """
+    from opentelemetry import trace
+
+    tracer = trace.get_tracer("sema4ai.agent_server")
+
+    with tracer.start_as_current_span(
+        thread_name,
+        attributes={
+            "thread_id": thread_id,
+            "agent_id": agent_id,
+            "user_id": user_id,
+            "span_type": "thread_creation",
+        },
+    ) as span:
+        ctx = span.get_span_context()
+        trace_id = format(ctx.trace_id, "032x")
+        span_id = format(ctx.span_id, "016x")
+
+        logger.debug(
+            "Created thread trace context",
+            thread_id=thread_id,
+            trace_id=trace_id,
+            span_id=span_id,
+        )
+
+        return trace_id, span_id
+
+
 def _restore_span_context(
     parent_trace_id: str,
     parent_span_id: str,
@@ -140,80 +189,67 @@ def _restore_span_context(
 async def thread_span_context(
     *,
     thread_state: "Thread",
-    user_id: str,
 ) -> AsyncIterator["Span"]:
     """
     Context manager for thread trace grouping.
 
-    Creates or restores a parent span context for thread-level trace grouping.
-    All spans created within this context will inherit the thread's trace context,
-    allowing multiple runs in the same thread to be grouped under a common trace.
+    Restores the thread's trace context using a NonRecordingSpan so that all
+    child spans created within this context inherit the thread's trace_id.
+
+    The thread's trace context must be set before calling this function.
+    For new threads, use `create_thread_trace_context()` at creation time.
+    For legacy threads, the caller should check and backfill before calling.
+
+    If trace context is missing, a new span is created as a fallback
+    so callers always receive a valid Span.
 
     Args:
-        thread_state: The thread state containing thread_id/name/agent_id and any
-                      persisted trace context (parent_trace_id, parent_span_id)
-        user_id: The user ID for span attributes
+        thread_state: The thread state containing parent_trace_id and parent_span_id.
+            These must be set before calling (at thread creation or handled by run handler).
 
     Yields:
-        The thread span (either newly created or restored from existing context)
+        A Span with the thread's trace context for propagation.
 
     Example:
-        async with thread_span_context(
-            thread_state=thread, user_id=user_id
-        ) as thread_span:
+        async with thread_span_context(thread_state=thread) as thread_span:
             # Child spans created here will inherit the thread's trace context
-            with tracer.start_span("child_operation"):
+            with tracer.start_span("run_operation"):
                 ...
     """
     from opentelemetry import trace
 
-    from agent_platform.server.storage import StorageService
+    logger.debug(
+        "Using thread trace context",
+        thread_id=thread_state.thread_id,
+        parent_trace_id=thread_state.parent_trace_id,
+        parent_span_id=thread_state.parent_span_id,
+    )
 
-    tracer = trace.get_tracer("sema4ai.agent_server")
-    storage = StorageService.get_instance()
-
-    # If thread already has trace context, restore it using a NonRecordingSpan.
-    # NonRecordingSpan is an OTEL API class for context propagation - it carries
-    # trace_id/span_id so child spans inherit the context.
-    if thread_state.parent_trace_id is not None and thread_state.parent_span_id is not None:
-        logger.debug(
-            "Restoring thread trace context",
+    # If trace context is missing, create a new span as fallback.
+    # We want this span to be pushed to the backend
+    # instead of creating a NonRecordingSpan.
+    if thread_state.parent_trace_id is None or thread_state.parent_span_id is None:
+        logger.warning(
+            "Thread missing trace context, creating new span",
             thread_id=thread_state.thread_id,
-            parent_trace_id=thread_state.parent_trace_id,
-            parent_span_id=thread_state.parent_span_id,
         )
-        parent_span = _restore_span_context(
-            thread_state.parent_trace_id,
-            thread_state.parent_span_id,
-        )
-        with trace.use_span(parent_span):
-            yield parent_span
+        tracer = trace.get_tracer("sema4ai.agent_server")
+        with tracer.start_as_current_span(
+            thread_state.name,
+            attributes={
+                "thread_id": thread_state.thread_id,
+                "agent_id": thread_state.agent_id,
+                "user_id": thread_state.user_id,
+                "span_type": "thread_fallback",
+            },
+        ) as span:
+            yield span
         return
 
-    # First run on this thread: create a new span and persist the trace context
-    logger.debug(
-        "Creating new thread trace context",
-        thread_id=thread_state.thread_id,
-        agent_id=thread_state.agent_id,
+    parent_span = _restore_span_context(
+        thread_state.parent_trace_id,
+        thread_state.parent_span_id,
     )
-    with tracer.start_as_current_span(
-        thread_state.name,
-        attributes={
-            "thread_id": thread_state.thread_id,
-            "agent_id": thread_state.agent_id,
-            "user_id": user_id,
-        },
-    ) as span:
-        ctx = span.get_span_context()
-        new_trace_id = format(ctx.trace_id, "032x")
-        new_span_id = format(ctx.span_id, "016x")
 
-        # Persist trace context for future runs on this thread
-        await storage.set_thread_trace_context(
-            user_id,
-            thread_state.thread_id,
-            parent_trace_id=new_trace_id,
-            parent_span_id=new_span_id,
-        )
-
-        yield span
+    with trace.use_span(parent_span):
+        yield parent_span

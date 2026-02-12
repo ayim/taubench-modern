@@ -26,6 +26,7 @@ export const observabilitySettingsSchema = z.discriminatedUnion('provider', [
     url: z.string().url('Invalid URL'),
     username: z.string().min(1, 'Username is required'),
     password: z.string().min(1, 'Password is required'),
+    trace_ui_type: z.enum(['grafana', 'jaeger', 'unknown']),
   }),
   z.object({
     is_enabled: z.boolean(),
@@ -34,6 +35,7 @@ export const observabilitySettingsSchema = z.discriminatedUnion('provider', [
     headers: z.record(z.string(), z.string()).refine((headers) => Object.keys(headers).length > 0, {
       message: 'At least one header is required',
     }),
+    trace_ui_type: z.enum(['grafana', 'jaeger', 'unknown']),
   }),
 ]);
 
@@ -65,6 +67,7 @@ export const apiResponseToFormValues = (data: ObservabilitySettings): Observabil
         url: data.url,
         username: data.username,
         password: apiSecretValueToString(data.password),
+        trace_ui_type: data.trace_ui_type,
       };
     case 'otlp_custom_headers':
       return {
@@ -72,6 +75,7 @@ export const apiResponseToFormValues = (data: ObservabilitySettings): Observabil
         provider: data.provider,
         url: data.url,
         headers: data.headers ?? {},
+        trace_ui_type: data.trace_ui_type,
       };
     default:
       data satisfies never;
@@ -105,6 +109,7 @@ export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): 
         url: data.url,
         username: data.username,
         password: data.password,
+        trace_ui_type: data.trace_ui_type,
       };
     case 'otlp_custom_headers':
       return {
@@ -112,6 +117,7 @@ export const toObservabilitySettings = (data: ObservabilitySettingsFormSchema): 
         provider: data.provider,
         url: data.url,
         headers: data.headers,
+        trace_ui_type: data.trace_ui_type,
       };
     default:
       data satisfies never;

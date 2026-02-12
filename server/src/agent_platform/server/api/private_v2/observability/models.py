@@ -48,6 +48,10 @@ class OtlpBasicAuthSettingsREST(BaseModel):
     url: str = Field(description="OTLP endpoint URL")
     username: str = Field(description="Basic auth username")
     password: str = Field(description="Basic auth password")
+    trace_ui_type: Literal["grafana", "jaeger", "unknown"] = Field(
+        default="unknown",
+        description="Type of trace UI to use for viewing traces.",
+    )
     is_enabled: bool = True
 
 
@@ -59,6 +63,10 @@ class OtlpCustomHeadersSettingsREST(BaseModel):
     provider: Literal["otlp_custom_headers"] = "otlp_custom_headers"
     url: str = Field(description="OTLP endpoint URL")
     headers: dict[str, str] = Field(description="Custom HTTP headers to send with the request")
+    trace_ui_type: Literal["grafana", "jaeger", "unknown"] = Field(
+        default="unknown",
+        description="Type of trace UI to use for viewing traces.",
+    )
     is_enabled: bool = True
 
 
@@ -219,6 +227,14 @@ class IntegrationScopeDeleteRequest(BaseModel):
         return self
 
 
+# Trace URLs Response Model
+class TraceUrlsResponse(BaseModel):
+    """Response containing trace URLs for a thread."""
+
+    trace_urls: dict[str, str]
+    """Map of integration ID to trace URL."""
+
+
 __all__ = (
     "GrafanaSettingsREST",
     "IntegrationScopeAssignRequest",
@@ -232,4 +248,5 @@ __all__ = (
     "ObservabilityValidateResponse",
     "OtlpBasicAuthSettingsREST",
     "OtlpCustomHeadersSettingsREST",
+    "TraceUrlsResponse",
 )

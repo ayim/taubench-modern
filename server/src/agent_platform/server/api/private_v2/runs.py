@@ -11,11 +11,7 @@ from asyncio import (
 )
 from datetime import UTC, datetime
 from json import JSONDecodeError
-from typing import TYPE_CHECKING
 from uuid import uuid4
-
-if TYPE_CHECKING:
-    from opentelemetry.trace import Span
 
 import structlog
 from fastapi import (
@@ -51,6 +47,7 @@ from agent_platform.server.kernel import AgentServerKernel
 # Import helper functions from the runs module to avoid circular dependencies
 from agent_platform.server.runs.sync import (
     _create_run,
+    _ensure_thread_trace_context,
     _update_run_status,
     _upsert_thread_and_messages,
 )
@@ -339,11 +336,11 @@ async def stream_run(
         # 2. Upsert thread and messages (before establishing trace context)
         thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
 
+        # Backfill trace context for legacy threads
+        await _ensure_thread_trace_context(thread_state, storage)
+
         # Establish thread trace context for grouping runs under a common parent
-        async with thread_span_context(
-            thread_state=thread_state,
-            user_id=user.user_id,
-        ) as thread_span:
+        async with thread_span_context(thread_state=thread_state):
             await _stream_run(
                 websocket=websocket,
                 user=user,
@@ -353,7 +350,6 @@ async def stream_run(
                 initial_payload=initial_payload,
                 storage=storage,
                 server_context=server_context,
-                thread_span=thread_span,
             )
 
     except WebSocketDisconnect:
@@ -382,7 +378,6 @@ async def _stream_run(
     initial_payload: InitiateStreamPayload,
     storage: StorageDependency,
     server_context: AgentServerContext,
-    thread_span: "Span | None" = None,
 ):
     """Helper function to stream a run.
 
@@ -395,7 +390,6 @@ async def _stream_run(
         initial_payload: The initial payload
         storage: The storage instance
         server_context: The server context
-        thread_span: The top-level thread span
     """
 
     async def _safe_close_websocket(
@@ -626,12 +620,10 @@ async def _stream_run(
                     if auto_name_task is not None:
                         new_thread_name = await auto_name_task
 
-                    # Update thread span name with the final thread name
+                    # Update run span name with the final thread name
                     final_name = new_thread_name or thread_state.name
                     run_timestamp = active_run.created_at.strftime("%Y-%m-%d %H:%M:%S")
                     span.update_name(f"{final_name} @ {run_timestamp}")
-                    if thread_span:
-                        thread_span.update_name(final_name)
 
                     await _update_run_status(storage, active_run, "completed", "normal_completion")
                     await _safe_close_websocket(websocket)
@@ -832,6 +824,9 @@ async def async_run(
         # 2. Upsert thread and messages (before establishing trace context)
         thread_state = await _upsert_thread_and_messages(user, initial_payload, storage)
 
+        # Backfill trace context for legacy threads
+        await _ensure_thread_trace_context(thread_state, storage)
+
         # Start a new trace for this async run
         with server_context.start_span("async_run") as span:
             # Add string attributes that are safe for OTEL
@@ -872,10 +867,7 @@ async def async_run(
             async def _background_agent_run():
                 """Background task to execute the agent run."""
                 # Establish thread trace context for grouping runs under a common parent
-                async with thread_span_context(
-                    thread_state=thread_state,
-                    user_id=user.user_id,
-                ) as thread_span:
+                async with thread_span_context(thread_state=thread_state):
                     try:
                         auto_name_task = None
                         # Get the agent runner
@@ -897,13 +889,8 @@ async def async_run(
 
                         # Stop the runner
                         await runner.stop()
-                        new_thread_name = None
                         if auto_name_task is not None:
-                            new_thread_name = await auto_name_task
-
-                        # Update thread span name with the final thread name
-                        final_name = new_thread_name or thread_state.name
-                        thread_span.update_name(final_name)
+                            await auto_name_task
 
                         # Mark run as completed
                         await _update_run_status(

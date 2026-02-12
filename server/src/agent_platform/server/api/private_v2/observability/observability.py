@@ -71,6 +71,7 @@ def _rest_to_internal(rest_settings: ObservabilitySettingsREST) -> Observability
                 url=rest_settings.url,
                 username=rest_settings.username,
                 password=SecretString(rest_settings.password),
+                trace_ui_type=rest_settings.trace_ui_type,
             ),
             is_enabled=rest_settings.is_enabled,
         )
@@ -80,6 +81,7 @@ def _rest_to_internal(rest_settings: ObservabilitySettingsREST) -> Observability
             provider_settings=OtlpCustomHeadersObservabilitySettings(
                 url=rest_settings.url,
                 headers=rest_settings.headers,
+                trace_ui_type=rest_settings.trace_ui_type,
             ),
             is_enabled=rest_settings.is_enabled,
         )
