@@ -1,16 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { Cookie } from 'express-session';
-import getPort from 'get-port';
-import { http, HttpResponse } from 'msw';
-import { setupServer, SetupServerApi } from 'msw/node';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createApplication } from './application.js';
 import type { Configuration } from './configuration.js';
 import type { DatabaseClient } from './database/DatabaseClient.js';
-
-const TEST_PRIVATE_KEY_BASE64 =
-  'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZ2Y1TmZyRGNHejhwclpwS2QKYzZxWWJvUzhROUdxTkhNR3k4Z0JwZWxhMkFtaFJBTkNBQVNpWWI2alNydTltLzhLbXlzVjBuUFlaKzluR1p4YQoyRVVFZmFPWnQ1OXlBT1lta1JGZnlKVTNUcGVUSnRhRWpyalRFQUkyYkhRK2daN3p1SDlpaStXMQotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==';
 
 const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternalUrl: string }): Configuration => ({
   agentServerInternalUrl,
@@ -18,9 +12,8 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   allowInsecureRequests: true,
   auth: {
     autoPromoteEmails: [],
-    roleManagement: false,
     tokenIssuer: 'spar',
-    type: 'none',
+    type: 'snowflake',
   },
   database: {
     agentServerSchema: 'v2',
@@ -44,7 +37,6 @@ const generateConfiguration = ({ agentServerInternalUrl }: { agentServerInternal
   },
   frontendMode: 'disk',
   logLevel: 'INFO',
-  metaUrl: null,
   ports: {
     internal: 'NOT_USED_IN_TESTS' as unknown as number,
     public: 'NOT_USED_IN_TESTS' as unknown as number,
@@ -138,92 +130,23 @@ const getMockDatabase = (): DatabaseClient => {
   } as unknown as DatabaseClient;
 };
 
+const mockMonitoring = {
+  logger: {
+    debug: () => {},
+    info: () => {},
+    error: () => {},
+  },
+};
+
 describe('application', () => {
-  const USER_ID = randomUUID();
-
   let service: Awaited<ReturnType<typeof createApplication>>;
-  let mockServer: SetupServerApi | null = null;
 
-  afterEach(async () => {
-    if (mockServer) {
-      mockServer.close();
-      mockServer = null;
-    }
-  });
-
-  describe('(no auth, no meta)', () => {
-    const THREADS = [
-      {
-        user_id: USER_ID,
-        agent_id: 'ee405d56-c37e-4030-89b6-d4839e2678a9',
-        name: 'Chat 1',
-        thread_id: '66d60f4d-0a06-4644-b257-7d7a036edd05',
-        messages: [],
-        created_at: '2025-07-28T16:36:35.333023Z',
-        updated_at: '2025-07-28T16:36:35.333024Z',
-        metadata: {},
-      },
-    ];
-
-    beforeEach(async () => {
-      const targetPort = await getPort();
-      const targetServerUrl = `http://127.0.0.1:${targetPort}`;
-
-      mockServer = setupServer(
-        http.get(`${targetServerUrl}/api/v2/threads`, () => {
-          return HttpResponse.json(THREADS);
-        }),
-      );
-
-      mockServer.listen({
-        onUnhandledRequest: () => {
-          // Squelch
-        },
-      });
-
-      service = await createApplication({
-        configuration: generateConfiguration({ agentServerInternalUrl: targetServerUrl }),
-        database: getMockDatabase(),
-        monitoring: {
-          logger: {
-            debug: () => {},
-            info: () => {},
-            error: () => {},
-          },
-        },
-      });
-    });
-
-    it('returns expected meta', async () => {
-      await request(service.appPublic).get('/tenants/spar-test/meta').expect(200).expect({
-        deploymentType: 'spar',
-        version: 'test',
-        workroomTenantListUrl: '/tenants/spar-test/tenants-list',
-      });
-    });
-
-    it('returns expected proxied threads', async () => {
-      await request(service.appPublic).get('/tenants/spar-test/agents/api/v2/threads').expect(200).expect(THREADS);
-    });
-
-    it('redirects / to tenant-prefixed URL', async () => {
-      await request(service.appPublic).get('/').expect(302).expect('location', '/tenants/spar-test/home');
-    });
-  });
+  afterEach(async () => {});
 
   describe('(snowflake auth)', () => {
     beforeEach(async () => {
       service = await createApplication({
-        configuration: {
-          ...generateConfiguration({ agentServerInternalUrl: '' }),
-          auth: {
-            autoPromoteEmails: [],
-            roleManagement: false,
-            jwtPrivateKeyB64: TEST_PRIVATE_KEY_BASE64,
-            tokenIssuer: 'spar',
-            type: 'snowflake',
-          },
-        },
+        configuration: generateConfiguration({ agentServerInternalUrl: '' }),
         database: {
           ...getMockDatabase(),
           findActiveSession: () =>
@@ -246,13 +169,20 @@ describe('application', () => {
               },
             } satisfies Awaited<ReturnType<DatabaseClient['findActiveSession']>>),
         } as unknown as DatabaseClient,
-        monitoring: {
-          logger: {
-            debug: () => {},
-            info: () => {},
-            error: () => {},
-          },
-        },
+        monitoring: mockMonitoring,
+      });
+    });
+
+    it('redirects / to tenant-prefixed URL', async () => {
+      await request(service.appPublic).get('/').expect(302).expect('location', '/tenants/spar-test/home');
+    });
+
+    it('returns expected meta', async () => {
+      await request(service.appPublic).get('/tenants/spar-test/meta').expect(200).expect({
+        // deploymentType is required for client-side authentication (getWorkroomToken). Remove once getWorkroomToken no longer depends on it.
+        deploymentType: 'spar',
+        version: 'test',
+        workroomTenantListUrl: '/tenants/spar-test/tenants-list',
       });
     });
 

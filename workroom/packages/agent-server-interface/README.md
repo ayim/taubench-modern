@@ -2,7 +2,7 @@
 
 ## Retrieving the latest OpenAPI spec for the Private AND Public API
 
-1. Run the server (`COMPOSE_PROFILES=agent-server-no-auth docker compose up --build` at the root)
+1. Run the server (`COMPOSE_PROFILES=agent-server docker compose up --build` at the root)
 2. Navigate to the [PRIVATE API Open API spec page](http://localhost:8000/api/v2/openapi.json)
 3. Copy the content into [private.openapi.json](./private.openapi.json)
 4. Navigate to the [PUBLIC API Open API spec page](http://localhost:8000/api/public/v1/openapi.json)

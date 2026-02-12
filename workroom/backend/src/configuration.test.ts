@@ -19,9 +19,13 @@ describe('getConfiguration', () => {
       POSTGRES_PASSWORD: 'test',
       POSTGRES_USER: 'test',
       SEMA4AI_WORKROOM_AGENT_SERVER_URL: 'http://localhost:8000',
-      SEMA4AI_WORKROOM_AUTH_MODE: 'none',
+      SEMA4AI_WORKROOM_AUTH_MODE: 'oidc',
+      SEMA4AI_WORKROOM_OIDC_CLIENT_ID: 'test-client-id',
+      SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET: 'test-client-secret',
+      SEMA4AI_WORKROOM_OIDC_SERVER: 'https://test.example.com',
       SEMA4AI_WORKROOM_PORT: '8001',
       SEMA4AI_WORKROOM_PORT_INTERNAL: '8002',
+      SEMA4AI_WORKROOM_SESSION_SECRET: 'test-session-secret',
       SEMA4AI_WORKROOM_TENANT_ID: 'spar',
     });
   });
@@ -38,6 +42,6 @@ describe('getConfiguration', () => {
   it('returns a valid configuration instance', () => {
     const configuration = getConfiguration();
 
-    expect(configuration).toHaveProperty('auth.type', 'none');
+    expect(configuration).toHaveProperty('auth.type', 'oidc');
   });
 });

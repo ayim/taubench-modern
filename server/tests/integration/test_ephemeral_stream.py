@@ -4,6 +4,8 @@ import uuid
 import pytest
 import websockets
 
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -12,7 +14,7 @@ async def test_ephemeral_stream_endpoint(base_url_agent_server, openai_api_key):
     # Convert HTTP URL to WebSocket URL
     ws_url = base_url_agent_server.replace("http://", "ws://") + "/api/v2/runs/ephemeral/stream"
 
-    async with websockets.connect(ws_url) as ws:
+    async with websockets.connect(ws_url, extra_headers=TEST_AUTH_HEADERS) as ws:
         # Prepare ephemeral stream payload
         payload = {
             "agent": {
@@ -110,7 +112,7 @@ async def test_ephemeral_stream_with_message(base_url_agent_server, openai_api_k
     """Test ephemeral stream basic flow with OpenAI integration."""
     ws_url = base_url_agent_server.replace("http://", "ws://") + "/api/v2/runs/ephemeral/stream"
 
-    async with websockets.connect(ws_url) as ws:
+    async with websockets.connect(ws_url, extra_headers=TEST_AUTH_HEADERS) as ws:
         payload = {
             "agent": {
                 "name": "TestAgent",
@@ -180,7 +182,7 @@ async def test_ephemeral_stream_invalid_payload(base_url_agent_server):
     """Test ephemeral stream with invalid agent payload."""
     ws_url = base_url_agent_server.replace("http://", "ws://") + "/api/v2/runs/ephemeral/stream"
 
-    async with websockets.connect(ws_url) as ws:
+    async with websockets.connect(ws_url, extra_headers=TEST_AUTH_HEADERS) as ws:
         # Send invalid payload (missing required agent fields)
         invalid_payload = {
             "agent": {

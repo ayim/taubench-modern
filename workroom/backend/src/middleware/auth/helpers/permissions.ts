@@ -30,7 +30,6 @@ export const extractRoutePermissions = async ({
   }
 
   const routeBehaviour = getRouteBehaviour({
-    configuration,
     route,
     tenantId: configuration.tenant.tenantId,
     userId: '', // We don't use the signer for this result, so the user ID isn't required

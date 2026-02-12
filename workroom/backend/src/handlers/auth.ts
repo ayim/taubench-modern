@@ -28,13 +28,6 @@ export const createAuthMetaHandler =
     sessionManager: SessionManager;
   }) =>
   async (req: ExpressRequest, res: ExpressResponse) => {
-    if (!configuration.auth.roleManagement) {
-      return res.json({
-        permissions: [...Roles['admin'].permissions],
-        status: 'unauthenticated',
-      } satisfies AuthMeta);
-    }
-
     if (!configuration.session) {
       return res.json({
         status: 'unauthenticated',

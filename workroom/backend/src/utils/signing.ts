@@ -1,80 +1,41 @@
-import { getTokenSigner } from '@sema4ai/robocloud-auth-utils';
-import type { Result } from '@sema4ai/shared-utils';
-import type { Configuration } from '../configuration.js';
+import { asError, type Result } from '@sema4ai/shared-utils';
 import { SignedTokenRequest } from './schemas.js';
 
-export type SignAgentTokenErrorOutcome =
-  | {
-      code: 'invalid_signing_result';
-      message: string;
-    }
-  | {
-      code: 'signing_failed';
-      message: string;
-    };
+export type SignAgentTokenErrorOutcome = {
+  code: 'unexpected_error_when_signing';
+  message: string;
+};
 
-interface PrivateKeyResult {
-  privateKey: string;
-  keyId: string;
-}
+const base64url = (input: string): string => Buffer.from(input).toString('base64url');
 
-const AGENT_TOKEN_AUDIENCE = 'agent_server';
-const AGENT_TOKEN_EXPIRY = 300; // 5 min
-const AGENT_TOKEN_KEY_ID = 'agent_server_v2';
+const createUnsignedJwt = ({ sub }: { sub: string }): string => {
+  const header = base64url(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+  const payload = base64url(JSON.stringify({ sub }));
+  return `${header}.${payload}.`;
+};
 
 export const signAgentToken = async ({
-  configuration,
   payload,
 }: {
-  configuration: Configuration;
   payload: SignedTokenRequest;
 }): Promise<Result<string, SignAgentTokenErrorOutcome>> => {
-  if (configuration.auth.type === 'none') {
-    throw new Error(`Unsupported auth type for token generation: ${configuration.auth.type}`);
-  }
-  const tokenB64 = configuration.auth.jwtPrivateKeyB64;
-
-  const getPrivateKey = async (): Promise<PrivateKeyResult> => ({
-    keyId: AGENT_TOKEN_KEY_ID,
-    privateKey: Buffer.from(tokenB64, 'base64').toString('utf-8'),
-  });
-
   try {
-    const signer = getTokenSigner({
-      tokenInterface: SignedTokenRequest,
-      getPrivateKey,
+    const token = createUnsignedJwt({
+      sub: payload.userId,
     });
 
-    const signerResult = await signer.sign({
-      audience: AGENT_TOKEN_AUDIENCE,
-      expiresInSeconds: AGENT_TOKEN_EXPIRY,
-      issuer: configuration.auth.tokenIssuer,
-      subject: payload.userId,
-      token: payload,
-    });
-
-    if (signerResult.isValid) {
-      return {
-        success: true,
-        data: signerResult.token,
-      };
-    } else {
-      return {
-        success: false,
-        error: {
-          code: 'invalid_signing_result',
-          message: signerResult.reason.message,
-        },
-      };
-    }
-  } catch (err) {
-    const error = err as Error;
+    return {
+      success: true,
+      data: token,
+    };
+  } catch (e) {
+    const error = asError(e);
 
     return {
       success: false,
       error: {
-        code: 'signing_failed',
-        message: `Failed signing agent token: ${error.message}`,
+        code: 'unexpected_error_when_signing',
+        message: `${error.name}:${error.message}`,
       },
     };
   }

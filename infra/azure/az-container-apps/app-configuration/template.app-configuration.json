@@ -35,16 +35,6 @@
         },
 
         {
-          "name": "jwt-private-key-b64",
-          "identity": "${APP_UAI_ID}",
-          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/jwt-private-key-b64"
-        },
-        {
-          "name": "jwt-public-key-b64",
-          "identity": "${APP_UAI_ID}",
-          "keyVaultUrl": "${KEY_VAULT_URI}/secrets/jwt-public-key-b64"
-        },
-        {
           "name": "session-secret",
           "identity": "${APP_UAI_ID}",
           "keyVaultUrl": "${KEY_VAULT_URI}/secrets/session-secret"
@@ -171,14 +161,6 @@
               "secretRef": "db-password"
             },
             {
-              "name": "SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64",
-              "secretRef": "jwt-private-key-b64"
-            },
-            {
-              "name": "JWT_DECODE_KEY_B64",
-              "secretRef": "jwt-public-key-b64"
-            },
-            {
               "name": "SEMA4AI_WORKROOM_SESSION_SECRET",
               "secretRef": "session-secret"
             },
@@ -245,22 +227,6 @@
             {
               "name": "SEMA4AI_WORKROOM_ENABLE_DEV_MODE",
               "value": "true"
-            },
-            {
-              "name": "AUTH_TYPE",
-              "value": "jwt_local"
-            },
-            {
-              "name": "JWT_ALG",
-              "value": "ES256"
-            },
-            {
-              "name": "JWT_AUD",
-              "value": "agent_server"
-            },
-            {
-              "name": "JWT_ISS",
-              "value": "spar"
             },
             {
               "name": "FILE_MANAGEMENT_API_URL",

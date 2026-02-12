@@ -27,11 +27,9 @@ describe('extractRoleFromOIDCGroupsClaim', () => {
       clientId: 'client-id',
       clientSecret: 'client-secret',
       intermediaryCallbackRedirectUrl: null,
-      jwtPrivateKeyB64: 'key',
       oidcGroupsClaim,
       oidcServer: 'https://auth.example.com',
       organizationAuthParam: null,
-      roleManagement: true,
       scopes: ['openid'],
       tokenIssuer: 'https://auth.example.com',
       type: 'oidc',
@@ -39,15 +37,14 @@ describe('extractRoleFromOIDCGroupsClaim', () => {
   });
 
   describe('non-oidc auth', () => {
-    it('returns null when auth type is none', () => {
+    it('returns null when auth type is snowflake', () => {
       const monitoring = createMockMonitoring();
       const claims = { ...createBaseClaims(), groups: ['admin'] };
       const configuration: Pick<Configuration, 'auth'> = {
         auth: {
           autoPromoteEmails: [],
-          roleManagement: false,
           tokenIssuer: '',
-          type: 'none',
+          type: 'snowflake',
         },
       };
 

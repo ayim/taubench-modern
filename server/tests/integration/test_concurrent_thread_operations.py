@@ -7,6 +7,8 @@ import httpx
 import pytest
 from agent_platform.orchestrator.agent_server_client import AgentServerClient
 
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
+
 
 @pytest.mark.integration
 async def test_concurrent_sqlite_operations(base_url_agent_server):
@@ -17,7 +19,7 @@ async def test_concurrent_sqlite_operations(base_url_agent_server):
     and verifies that all operations complete with HTTP 200 responses.
     """
     # Ensure server is up
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=TEST_AUTH_HEADERS) as client:
         response = await client.get(f"{base_url_agent_server}/api/v2/ok", timeout=10)
         response.raise_for_status()
 
@@ -31,7 +33,7 @@ async def test_concurrent_sqlite_operations(base_url_agent_server):
     print(f"Created agent: {agent_id}")
 
     # Create a base thread that we'll repeatedly update to trigger ON CONFLICT paths
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=TEST_AUTH_HEADERS) as client:
         base_thread_response = await client.post(
             f"{base_url_agent_server}/api/v2/threads/",
             json={
@@ -153,7 +155,7 @@ async def _do_update(base_url: str, agent_id: str, thread_id: str, i: int) -> tu
     # Add small random jitter to create interleavings
     await asyncio.sleep(random.uniform(0, 0.01))
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=TEST_AUTH_HEADERS) as client:
         response = await client.put(url, json=payload, timeout=15)
         return "update", response.status_code, response.text
 
@@ -167,7 +169,7 @@ async def _do_create(base_url: str, agent_id: str, i: int) -> tuple[str, int, st
         "messages": [{"role": "user", "content": [{"type": "input_text", "text": f"create-{i}"}]}],
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=TEST_AUTH_HEADERS) as client:
         response = await client.post(url, json=payload, timeout=15)
         return "create", response.status_code, response.text
 
@@ -179,6 +181,6 @@ async def _do_list(base_url: str, agent_id: str, i: int) -> tuple[str, int, str]
     # Add small random jitter to mix with writes
     await asyncio.sleep(random.uniform(0, 0.01))
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(headers=TEST_AUTH_HEADERS) as client:
         response = await client.get(url, timeout=15)
         return "list", response.status_code, response.text

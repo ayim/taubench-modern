@@ -1,10 +1,9 @@
-import { exhaustiveCheck, sequentialMap } from '@sema4ai/shared-utils';
+import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { TRPCError } from '@trpc/server';
 import z from 'zod';
-import { notAvailableForConfiguration } from './utils.js';
 import { AllPermissions, RoleIDs, Roles, type Permission } from '../../auth/permissions.js';
 import type { UpdateUserPayload } from '../../database/DatabaseClient.js';
-import type { User, UserRole } from '../../database/types/user.js';
+import type { UserRole } from '../../database/types/user.js';
 import { destroySessionsForUser } from '../../session/utils.js';
 import { authedProcedure, trpc } from '../trpc.js';
 
@@ -164,49 +163,46 @@ export const listUsers = authedProcedure(['users.read'])
         case 'oidc':
           return 'email';
 
-        case 'none':
-          throw new TRPCError(notAvailableForConfiguration({ feature: 'User management' }));
-
         default:
           exhaustiveCheck(authType);
       }
     })();
 
-    const resolveIdentifier = async (user: User): Promise<AuthProviderIdentifier> => {
-      const targetIdentities = userIdentitiesResult.data[user.id] ?? [];
+    const usersWithIdentities = usersResult.data
+      .filter((user) => {
+        const hasIdentity = (userIdentitiesResult.data[user.id] ?? []).length > 0;
+        if (!hasIdentity) {
+          monitoring.logger.info('Skipping user with no identity for current authority', {
+            authority: authMetadataResult.data.authority,
+            userId: user.id,
+          });
+        }
+        return hasIdentity;
+      })
+      .sort((a, b) => (a.first_name > b.first_name ? 1 : -1));
 
-      if (targetIdentities.length === 0) {
-        monitoring.logger.error('No identities found for user', {
-          userId: user.id,
-        });
+    const users = usersWithIdentities.map((user) => {
+      const targetIdentities = userIdentitiesResult.data[user.id];
 
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed listing users',
-        });
-      }
+      const providerIdentifier: AuthProviderIdentifier =
+        providerIdentifierType === 'email'
+          ? {
+              email: targetIdentities[0].email ?? '',
+              type: 'email',
+            }
+          : {
+              id: targetIdentities[0].value,
+              type: 'id',
+            };
 
-      return providerIdentifierType === 'email'
-        ? {
-            email: targetIdentities[0].email ?? '',
-            type: 'email',
-          }
-        : {
-            id: targetIdentities[0].value,
-            type: 'id',
-          };
-    };
-
-    const users = await sequentialMap(
-      usersResult.data.sort((a, b) => (a.first_name > b.first_name ? 1 : -1)),
-      async (user) => ({
+      return {
         id: user.id,
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
-        providerIdentifier: await resolveIdentifier(user),
-      }),
-    );
+        providerIdentifier,
+      };
+    });
 
     return {
       providerIdentifierType,

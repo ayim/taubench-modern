@@ -12,7 +12,8 @@
       "Bash(tail *)",
       "mcp__linear-server__list_issues",
       "mcp__linear-server__update_issue",
-      "mcp__linear-server__get_issue"
+      "mcp__linear-server__get_issue",
+      "Bash(node -e \"require\\(''fs''\\).readFileSync\\(''workroom/.env'',''utf8''\\).split\\(''\\\\n''\\).filter\\(l=>/^DEV_USER_\\(EMAIL|PASSWORD\\)=/.test\\(l\\)\\).forEach\\(l=>console.log\\(l\\)\\)\")"
     ],
     "deny": [],
     "ask": []

@@ -3,6 +3,7 @@ from agent_platform.orchestrator.agent_server_client import AgentServerClient
 from httpx import AsyncClient
 
 from agent_platform.core.evals.types import TrialStatus
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
 from server.tests.integration.work_items.helper_functions import _wait_until
 
 TERMINAL_STATUSES = [TrialStatus.CANCELED, TrialStatus.COMPLETED, TrialStatus.ERROR]
@@ -42,7 +43,7 @@ async def test_evals_e2e(
 
         evals_url = f"{base_url_agent_server_evals_matrix}/api/v2/evals"
 
-        async with AsyncClient(base_url=evals_url) as client:
+        async with AsyncClient(base_url=evals_url, headers=TEST_AUTH_HEADERS) as client:
             create_payload = {
                 "name": "Test scenario",
                 "description": "Test description",

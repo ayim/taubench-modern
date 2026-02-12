@@ -1,23 +1,6 @@
-resource "tls_private_key" "jwt_private_key" {
-  algorithm   = "ECDSA"
-  ecdsa_curve = "P256"
-}
-
 resource "random_password" "session_secret" {
   length  = 32
   special = false
-}
-
-resource "azurerm_key_vault_secret" "jwt_private_key_b64" {
-  name         = "jwt-private-key-b64"
-  value        = base64encode(tls_private_key.jwt_private_key.private_key_pem)
-  key_vault_id = var.key_vault_id
-}
-
-resource "azurerm_key_vault_secret" "jwt_public_key_b64" {
-  name         = "jwt-public-key-b64"
-  value        = base64encode(tls_private_key.jwt_private_key.public_key_pem)
-  key_vault_id = var.key_vault_id
 }
 
 resource "azurerm_key_vault_secret" "session_secret" {

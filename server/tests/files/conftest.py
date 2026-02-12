@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 from agent_platform.orchestrator.bootstrap_agent_server import AgentServerProcess
 
-# Get storage fixtures.
+# Get storage and auth fixtures.
+from server.tests.auth_fixtures import *  # noqa: F403
 from server.tests.storage_fixtures import *  # noqa: F403
 
 

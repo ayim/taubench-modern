@@ -44,7 +44,6 @@ export const createSessionManager = ({
         store,
       });
 
-    case 'none':
     case 'oidc':
       return new HTTPSessionManager({
         monitoring,

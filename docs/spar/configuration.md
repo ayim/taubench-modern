@@ -26,15 +26,7 @@ These variables are agent-server related, and can be applied to the general SPAR
 > [!CAUTION]
 > You should be running SPAR with a Postgres database in all production scenarios. Use of the built-in SQLite DB is not supported outside of brief demonstration scenarios.
 
-The following variables can be added to enable authentication between the workroom and agent-server.
-
-| Variable             | Example              | Definition                          | Required |
-| -------------------- | -------------------- | ----------------------------------- | -------- |
-| `AUTH_TYPE`          | `jwt_local`          | Authentication mode.                | Yes      |
-| `JWT_ALG`            | `ES256`              | JWT algorithm.                      | Yes      |
-| `JWT_AUD`            | `agent_server`       | The JWT audience.                   | Yes      |
-| `JWT_DECODE_KEY_B64` | `LS0tLS1CRUdJTiB...` | The JWT public key, base64 encoded. | Yes      |
-| `JWT_ISS`            | `spar`               | Token issuer.                       | Yes      |
+Authentication between the workroom and agent-server uses unsigned JWTs (`alg: "none"`). The workroom backend produces unsigned tokens containing only the `sub` claim and the agent-server accepts them without signature verification. No configuration or key pair is required. See [security.md](./security.md) for the trust model and network isolation requirements that make this safe.
 
 ### Workroom Backend
 
@@ -54,11 +46,7 @@ These variables are workroom related, and can be applied to the general SPAR doc
 | `SEMA4AI_WORKROOM_PORT_INTERNAL`           | `8002`                | Internal (private) HTTP listen port.                | Yes      |
 | `SEMA4AI_WORKROOM_TENANT_ID`               | `spar`                | Tenant identifier.                                  | Yes      |
 
-The following variables can be added to enable authentication between the workroom and agent-server.
-
-| Variable                               | Example             | Definition                                             | Required |
-| -------------------------------------- | ------------------- | ------------------------------------------------------ | -------- |
-| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64` | `LS0tLS1CRUdJTi...` | Agent server token signing private key, base64 encoded | No       |
+No additional workroom variables are required for agent-server authentication. The workroom produces unsigned JWTs automatically when the auth mode is `snowflake` or `oidc`.
 
 ## Stand-alone installation w/ OIDC Authentication
 

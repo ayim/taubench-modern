@@ -37,29 +37,14 @@ type ApiResponse<Success> =
       success: false;
     });
 
-export type Meta =
-  | {
-      deploymentType: undefined;
-      realm: string;
-      clientId: string;
-      enableRefreshTokens: boolean;
-      oidcServerDiscoveryURI: string;
-      instanceId: string;
-      workroomTokenExchangeUrl: string;
-      workroomTenantListUrl: string;
-      branding?: {
-        logoUrl: string;
-        agentAvatarUrl: string;
-      };
-    }
-  | {
-      deploymentType: 'spcs' | 'spar';
-      workroomTenantListUrl: string;
-      branding?: {
-        logoUrl: string;
-        agentAvatarUrl: string;
-      };
-    };
+export type Meta = {
+  deploymentType: 'spcs' | 'spar';
+  workroomTenantListUrl: string;
+  branding?: {
+    logoUrl: string;
+    agentAvatarUrl: string;
+  };
+};
 
 type WorkroomToken = {
   token: string;

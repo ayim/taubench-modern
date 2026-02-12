@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Script to wait for SPAR stack services to become healthy
-# Usage: ./scripts/wait-for-spar-health.sh
+# Usage: ./scripts/wait-for-spar-health.sh [service]
+#   service: optional, one of "spar" (default) or "agent-server"
 
 set -e
 
@@ -39,17 +40,31 @@ wait_for_healthy() {
   return 1
 }
 
+service="${1:-spar}"
+
 # Show initial container status for debugging
 echo "Initial container status:"
 docker compose ps
 
-# Wait for core infrastructure services first
+# Wait for core infrastructure (postgres is always required)
 wait_for_healthy "postgres" || exit 1
-wait_for_healthy "influx-db" || exit 1
-wait_for_healthy "otel-collector" || exit 1
 
-# Wait for the SPAR service
-wait_for_healthy "spar" || exit 1
+case "${service}" in
+  spar)
+    # Full SPAR stack: needs telemetry services + spar
+    wait_for_healthy "influx-db" || exit 1
+    wait_for_healthy "otel-collector" || exit 1
+    wait_for_healthy "spar" || exit 1
+    ;;
+  agent-server)
+    # Agent-server only: no telemetry services needed
+    wait_for_healthy "agent-server" || exit 1
+    ;;
+  *)
+    echo "ERROR: unknown service '${service}'. Expected 'spar' or 'agent-server'."
+    exit 1
+    ;;
+esac
 
 # Final status check
 echo "All services are ready!"

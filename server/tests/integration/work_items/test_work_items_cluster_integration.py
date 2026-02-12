@@ -13,6 +13,7 @@ import pytest
 
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.work_items.rest import WorkItemsListResponse
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
 from server.tests.integration.integration_fixtures import start_agent_server
 from server.tests.storage_fixtures import *  # noqa (bring postgres_testing from storage_fixtures)
 
@@ -262,7 +263,7 @@ async def test_work_items_complete_across_multiple_servers(
         assert action_server_urls, "Expected at least one running action server instance"
 
         # Create an agent on the first server with MCP configuration
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, headers=TEST_AUTH_HEADERS) as client:
             # Prepare MCP server configuration pointing to the first action server
             mcp_servers = [
                 {

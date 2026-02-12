@@ -54,6 +54,7 @@ export interface LogAttributes {
   status: number;
   statusText: string;
   tenantId: string;
+  authority: string;
   /**
    * Internal SPAR user ID
    */

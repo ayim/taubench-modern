@@ -86,24 +86,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GH_PAT_READ_PACKAGES }}
 
-      - name: Prepare environment
-        run: |
-          # Ensure required directories exist
-          mkdir -p observability/dev/otlp-output
-
-      - name: Start SPAR stack
+      - name: Start agent-server stack
         env:
           COMPOSE_DOCKER_CLI_BUILD: 1
           DOCKER_BUILDKIT: 1
           BUILDKIT_PROGRESS: plain
+          COMPOSE_PROFILES: agent-server
         run: |
-          # Start the SPAR stack in the background
-          export COMPOSE_PROFILES=spar,data-server
-          docker compose build --no-cache
+          # Build and start the agent-server stack in the background
+          docker compose build --no-cache agent-server
           docker compose up -d
 
-      - name: Wait for SPAR stack to be healthy
-        run: ./scripts/wait-for-spar-health.sh
+      - name: Wait for agent-server to be healthy
+        run: ./scripts/wait-for-spar-health.sh agent-server
 
       - run: make sync
 

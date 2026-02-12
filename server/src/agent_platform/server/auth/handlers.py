@@ -1,9 +1,7 @@
 import logging
-from abc import ABC, abstractmethod
-from typing import Annotated, ClassVar
+from typing import Annotated
 
 import jwt
-import requests
 from fastapi import (
     Depends,
     HTTPException,
@@ -15,45 +13,17 @@ from fastapi import (
 from fastapi.security.http import HTTPBearer
 
 from agent_platform.core.user import User
-from agent_platform.server.auth.settings import (
-    AuthConfig,
-    AuthType,
-    JWTSettingsLocal,
-    JWTSettingsOIDC,
-)
 from agent_platform.server.storage import BaseStorage, StorageService
 
 logger = logging.getLogger(__name__)
 
-# Note: don't use StorageDependency here, trying to import it can lead to a circular dependency
-# (it depends on importing apis that themselves depend on auth)
-# So, just redeclare it here.
 _StorageDependency = Annotated[BaseStorage, Depends(StorageService.get_instance)]
 
 
-class AuthHandler(ABC):
+class AuthHandler:
     def __init__(self, storage: _StorageDependency):
         self._storage = storage
 
-    @property
-    def storage(self) -> BaseStorage:
-        return self._storage
-
-    @abstractmethod
-    async def handle(self, request: Request) -> User:
-        """Auth handler that returns a user object or raises an HTTPException."""
-
-
-class NOOPAuth(AuthHandler):
-    _default_sub = "static-default-user-id"
-
-    async def handle(self, request: Request) -> User:
-        sub = request.cookies.get("agent_server_user_id") or self._default_sub
-        user, _ = await self.storage.get_or_create_user(sub)
-        return user
-
-
-class JWTAuthBase(AuthHandler):
     async def handle(self, request: Request) -> User:
         http_bearer = await HTTPBearer()(request)
         if not http_bearer:
@@ -61,100 +31,27 @@ class JWTAuthBase(AuthHandler):
         token = http_bearer.credentials
 
         try:
-            payload = self.decode_token(token, self.get_decode_key(token))
+            # The workroom backend produces unsigned JWTs (alg: "none") containing
+            # only the `sub` claim as an identity transport mechanism.
+            # See: workroom/backend/src/utils/signing.ts
+            payload = jwt.decode(
+                token,
+                algorithms=["none"],
+                options={
+                    "verify_signature": False,
+                    "verify_exp": False,
+                    "require": ["sub"],
+                },
+            )
         except jwt.PyJWTError as e:
             raise HTTPException(status_code=401, detail=str(e)) from e
 
-        user, _ = await self.storage.get_or_create_user(payload["sub"])
+        user, _ = await self._storage.get_or_create_user(payload["sub"])
         return user
-
-    @abstractmethod
-    def decode_token(self, token: str, decode_key: str) -> dict: ...
-
-    @abstractmethod
-    def get_decode_key(self, token: str) -> str: ...
-
-
-class JWTAuthLocal(JWTAuthBase):
-    """Auth handler that uses a hardcoded decode key from env."""
-
-    def decode_token(self, token: str, decode_key: str) -> dict:
-        if not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal) or not AuthConfig.jwt_settings:
-            raise HTTPException(status_code=401, detail="No local JWT settings")
-        return jwt.decode(
-            token,
-            decode_key,
-            issuer=AuthConfig.jwt_settings.iss,
-            audience=AuthConfig.jwt_settings.aud,
-            algorithms=[AuthConfig.jwt_settings.alg.upper()],
-            options={"require": ["exp", "iss", "aud", "sub"]},
-        )
-
-    def get_decode_key(self, token: str) -> str:
-        if not isinstance(AuthConfig.jwt_settings, JWTSettingsLocal) or not AuthConfig.jwt_settings:
-            raise HTTPException(status_code=401, detail="No local JWT settings")
-        if not AuthConfig.jwt_settings.decode_key:
-            raise HTTPException(status_code=401, detail="No local JWT decode key")
-        return AuthConfig.jwt_settings.decode_key
-
-
-class JWTAuthOIDC(JWTAuthBase):
-    """Auth handler that uses OIDC discovery to get the decode key."""
-
-    _jwk_client_cache: ClassVar[dict[str, jwt.PyJWKClient]] = {}
-    _decode_key_cache: ClassVar[dict[str, dict]] = {}
-
-    def decode_token(self, token: str, decode_key: str) -> dict:
-        alg = self._decode_complete_unverified(token)["header"]["alg"]
-        if not isinstance(AuthConfig.jwt_settings, JWTSettingsOIDC) or not AuthConfig.jwt_settings:
-            raise HTTPException(status_code=401, detail="No OIDC settings")
-        return jwt.decode(
-            token,
-            decode_key,
-            issuer=AuthConfig.jwt_settings.iss,
-            audience=AuthConfig.jwt_settings.aud,
-            algorithms=[alg.upper()],
-            options={"require": ["exp", "iss", "aud", "sub"]},
-        )
-
-    def get_decode_key(self, token: str) -> str:
-        unverified = self._decode_complete_unverified(token)
-        issuer = unverified["payload"].get("iss")
-        kid = unverified["header"].get("kid")
-        return self._get_jwk_client(issuer).get_signing_key(kid).key
-
-    def _decode_complete_unverified(self, token: str) -> dict:
-        if token not in self._decode_key_cache:
-            self._decode_key_cache[token] = jwt.api_jwt.decode_complete(
-                token,
-                options={"verify_signature": False},
-            )
-        return self._decode_key_cache[token]
-
-    def _get_jwk_client(self, issuer: str) -> jwt.PyJWKClient:
-        """
-        Cache jwk clients per issuer in a class-level dict instead of using lru_cache
-        """
-        if issuer not in self._jwk_client_cache:
-            url = issuer.rstrip("/") + "/.well-known/openid-configuration"
-            config = requests.get(url).json()
-            self._jwk_client_cache[issuer] = jwt.PyJWKClient(
-                config["jwks_uri"],
-                cache_jwk_set=True,
-            )
-        return self._jwk_client_cache[issuer]
 
 
 def get_auth_handler(storage: _StorageDependency) -> AuthHandler:
-    logger.debug(f"Using auth_type = {AuthConfig.auth_type}")
-    if AuthConfig.auth_type == AuthType.JWT_LOCAL:
-        return JWTAuthLocal(storage)
-    elif AuthConfig.auth_type == AuthType.JWT_OIDC:
-        return JWTAuthOIDC(storage)
-    elif AuthConfig.auth_type == AuthType.NOOP:
-        return NOOPAuth(storage)
-
-    raise ValueError(f"Unexpected auth_type = {AuthConfig.auth_type}")
+    return AuthHandler(storage)
 
 
 AuthHandlerDependency = Annotated[AuthHandler, Depends(get_auth_handler)]

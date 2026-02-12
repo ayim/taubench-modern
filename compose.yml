@@ -16,9 +16,12 @@ x-env-spar: &template-env-spar
     SEMA4AI_AGENT_SERVER_DB_TYPE: postgres
     SEMA4AI_AGENT_SERVER_OTEL_ENABLED: true
     # Workroom
+    # Secrets (OIDC, session) are read from workroom/.env via env_file.
+    # Values set here take precedence over env_file.
+    NODE_ENV: production
     SEMA4AI_WORKROOM_AGENT_SERVER_URL: http://localhost:8000
     SEMA4AI_WORKROOM_ALLOW_INSECURE_REQUESTS: true
-    SEMA4AI_WORKROOM_AUTH_MODE: none
+    SEMA4AI_WORKROOM_AUTH_MODE: oidc
     SEMA4AI_WORKROOM_DISABLE_POSTGRES_SSL: true
     SEMA4AI_WORKROOM_ENABLE_DEV_MODE: true
     SEMA4AI_WORKROOM_LOG_LEVEL: INFO
@@ -27,6 +30,11 @@ x-env-spar: &template-env-spar
     SEMA4AI_WORKROOM_TENANT_ID: spar
 
 x-service-spar: &template-service-spar
+    env_file:
+        # Not required to run the stack. Contains secrets for client-side authentication.
+        # See workroom/.env.example for available variables.
+        - path: ./workroom/.env
+          required: false
     build:
         context: .
         dockerfile: Dockerfile.spar
@@ -175,7 +183,6 @@ services:
         <<: *template-service-spar
         profiles:
             - spar
-            - spar-no-auth # Deprecated: Will be removed in the futrue
 
     # Run Agent-Server only
     agent-server:
@@ -183,14 +190,23 @@ services:
         environment:
             <<: *template-env-spar
             DISABLED_SERVICE: workroom
+            SEMA4AI_AGENT_SERVER_OTEL_ENABLED: false
             SEMA4AI_AGENTS_SERVICE_URL: "http://localhost:8000"
         ports:
             - "8000:8000"
         expose:
             - "8000"
+        healthcheck:
+            test: ["CMD-SHELL", "curl -f http://localhost:${AGENT_SERVER_PORT:-8000}/api/v2/health || exit 1"]
+            interval: 15s
+            timeout: 5s
+            start_period: 30s
+            retries: 3
+        depends_on:
+            postgres:
+                condition: service_healthy
         profiles:
             - agent-server
-            - agent-server-no-auth # Deprecated: Will be removed in the future
 
     # Run SPAR frontend only (workroom)
     spar-ui:

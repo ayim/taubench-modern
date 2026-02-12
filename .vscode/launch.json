@@ -15,16 +15,8 @@
     },
     /**
 
-       You need JWT Tokens
-       For testing only, you can generate them with http://jwtbuilder.jamiekurtz.com/
-
-       Fields
-       - iss: ace
-       - aud: agent_server
-       - jwt_alg: hs256
-       - secret key: very_secret_key
-
-       In Ace we set also sub field to
+       The agent server accepts unsigned JWTs with a `sub` claim.
+       The `sub` field follows the pattern:
        - /tenant/{tenant_id}
        - /tenant/{tenant_id}/user/{user_id}
 
@@ -38,7 +30,7 @@
 
     **/
     {
-      "name": "Debug Agent Server (JWT Local w/ Postgres)",
+      "name": "Debug Agent Server (Postgres)",
       "type": "debugpy",
       "request": "launch",
       "module": "agent_platform.server",
@@ -47,11 +39,6 @@
       "env": {
         "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
         "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-        "AUTH_TYPE": "jwt_local",
-        "JWT_ISS": "ace",
-        "JWT_AUD": "agent_server",
-        "JWT_ALG": "HS256",
-        "JWT_DECODE_KEY_B64": "dmVyeV9zZWNyZXRfa2V5", // base64("very_secret_key")
         "POSTGRES_DB": "agent_server_db",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "5432",

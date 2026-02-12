@@ -130,85 +130,73 @@ export const initializeWebSocketProxying = ({
       return notFoundError();
     }
 
-    if (configuration.auth.type !== 'none') {
-      const userIdentityResult = await extractAuthenticatedUserIdentity({
-        authManager,
-        configuration,
-        headers: extractHeadersFromRequest(req.headers),
-        monitoring,
-        sessionManager,
+    const userIdentityResult = await extractAuthenticatedUserIdentity({
+      authManager,
+      configuration,
+      headers: extractHeadersFromRequest(req.headers),
+      monitoring,
+      sessionManager,
+    });
+
+    if (!userIdentityResult.success) {
+      monitoring.logger.error('Websocket upgrade failed: User identity resolution failed', {
+        errorName: userIdentityResult.error.code,
+        errorMessage: userIdentityResult.error.message,
+        requestMethod: req.method,
+        requestUrl: req.url,
       });
 
-      if (!userIdentityResult.success) {
-        monitoring.logger.error('Websocket upgrade failed: User identity resolution failed', {
-          errorName: userIdentityResult.error.code,
-          errorMessage: userIdentityResult.error.message,
-          requestMethod: req.method,
-          requestUrl: req.url,
-        });
+      switch (userIdentityResult.error.code) {
+        case 'unauthorized':
+          return unauthorizedAccess();
+        case 'pending':
+        case 'expired':
+        case 'forbidden':
+          return forbiddenAccess();
+        case 'misconfigured':
+          return internalServerError();
 
-        switch (userIdentityResult.error.code) {
-          case 'unauthorized':
-            return unauthorizedAccess();
-          case 'pending':
-          case 'expired': // Should never get here
-          case 'forbidden':
-            return forbiddenAccess();
-          case 'misconfigured':
-            return internalServerError();
-
-          default:
-            exhaustiveCheck(userIdentityResult.error);
-        }
+        default:
+          exhaustiveCheck(userIdentityResult.error);
       }
-
-      if (!userIdentityResult.data.userId) {
-        monitoring.logger.error('Websocket upgrade failed: No user ID', {
-          requestMethod: req.method,
-          requestUrl: req.url,
-        });
-
-        return unauthorizedAccess();
-      }
-
-      const routeBehaviour = getRouteBehaviour({
-        configuration,
-        route,
-        tenantId: configuration.tenant.tenantId,
-        userId: userIdentityResult.data.userId,
-      });
-
-      if (!routeBehaviour.isAllowed) {
-        monitoring.logger.error('Route not allowed', {
-          requestMethod: req.method,
-          requestUrl: requestPathWithQueryStringParameters,
-        });
-
-        return notFoundError();
-      }
-
-      const signResult = await routeBehaviour.signAgentToken();
-
-      if (!signResult.success) {
-        monitoring.logger.error('Agent server token signing invalid', {
-          errorName: signResult.error.code,
-          errorMessage: signResult.error.message,
-        });
-
-        switch (signResult.error.code) {
-          case 'invalid_signing_result':
-            return forbiddenAccess();
-          case 'invalid_signing_auth_configuration':
-          case 'signing_failed':
-            return internalServerError();
-
-          default:
-            exhaustiveCheck(signResult.error);
-        }
-      }
-
-      headers['authorization'] = `Bearer ${signResult.data}`;
     }
+
+    if (!userIdentityResult.data.userId) {
+      monitoring.logger.error('Websocket upgrade failed: No user ID', {
+        requestMethod: req.method,
+        requestUrl: req.url,
+      });
+
+      return unauthorizedAccess();
+    }
+
+    const routeBehaviour = getRouteBehaviour({
+      route,
+      tenantId: configuration.tenant.tenantId,
+      userId: userIdentityResult.data.userId,
+    });
+
+    if (!routeBehaviour.isAllowed) {
+      monitoring.logger.error('Route not allowed', {
+        requestMethod: req.method,
+        requestUrl: requestPathWithQueryStringParameters,
+      });
+
+      return notFoundError();
+    }
+
+    const signResult = await routeBehaviour.signAgentToken();
+
+    if (!signResult.success) {
+      monitoring.logger.error('Agent server token signing invalid', {
+        errorName: signResult.error.code,
+        errorMessage: signResult.error.message,
+      });
+
+      return internalServerError();
+    }
+
+    headers['authorization'] = `Bearer ${signResult.data}`;
 
     const targetUrl = `${joinUrl(targetBaseUrl, targetPath)}${urlAttributes.searchParams}`
       .replace('http://', 'ws://')

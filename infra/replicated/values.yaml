@@ -104,7 +104,7 @@ config:
   workroom:
     port: '8001'
     portInternal: '8002'
-    authMode: 'none'
+    authMode: 'oidc'
     allowInsecureRequests: 'true'
     disablePostgresSsl: 'false'
     tenantId: 'spar'

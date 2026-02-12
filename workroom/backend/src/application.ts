@@ -180,7 +180,7 @@ export const createApplication = async ({
     }),
   );
 
-  tenantRouter.get('/meta', noCache, createGetMeta({ configuration, monitoring }));
+  tenantRouter.get('/meta', noCache, createGetMeta({ configuration }));
 
   tenantRouter.get(
     '/auth/meta',

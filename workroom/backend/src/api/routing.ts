@@ -1,5 +1,4 @@
 import type { Result } from '@sema4ai/shared-utils';
-import type { Configuration } from '../configuration.js';
 import type { PrivateAPIRoute, PublicAPIRoute } from './parsers.js';
 import type { Permission } from '../auth/permissions.js';
 import { signAgentToken, type SignAgentTokenErrorOutcome } from '../utils/signing.js';
@@ -14,16 +13,7 @@ export type RouteBehaviour =
       isAllowed: false;
     };
 
-type SignAgentTokenResult = Promise<
-  Result<
-    string,
-    | SignAgentTokenErrorOutcome
-    | {
-        code: 'invalid_signing_auth_configuration';
-        message: string;
-      }
-  >
->;
+type SignAgentTokenResult = Promise<Result<string, SignAgentTokenErrorOutcome>>;
 
 const ALLOWED = true;
 const DISALLOWED = false;
@@ -285,34 +275,20 @@ function getRouteMap(): {
 }
 
 export function getRouteBehaviour({
-  configuration,
   route,
   tenantId,
   userId,
 }: {
-  configuration: Configuration;
   route: PrivateAPIRoute;
   tenantId: string;
   userId: string;
 }): RouteBehaviour {
-  const createSigner = (mode: 'tenant' | 'user') => async (): SignAgentTokenResult => {
-    if (configuration.auth.type === 'none') {
-      return {
-        success: false,
-        error: {
-          code: 'invalid_signing_auth_configuration',
-          message: 'Invalid auth configuration for signing: auth type none does not support signing tokens',
-        },
-      };
-    }
-
-    return signAgentToken({
-      configuration,
+  const createSigner = (mode: 'tenant' | 'user') => (): SignAgentTokenResult =>
+    signAgentToken({
       payload: {
         userId: mode === 'tenant' ? `tenant:${tenantId}` : `tenant:${tenantId}:user:${userId}`,
       },
     });
-  };
 
   const routes = getRouteMap();
 
@@ -347,33 +323,19 @@ export type PublicApiRouteBehaviour =
 
 export const getPublicApiRouteBehaviour = ({
   apiKeyId,
-  configuration,
   route,
   tenantId,
 }: {
   apiKeyId: string;
-  configuration: Configuration;
   route: PublicAPIRoute;
   tenantId: string;
 }): PublicApiRouteBehaviour => {
-  const createSigner = async (): SignAgentTokenResult => {
-    if (configuration.auth.type === 'none') {
-      return {
-        success: false,
-        error: {
-          code: 'invalid_signing_auth_configuration',
-          message: 'Invalid auth configuration for signing: auth type none does not support signing tokens',
-        },
-      };
-    }
-
-    return signAgentToken({
-      configuration,
+  const createSigner = (): SignAgentTokenResult =>
+    signAgentToken({
       payload: {
         userId: `tenant:${tenantId}:user:${apiKeyId}`,
       },
     });
-  };
 
   const isHealthRoute = route.type === 'get /api/public/v1/ok';
 

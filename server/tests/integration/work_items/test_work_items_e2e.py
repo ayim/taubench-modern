@@ -11,6 +11,7 @@ from agent_platform.core.thread.thread import Thread
 from agent_platform.core.work_items.work_item import WorkItemStatus
 from agent_platform.server.work_items.callbacks import _compute_signature
 from agent_platform.server.work_items.rest import WorkItemsListResponse
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
 from server.tests.integration.work_items.helper_functions import (
     _wait_until,
     assert_work_item_url,
@@ -22,7 +23,7 @@ async def _verify_payload_in_thread_messages(
     base_url: str, agent_id: str, thread_id: str, expected_payload_data: dict, work_item_id: str
 ) -> None:
     """Verify that the expected payload data appears in the thread messages."""
-    async with AsyncClient(base_url=f"{base_url}/api/v2") as messages_client:
+    async with AsyncClient(headers=TEST_AUTH_HEADERS, base_url=f"{base_url}/api/v2") as messages_client:
         resp = await messages_client.get(f"/threads/{thread_id}/state")
         assert resp.status_code == 200
         thread = Thread.model_validate(resp.json())
@@ -84,7 +85,7 @@ async def test_work_items_with_file_e2e(
 
         work_items_url = f"{base_url_agent_server_workitems_matrix}/api/public/v1/work-items"
 
-        async with AsyncClient(base_url=work_items_url) as client:
+        async with AsyncClient(headers=TEST_AUTH_HEADERS, base_url=work_items_url) as client:
             # 1. Upload file
             file_content = b"Important document content for agent analysis"
             filename = "document.txt"
@@ -167,7 +168,9 @@ async def test_work_items_with_file_e2e(
 
             # Verify thread name uses the custom work item name
             thread_id = final_work_item["thread_id"]
-            async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as thread_client:
+            async with AsyncClient(
+                headers=TEST_AUTH_HEADERS, base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+            ) as thread_client:
                 thread_resp = await thread_client.get(f"/threads/{thread_id}/state")
                 assert thread_resp.status_code == 200
                 thread_data = thread_resp.json()
@@ -253,7 +256,9 @@ async def test_work_items_with_file_e2e(
         )
 
         # Make sure the private v2 work-items endpoint is working:
-        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as client:
+        async with AsyncClient(
+            headers=TEST_AUTH_HEADERS, base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+        ) as client:
             v2_list_resp = await client.get("/work-items/")
             assert v2_list_resp.status_code == 200
             v2_listed_items = v2_list_resp.json()["records"]
@@ -261,7 +266,9 @@ async def test_work_items_with_file_e2e(
             assert work_item_id in v2_work_item_ids
 
         # Verify that the thread retrieved from the API has the correct work_item_id
-        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2") as client:
+        async with AsyncClient(
+            headers=TEST_AUTH_HEADERS, base_url=f"{base_url_agent_server_workitems_matrix}/api/v2"
+        ) as client:
             thread_resp = await client.get(f"/threads/{thread_id}/state")
             assert thread_resp.status_code == 200
             thread_data = thread_resp.json()
@@ -295,7 +302,7 @@ async def test_work_items_e2e(
 
         work_items_url = f"{base_url_agent_server_workitems_matrix}/api/public/v1/work-items"
 
-        async with AsyncClient(base_url=work_items_url) as client:
+        async with AsyncClient(headers=TEST_AUTH_HEADERS, base_url=work_items_url) as client:
             # Create a work item
             create_payload = {
                 "agent_id": agent_id,
@@ -371,7 +378,9 @@ async def test_work_items_e2e(
         )
 
         # Make sure the private v2 work-items endpoint is working:
-        async with AsyncClient(base_url=f"{base_url_agent_server_workitems_matrix}/api/v2/work-items") as client:
+        async with AsyncClient(
+            headers=TEST_AUTH_HEADERS, base_url=f"{base_url_agent_server_workitems_matrix}/api/v2/work-items"
+        ) as client:
             v2_list_resp = await client.get("/")
             assert v2_list_resp.status_code == 200
             v2_listed_items = v2_list_resp.json()["records"]

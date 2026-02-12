@@ -43,7 +43,12 @@ The SPAR docker file (`Dockerfile.spar`) builds both the agent-server and workro
 - Do not use the system default `python` executable directly.
 - We use ruff for linting (`make lint`), pyright for typechecking (`make typecheck`), and ruff/prettier for formatting (`make check-format`)
 - Code style/linting changes should only be made after the core functional changes have been made and approved.
-- Use `agent-browser` skill to test any changes you make to the frontend. The frontend can be assumed to be running at http://localhost:8001 and to require no authentication. Run the browser in headless mode by default.
+- Use `agent-browser` skill to test any changes you make to the frontend. The frontend can be assumed to be running at http://localhost:8001. Run the browser in headless mode by default.
+- When hitting the Auth0 login page, read dev credentials from `workroom/.env` using:
+  ```bash
+  node -e "require('fs').readFileSync('workroom/.env','utf8').split('\n').filter(l=>/^DEV_USER_(EMAIL|PASSWORD)=/.test(l)).forEach(l=>console.log(l))"
+  ```
+  Use the returned `DEV_USER_EMAIL` and `DEV_USER_PASSWORD` values to fill in the Auth0 login form. If not specified / invalid: tell the user and wait for them to add them (they can find the instructions in `workroom/.env.example`).
 
 ### Testing instructions
 

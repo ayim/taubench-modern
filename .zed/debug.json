@@ -13,7 +13,7 @@
     }
   },
   {
-    "label": "Debug Agent Server (JWT Local w/ Postgres)",
+    "label": "Debug Agent Server (Postgres)",
     "adapter": "Debugpy",
     "request": "launch",
     "python": ".venv/bin/python3",
@@ -23,11 +23,6 @@
     "env": {
       "SEMA4AI_AGENT_SERVER_CORS_MODE": "all",
       "SEMA4AI_AGENT_SERVER_LOG_LEVEL": "DEBUG",
-      "AUTH_TYPE": "jwt_local",
-      "JWT_ISS": "ace",
-      "JWT_AUD": "agent_server",
-      "JWT_ALG": "HS256",
-      "JWT_DECODE_KEY_B64": "dmVyeV9zZWNyZXRfa2V5",
       "POSTGRES_DB": "agent_server_db",
       "POSTGRES_HOST": "localhost",
       "POSTGRES_PORT": "5432",

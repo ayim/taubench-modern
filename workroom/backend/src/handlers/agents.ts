@@ -1,5 +1,4 @@
 import { PassThrough } from 'node:stream';
-import { exhaustiveCheck } from '@sema4ai/shared-utils';
 import { parsePrivateApiRequest, parsePublicApiRequest } from '../api/parsers.js';
 import { getPublicApiRouteBehaviour, getRouteBehaviour } from '../api/routing.js';
 import type { Configuration } from '../configuration.js';
@@ -38,7 +37,6 @@ const authorizePrivateApiRequest = async (
   }
 
   const routeBehaviour = getRouteBehaviour({
-    configuration,
     route,
     tenantId: configuration.tenant.tenantId,
     userId: authSub,
@@ -66,26 +64,12 @@ const authorizePrivateApiRequest = async (
       errorMessage: signResult.error.message,
     });
 
-    switch (signResult.error.code) {
-      case 'invalid_signing_result':
-        return {
-          success: false,
-          response: res
-            .status(403)
-            .json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse),
-        };
-      case 'invalid_signing_auth_configuration':
-      case 'signing_failed':
-        return {
-          success: false,
-          response: res.status(500).json({
-            error: { code: 'internal_error', message: 'Internal server error' },
-          } satisfies ErrorResponse),
-        };
-
-      default:
-        exhaustiveCheck(signResult.error);
-    }
+    return {
+      success: false,
+      response: res.status(500).json({
+        error: { code: 'internal_error', message: 'Internal server error' },
+      } satisfies ErrorResponse),
+    };
   }
 
   return { success: true, token: signResult.data };
@@ -118,7 +102,6 @@ const authorizePublicApiRequest = async (
 
   const routeBehaviour = getPublicApiRouteBehaviour({
     apiKeyId,
-    configuration,
     route,
     tenantId: configuration.tenant.tenantId,
   });
@@ -141,30 +124,16 @@ const authorizePublicApiRequest = async (
 
   if (!signResult.success) {
     monitoring.logger.error('Token signing for public API failed', {
-      errorName: signResult.error.code,
+      errorName: 'unexpected',
       errorMessage: signResult.error.message,
     });
 
-    switch (signResult.error.code) {
-      case 'invalid_signing_result':
-        return {
-          success: false,
-          response: res
-            .status(403)
-            .json({ error: { code: 'forbidden', message: 'Forbidden' } } satisfies ErrorResponse),
-        };
-      case 'invalid_signing_auth_configuration':
-      case 'signing_failed':
-        return {
-          success: false,
-          response: res.status(500).json({
-            error: { code: 'internal_error', message: 'Internal server error' },
-          } satisfies ErrorResponse),
-        };
-
-      default:
-        exhaustiveCheck(signResult.error);
-    }
+    return {
+      success: false,
+      response: res.status(500).json({
+        error: { code: 'internal_error', message: 'Internal server error' },
+      } satisfies ErrorResponse),
+    };
   }
 
   return { success: true, token: signResult.data };
@@ -230,7 +199,7 @@ export const createProxyHandler = (config: ProxyHandlerConfig) => {
       headers.set('X-Forwarded-For', clientIP);
     }
 
-    if (configuration.auth.type !== 'none' && !skipAuthentication) {
+    if (!skipAuthentication) {
       const requestPath = `${targetPath}${urlAttributes.searchParams}`;
 
       const authorizationResult = await ((): Promise<AuthorizationResult> => {

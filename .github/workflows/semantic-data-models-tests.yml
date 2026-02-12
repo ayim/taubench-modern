@@ -58,7 +58,7 @@ jobs:
       - name: Start SPAR stack
         run: |
           # Start the SPAR stack in the background
-          COMPOSE_PROFILES=spar,data-server docker compose up --build -d
+          COMPOSE_PROFILES=spar docker compose up --build -d
 
       - name: Wait for SPAR stack to be healthy
         run: ./scripts/wait-for-spar-health.sh

@@ -197,9 +197,11 @@ def work_item_factory(base_url_agent_server_with_work_items: str):
         if payload is None:
             payload = {"workflow": "test"}
 
+        from server.tests.auth_helpers import TEST_AUTH_HEADERS
+
         work_items_url = f"{base_url_agent_server_with_work_items}/api/public/v1/work-items"
 
-        async with AsyncClient(base_url=work_items_url) as client:
+        async with AsyncClient(base_url=work_items_url, headers=TEST_AUTH_HEADERS) as client:
             request_data = {
                 "agent_id": agent_id,
                 "messages": messages,
@@ -214,7 +216,9 @@ def work_item_factory(base_url_agent_server_with_work_items: str):
 
             # Return work_item_id and a poller that uses a new client
             # (since the current client will be closed when this function returns)
-            return work_item_id, WorkItemPoller(AsyncClient(base_url=work_items_url), work_item_id)
+            return work_item_id, WorkItemPoller(
+                AsyncClient(base_url=work_items_url, headers=TEST_AUTH_HEADERS), work_item_id
+            )
 
     return _create_work_item
 

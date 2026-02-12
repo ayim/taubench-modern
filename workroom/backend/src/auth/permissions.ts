@@ -1,8 +1,14 @@
-import type { WorkRoomV1 } from '@sema4ai/robocloud-sign-interface';
 import type { UserRole } from '../database/types/user.js';
 import { exhaustiveUnionArray } from '../utils/types.js';
 
-export type Permission = WorkRoomV1['capabilities']['byTenantId'][string][number] | 'users.read' | 'users.write';
+export type Permission =
+  | 'agents.read'
+  | 'agents.write'
+  | 'deployments_monitoring.read'
+  | 'documents.read'
+  | 'documents.write'
+  | 'users.read'
+  | 'users.write';
 
 export type Role = {
   id: UserRole;

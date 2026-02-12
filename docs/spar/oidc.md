@@ -34,22 +34,21 @@ By default, SPAR reads from the `groups` claim. If your OIDC provider uses a dif
 
 To run SPAR in OIDC mode, the following environment variables must be set:
 
-| Variable                               | Description                                                               |
-| -------------------------------------- | ------------------------------------------------------------------------- |
-| `SEMA4AI_WORKROOM_AUTH_MODE`           | Must be set to `oidc`                                                     |
-| `SEMA4AI_WORKROOM_OIDC_SERVER`         | OIDC provider URL (discovery at `<url>/.well-known/openid-configuration`) |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`      | OAuth client ID                                                           |
-| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET`  | OAuth client secret                                                       |
-| `SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64` | Base64-encoded private key for signing JWTs                               |
+| Variable                              | Description                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| `SEMA4AI_WORKROOM_AUTH_MODE`          | Must be set to `oidc`                                                     |
+| `SEMA4AI_WORKROOM_OIDC_SERVER`        | OIDC provider URL (discovery at `<url>/.well-known/openid-configuration`) |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_ID`     | OAuth client ID                                                           |
+| `SEMA4AI_WORKROOM_OIDC_CLIENT_SECRET` | OAuth client secret                                                       |
 
 ### Optional Environment Variables
 
-| Variable                                        | Default                               | Description                                                       |
-| ----------------------------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
-| `SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME`       | `groups`                              | Name of the token claim containing user roles                     |
-| `SEMA4AI_WORKROOM_OIDC_SCOPES`                  | `offline_access openid email profile` | Space-separated list of OAuth scopes                              |
-| `SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM` | -                                     | Organization parameter passed to the auth request                 |
-| `SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE`            | -                                     | Comma-separated emails to auto-promote to `admin` on server start |
+| Variable                                        | Default                               | Description                                                                    |
+| ----------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------ |
+| `SEMA4AI_WORKROOM_OIDC_ORGANIZATION_AUTH_PARAM` | -                                     | Organization parameter passed to the auth request. **Required for dev setup.** |
+| `SEMA4AI_WORKROOM_OIDC_GROUPS_CLAIM_NAME`       | `groups`                              | Name of the token claim containing user roles                                  |
+| `SEMA4AI_WORKROOM_OIDC_SCOPES`                  | `offline_access openid email profile` | Space-separated list of OAuth scopes                                           |
+| `SEMA4AI_WORKROOM_AUTH_AUTO_PROMOTE`            | -                                     | Comma-separated emails to auto-promote to `admin` on server start              |
 
 ## Auth Payload Examples
 

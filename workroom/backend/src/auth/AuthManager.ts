@@ -54,7 +54,6 @@ export class AuthManager {
     });
 
     switch (this.configuration.auth.type) {
-      case 'none':
       case 'snowflake':
         return {
           success: false,
@@ -133,7 +132,6 @@ export class AuthManager {
     state: string;
   }): Promise<Result<OIDCTokens>> {
     switch (this.configuration.auth.type) {
-      case 'none':
       case 'snowflake':
         return {
           success: false,
@@ -214,7 +212,6 @@ export class AuthManager {
     }>
   > {
     switch (this.configuration.auth.type) {
-      case 'none':
       case 'snowflake':
         return {
           success: false,
@@ -308,7 +305,6 @@ export class AuthManager {
     origin: string;
   }): Result<{ type: 'single'; url: string } | { type: 'intermediary'; intermediate: string; final: string }> {
     switch (this.configuration.auth.type) {
-      case 'none':
       case 'snowflake':
         return {
           success: false,
@@ -410,15 +406,6 @@ export class AuthManager {
           },
         };
 
-      case 'none':
-        return {
-          success: false,
-          error: {
-            code: 'unsupported_authority_configuration',
-            message: `Invalid authentication configuration for fetching authority: ${this.configuration.auth.type}`,
-          },
-        };
-
       default:
         exhaustiveCheck(this.configuration.auth);
     }
@@ -426,7 +413,6 @@ export class AuthManager {
 
   async initialize(): Promise<Result<void>> {
     switch (this.configuration.auth.type) {
-      case 'none':
       case 'snowflake':
         return { success: true, data: undefined };
 
@@ -520,7 +506,6 @@ export class AuthManager {
           data: newTokens,
         };
       }
-      case 'none':
       case 'snowflake':
         this.monitoring.logger.error(
           `Unexpected error refreshing tokens: Bad configuration: Auth type not supported for token refresh: ${this.configuration.auth.type}`,

@@ -6,6 +6,8 @@ import httpx
 import pytest
 from agent_platform.orchestrator.bootstrap_base import is_debugger_active
 
+from server.tests.auth_helpers import TEST_AUTH_HEADERS
+
 if typing.TYPE_CHECKING:
     from pytest_regressions.data_regression import DataRegressionFixture
 
@@ -40,7 +42,7 @@ async def manual_test_oauth2_login_integration(base_url_agent_server_session):
 
     with AgentServerClient(base_url_agent_server_session) as agent_client:
         async with (
-            httpx.AsyncClient(timeout=TIMEOUT) as client,
+            httpx.AsyncClient(timeout=TIMEOUT, headers=TEST_AUTH_HEADERS) as client,
         ):
             # Create an MCP server via the API
             mcp_server_payload = {
@@ -138,7 +140,7 @@ async def test_oauth2_client_credentials_integration_validate_mcp_server(
 
     mcp_server_url = live_custom_mcp_server_with_auth + "/mcp"
 
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+    async with httpx.AsyncClient(timeout=TIMEOUT, headers=TEST_AUTH_HEADERS) as client:
         # Create an MCP server via the API
         mcp_server = MCPServer(name="test-oauth-mcp-server", transport="streamable-http", url=mcp_server_url)
         mcp_server_payload = mcp_server.model_dump()

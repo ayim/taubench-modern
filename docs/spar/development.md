@@ -39,14 +39,9 @@ To develop the Workroom application, you must have **NodeJS** and **NPM** instal
    cp .env.example .env
    ```
 
-   This will create a `.env` file with the default environment variable values, which you can then edit as needed.
-
-   _Note that copying the `.env.auth.example` file will setup Workroom to use authentication._
+   This will create a `.env` file with placeholder values for OIDC configuration that you must fill in before running.
 
 1. Run `npm install` inside the `workroom` directory
-
-> [!NOTE]
-> The `.env` file in `./workroom` is only necessary for non-docker-based Workroom development. If using workroom via Docker, you don't need to touch these files.
 
 ## Running the Docker stack
 
@@ -57,13 +52,14 @@ Often times you'll want to run some portion of the SPAR stack, if not all of it,
 
 The docker stack comes in several flavours:
 
-| Agent Server | Workroom | Authentication | Command                                                                                                                |
-| :----------: | :------: | :------------: | ---------------------------------------------------------------------------------------------------------------------- |
-|     Yes      |    No    |       No       | `COMPOSE_PROFILES=agent-server docker compose up --build`                                                              |
-|     Yes      |    No    |      Yes       | `COMPOSE_PROFILES=agent-server docker compose -f compose.yml -f compose.override.auth.yml up --build`                  |
-|     Yes      |   Yes    |       No       | `COMPOSE_PROFILES=spar docker compose up --build`                                                                      |
-|     Yes      |   Yes    |      Yes       | `COMPOSE_PROFILES=spar docker compose -f compose.yml -f compose.override.auth.yml --env-file workroom/.env up --build` |
-|      No      |   Yes    |       No       | `COMPOSE_PROFILES=spar-ui docker compose up --build`                                                                   |
+| Agent Server | Workroom | Command                                                                       |
+| :----------: | :------: | ----------------------------------------------------------------------------- |
+|     Yes      |    No    | `COMPOSE_PROFILES=agent-server docker compose up --build`                     |
+|     Yes      |   Yes    | `COMPOSE_PROFILES=spar docker compose --env-file workroom/.env up --build`    |
+|      No      |   Yes    | `COMPOSE_PROFILES=spar-ui docker compose --env-file workroom/.env up --build` |
+
+> [!NOTE]
+> OIDC credentials are required. Fill in the `<PLACEHOLDER_FILL_ME>` values in `compose.yml` or provide them via `workroom/.env` (using `--env-file`).
 
 > [!TIP]
 > Compose profiles are just like "tags". You can set one or more by either using `COMPOSE_PROFILES=one,two docker compose up` or `docker compose --profile one --profile two up`.
@@ -72,11 +68,15 @@ For builds _without_ workroom, you can then spin up a local build by performing 
 
 1.  Change directory to `./workroom`
 2.  Install dependencies - `npm install`
-3.  Create a `.env` file from one of the examples. Use an authenticated example if the stack calls for it.
+3.  Create a `.env` file from `.env.example` and fill in the OIDC placeholder values.
 4.  Run `npm run dev` to start the workroom service.
 
 > [!TIP]
 > The running agent server will be available on [`http://localhost:8000`](http://localhost:8000), and workroom on [`http://localhost:8001`](http://localhost:8001). Additionally, the private/internal workroom API will be exposed in development on `http://localhost:8002`.
+
+## Authentication
+
+Authentication and authorization happen at the edge in the workroom backend (OIDC). Internally, the workroom backend forwards user identity to the agent-server via an unsigned JWT (`alg: "none"`) containing only the `sub` claim. The JWT is used purely as a transport mechanism -- more convenient than setting individual headers and parsing them on the other side. The agent-server accepts these tokens without signature verification. No key pair or signing configuration is required.
 
 ## Database Requirements
 

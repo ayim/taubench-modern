@@ -14,14 +14,9 @@ export interface Configuration {
   allowInsecureRequests: boolean;
   auth: {
     autoPromoteEmails: Array<string>;
-    roleManagement: boolean;
     tokenIssuer: string;
   } & (
     | {
-        type: 'none';
-      }
-    | {
-        jwtPrivateKeyB64: string;
         type: 'snowflake';
       }
     | {
@@ -29,7 +24,6 @@ export interface Configuration {
         clientSecret: string;
         oidcGroupsClaim: string;
         intermediaryCallbackRedirectUrl: string | null;
-        jwtPrivateKeyB64: string;
         oidcServer: string;
         organizationAuthParam: string | null;
         scopes: Array<string>;
@@ -69,7 +63,6 @@ export interface Configuration {
       };
   frontendMode: 'disk' | 'middleware';
   logLevel: LogSeverity;
-  metaUrl: string | null;
   ports: {
     internal: number;
     public: number;
@@ -98,6 +91,7 @@ export interface Configuration {
 export const getConfiguration = (): Configuration => {
   const portPublic = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT');
   const portInternal = parseEnvVariableInteger('SEMA4AI_WORKROOM_PORT_INTERNAL');
+  const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
 
   const nodeEnv = (() => {
     const env = parseEnvVariable('NODE_ENV');
@@ -121,7 +115,6 @@ export const getConfiguration = (): Configuration => {
     : false;
 
   const auth = ((): Configuration['auth'] => {
-    const mode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
     const tokenIssuer = process.env.SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER
       ? parseEnvVariable('SEMA4AI_WORKROOM_AGENT_SERVER_TOKEN_ISSUER')
       : 'spar';
@@ -132,14 +125,10 @@ export const getConfiguration = (): Configuration => {
           .filter((email) => email.length > 0)
       : [];
 
-    switch (mode) {
-      case 'none':
-        return { autoPromoteEmails, roleManagement: false, tokenIssuer, type: 'none' };
+    switch (authMode) {
       case 'snowflake': {
         return {
           autoPromoteEmails,
-          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
-          roleManagement: true,
           tokenIssuer,
           type: 'snowflake',
         };
@@ -173,10 +162,8 @@ export const getConfiguration = (): Configuration => {
           intermediaryCallbackRedirectUrl: process.env.SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL
             ? parseEnvVariable('SEMA4AI_WORKROOM_DEV_OIDC_INTERMEDIARY_REDIRECT_URL')
             : null,
-          jwtPrivateKeyB64: parseEnvVariable('SEMA4AI_WORKROOM_JWT_PRIVATE_KEY_B64'),
           oidcServer,
           organizationAuthParam,
-          roleManagement: true,
           scopes,
           tokenIssuer,
           type: 'oidc',
@@ -184,7 +171,7 @@ export const getConfiguration = (): Configuration => {
       }
 
       default:
-        exhaustiveCheck(mode);
+        exhaustiveCheck(authMode);
     }
   })();
 
@@ -245,11 +232,7 @@ export const getConfiguration = (): Configuration => {
     return 'INFO';
   })();
 
-  const metaUrl = process.env.SEMA4AI_WORKROOM_META_URL ? parseEnvVariable('SEMA4AI_WORKROOM_META_URL') : null;
-
   const session = ((): Configuration['session'] => {
-    const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
-
     switch (authMode) {
       case 'oidc':
         return {
@@ -261,9 +244,6 @@ export const getConfiguration = (): Configuration => {
           secret: SESSION_COOKIES_NOT_ACTIVE,
         };
 
-      case 'none':
-        return null;
-
       default:
         exhaustiveCheck(authMode);
     }
@@ -271,8 +251,6 @@ export const getConfiguration = (): Configuration => {
   const sessionCookieMaxAgeMs = 24 * 60 * 60 * 1000; // 1 day
 
   const tenant = ((): Configuration['tenant'] => {
-    const authMode = parseEnvVariable('SEMA4AI_WORKROOM_AUTH_MODE') as Configuration['auth']['type'];
-
     switch (authMode) {
       case 'snowflake': {
         // Passed-in automatically by Snowflake when the service is running
@@ -285,9 +263,8 @@ export const getConfiguration = (): Configuration => {
       }
 
       case 'oidc':
-      case 'none':
         return {
-          tenantId: parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID'),
+          tenantId: process.env.SEMA4AI_WORKROOM_TENANT_ID ? parseEnvVariable('SEMA4AI_WORKROOM_TENANT_ID') : 'spar',
           tenantName: 'Team Edition',
         };
 
@@ -310,7 +287,6 @@ export const getConfiguration = (): Configuration => {
     files,
     frontendMode: isDevelopment ? 'middleware' : 'disk',
     logLevel,
-    metaUrl,
     ports: {
       internal: portInternal,
       public: portPublic,

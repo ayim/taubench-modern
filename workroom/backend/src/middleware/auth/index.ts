@@ -33,8 +33,6 @@ export const createAuthMiddleware =
   }) =>
   async (req: Request, res: Response, next: NextFunction) => {
     switch (configuration.auth.type) {
-      case 'none':
-        return next();
       case 'snowflake':
         return handleSnowflakeAuthCheck({
           authentication,
@@ -239,15 +237,6 @@ export const extractAuthenticatedUserIdentity = async ({
   >
 > => {
   switch (configuration.auth.type) {
-    case 'none':
-      return {
-        success: true,
-        data: {
-          userId: null,
-          userRole: null,
-        },
-      };
-
     case 'snowflake':
       return await extractSnowflakeUserIdentity({ headers, monitoring, sessionManager });
 
