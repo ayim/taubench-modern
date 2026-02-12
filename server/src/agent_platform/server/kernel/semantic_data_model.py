@@ -15,6 +15,7 @@ if typing.TYPE_CHECKING:
     from agent_platform.core.semantic_data_model.types import (
         Relationship,
         SemanticDataModel,
+        VerifiedQuery,
     )
     from agent_platform.core.semantic_data_model.validation import References
     from agent_platform.server.data_frames.semantic_data_model_collector import (
@@ -78,6 +79,41 @@ async def get_semantic_data_model_name(
                     continue
 
     return None
+
+
+def get_semantic_data_model_tables(
+    data_frame: PlatformDataFrame,
+    sdm_name: str,
+) -> list[str]:
+    """Get the semantic data model table names used to create a data frame.
+
+    This function extracts the logical table names from the data frame's
+    computation_input_sources. These are the tables from the semantic data model
+    that were actually used in the data frame's computation.
+
+    Args:
+        data_frame: The data frame to analyze.
+        sdm_name: The SDM name to filter by. Only returns tables from this
+            specific semantic data model.
+
+    Returns:
+        List of logical table names from the semantic data model.
+        Empty list if no semantic data model tables were used.
+    """
+    table_names: list[str] = []
+
+    for table_name, source in data_frame.computation_input_sources.items():
+        if source.source_type != "semantic_data_model":
+            continue
+
+        # Filter by SDM name - only include tables from the specified SDM
+        if source.semantic_data_model_name != sdm_name:
+            continue
+
+        # Add logical table name (which is the dict key)
+        table_names.append(table_name)
+
+    return table_names
 
 
 async def get_dialect_from_semantic_data_model(
@@ -319,8 +355,12 @@ def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, 
     return "\n".join(summarize_data_model(model, engine) for model, engine in models_and_engines)
 
 
-def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
-    """Describe available semantic data models with physical-first naming.
+def summarize_data_model(
+    model: SemanticDataModel,
+    engine: str,
+    table_names: list[str] | None = None,
+) -> str:
+    """Describe available semantic data models (structure only).
 
     Returns structural information with physical table/column names as primary
     identifiers. No SQL generation guidance.
@@ -328,6 +368,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     Args:
         model: The semantic data model to summarize
         engine: The SQL engine/dialect for this model (must be non-empty)
+        table_names: Optional list of table names to include. If None, includes all tables.
 
     Returns:
         Formatted description of model structures with physical-first naming
@@ -338,9 +379,6 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     if not engine:
         raise ValueError("engine must be a non-empty string")
 
-    from agent_platform.core.semantic_data_model.types import VerifiedQuery
-
-    verified_queries: list[VerifiedQuery] = []
     result = []
 
     # Convert to dict to avoid mutating the input Pydantic model
@@ -359,6 +397,11 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
 
     # Tables (structural information only)
     tables = model_dict.pop("tables", [])
+
+    # Filter tables if specific names provided
+    if table_names is not None:
+        table_names_set = set(table_names)
+        tables = [t for t in tables if isinstance(t, dict) and t.get("name") in table_names_set]
     if tables:
         for table in tables:
             if not isinstance(table, dict):
@@ -411,7 +454,7 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
                     result.append(indent(_format_table_field(k, v), " "))
 
     # Pop verified_queries to remove them from the model dict (not included in summary)
-    verified_queries.extend(model_dict.pop("verified_queries", None) or ())
+    model_dict.pop("verified_queries", None)
 
     # Handle relationships - format conditionally based on feature flag
     relationships = model_dict.pop("relationships", [])
@@ -431,3 +474,37 @@ def summarize_data_model(model: SemanticDataModel, engine: str) -> str:
     result.append("")  # Empty line at the end of this summary
 
     return "\n".join(result)
+
+
+def summarize_verified_query(verified_query: VerifiedQuery) -> str:
+    """Summarize a verified query for prompt context.
+
+    Args:
+        verified_query: The verified query to summarize
+
+    Returns:
+        Formatted string with query details including SQL, NLQ, name, and parameters
+    """
+    lines = [
+        f"**Query Name:** {verified_query.name}",
+        f"**Natural Language Question:** {verified_query.nlq}",
+        f"**SQL:** {verified_query.sql}",
+    ]
+
+    # Format parameters
+    parameters = verified_query.parameters or []
+    if parameters:
+        lines.append("\n**Parameters:**")
+        for param in parameters:
+            name = param.name
+            data_type = param.data_type
+            example = param.example_value
+            description = param.description or "(no description)"
+
+            lines.append(f"- **{name}** ({data_type})")
+            lines.append(f"  - Example value: {example}")
+            lines.append(f"  - Description: {description}")
+    else:
+        lines.append("\n**Parameters:** No parameters")
+
+    return "\n".join(lines)

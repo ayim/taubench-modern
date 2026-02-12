@@ -1712,7 +1712,7 @@ def test_save_data_frame_as_validated_query_and_create_from_it(
         new_final_response, new_tool_calls = agent_client.send_message_to_agent_thread(
             agent_id,
             new_thread_id,
-            f"Please create a data frame using the verified query named '{expected_verified_query_name}'.",
+            "Please share with me the list of notable AI systems which were sampled in 2023.",
         )
 
         # Verified queries now have dynamic tool names based on the query name (slugified).

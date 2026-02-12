@@ -1508,43 +1508,62 @@ async def get_data_frame_as_validated_query(
     sql_to_use = result.parameterized_sql or full_sql_query_logical_str
     extracted_parameters = result.parameters or []
 
-    # Get semantic data model name from data frame sources
+    # Get semantic data model name and table names from data frame sources
+    from agent_platform.server.kernel.semantic_data_model import get_semantic_data_model_tables
+
     sdm_name = await get_semantic_data_model_name(data_frame, storage=base_storage, thread_id=tid)
+
+    # Validate that we have a semantic data model
+    if not sdm_name:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.BAD_REQUEST,
+            message=(
+                f"Data frame '{payload.data_frame_name}' does not have an associated "
+                "semantic data model. Only data frames created with a semantic data model "
+                "can be saved as verified queries."
+            ),
+        )
+
+    sdm_table_names = get_semantic_data_model_tables(data_frame, sdm_name)
 
     # Enrich parameter descriptions from SDM if we have parameters and an SDM
     from agent_platform.core.semantic_data_model.types import (
         QueryParameter,
     )
 
+    # Fetch SDM - this is required for validated queries
+    from agent_platform.server.semantic_data_models.utils import (
+        get_semantic_data_model_by_name,
+    )
+
+    # Fetch the semantic data model by name
+    sdm = await get_semantic_data_model_by_name(sdm_name, base_storage)
+    if not sdm:
+        raise PlatformHTTPError(
+            error_code=ErrorCode.NOT_FOUND,
+            message=(
+                f"Semantic data model '{sdm_name}' not found. "
+                f"The data frame was created with this semantic data model, "
+                f"but it no longer exists in the system."
+            ),
+        )
+
+    # Enrich parameter descriptions using the SDM
     parameters_to_use: list[QueryParameter] = []
     if extracted_parameters:
-        if sdm_name:
-            try:
-                from agent_platform.server.semantic_data_models.utils import (
-                    get_semantic_data_model_by_name,
-                )
-
-                # Fetch the semantic data model by name
-                sdm = await get_semantic_data_model_by_name(sdm_name, base_storage)
-                if sdm:
-                    # Enrich parameter descriptions using column metadata from SDM
-                    # Pass alias mapping to resolve table aliases to actual table names
-                    parameters_to_use = enrich_parameter_descriptions_from_sdm(
-                        extracted_parameters, sdm, result.alias_to_table
-                    )
-                else:
-                    logger.warning("SDM not found", sdm_name=sdm_name)
-            except Exception as e:
-                # If we can't fetch the SDM or enrich parameters, log and continue
-                # Parameters will keep their default descriptions
-                logger.warning(
-                    "Failed to enrich parameter descriptions from semantic data model",
-                    sdm_name=sdm_name,
-                    error=str(e),
-                )
-
-        # If we don't have enriched parameters yet, convert extracted params to query params
-        if not parameters_to_use:
+        try:
+            # Enrich parameter descriptions using column metadata from SDM
+            # Pass alias mapping to resolve table aliases to actual table names
+            parameters_to_use = enrich_parameter_descriptions_from_sdm(extracted_parameters, sdm, result.alias_to_table)
+        except Exception as e:
+            # If we can't enrich parameters, log and continue
+            # Parameters will keep their default descriptions
+            logger.warning(
+                "Failed to enrich parameter descriptions from semantic data model",
+                sdm_name=sdm_name,
+                error=str(e),
+            )
+            # If enrichment failed, convert extracted params to query params with default descriptions
             parameters_to_use = [
                 QueryParameter(
                     name=p.name,
@@ -1563,6 +1582,52 @@ async def get_data_frame_as_validated_query(
         sql=sql_to_use,
         parameters=parameters_to_use,
     )
+
+    # Enhance verified query metadata with LLM if query contains parameters
+    if parameters_to_use:
+        try:
+            from agent_platform.server.semantic_data_models.verified_queries.enhancer.enhancer import (
+                VerifiedQueryEnhancer,
+            )
+
+            logger.info(
+                "Enhancing verified query metadata with LLM",
+                query_name=verified_query.name,
+                sdm_name=sdm_name,
+                agent_id=data_frame.agent_id,
+            )
+
+            # Use the agent_id from the data frame for enhancement
+            enhancer = VerifiedQueryEnhancer(
+                user=user,
+                storage=storage,
+                agent_id=data_frame.agent_id,
+            )
+
+            # Extract existing query names from SDM for uniqueness validation
+            existing_query_names = [vq.name for vq in (sdm.verified_queries or []) if vq.name]
+
+            # Enhance the query (reusing the SDM fetched earlier)
+            # Pass the table names from computation_input_sources for focused context
+            verified_query = await enhancer.enhance_verified_query(
+                verified_query=verified_query,
+                sdm=sdm,
+                sdm_context_tables=sdm_table_names,
+                existing_query_names=existing_query_names,
+            )
+
+            logger.info(
+                "Verified query enhancement completed",
+                query_name=verified_query.name,
+            )
+        except Exception as e:
+            # Enhancement is optional - log but don't fail the request
+            # We catch all exceptions here to ensure the main flow continues
+            logger.warning(
+                "Failed to enhance verified query, using original",
+                error=str(e),
+                exc_info=True,
+            )
 
     return _GetAsValidatedQueryResponse(
         verified_query=verified_query,

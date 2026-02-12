@@ -1,0 +1,1 @@
+"""Verified query enhancer module."""
