@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from abc import ABC, abstractmethod
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from structlog.stdlib import get_logger
 
 from agent_platform.core.files.mime_types import DOCUMENT_MIME_TYPES
 from agent_platform.core.kernel import DocumentsInterface
+from agent_platform.core.semantic_data_model.types import SemanticDataModel
 from agent_platform.core.tools.tool_definition import ToolDefinition
 from agent_platform.server.kernel.kernel_mixin import UsesKernelMixin
 
@@ -39,7 +43,40 @@ def _format_file_size(size_bytes: int) -> str:
     return f"{size_mb:.1f} MB"
 
 
-class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
+@dataclass(frozen=True)
+class ResolvedSchema:
+    """A schema resolved and ready for use by document tools.
+
+    Unifies SDM-sourced schemas and dynamically generated schemas
+    into a single representation that extract_document can consume
+    without needing to know where the schema came from.
+    """
+
+    name: str
+    json_schema: dict[str, Any]
+    system_prompt: str = field(default="")
+    extraction_config: dict[str, Any] = field(default_factory=dict)
+    source: Literal["sdm", "generated"] = field(default="generated")
+    extraction_enabled: bool = field(default=True)
+
+
+class SchemaRegistry(ABC):
+    """Interface for schema lookup and registration."""
+
+    @abstractmethod
+    def get(self, name: str) -> ResolvedSchema:
+        """Look up a schema by name (case-insensitive). Raises KeyError if not found."""
+
+    @abstractmethod
+    def list_names(self) -> list[str]:
+        """List all available schema names (original casing)."""
+
+    @abstractmethod
+    def add(self, name: str, schema: ResolvedSchema) -> None:
+        """Register a new schema (e.g. from generate_schema)."""
+
+
+class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin, SchemaRegistry):
     """Handles interaction with documents.
 
     This interface provides document management capabilities to the agent platform,
@@ -51,6 +88,22 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
 
         self._documents: list[UploadedFile] = []
         self._document_tools: tuple[ToolDefinition, ...] = ()
+        # Not thread-safe
+        self._schemas: dict[str, ResolvedSchema] = {}
+
+    # -- SchemaRegistry implementation --
+
+    def get(self, name: str) -> ResolvedSchema:
+        """Look up a schema by name. Raises KeyError if not found."""
+        return self._schemas[name]
+
+    def list_names(self) -> list[str]:
+        """List all available schema names."""
+        return [s.name for s in self._schemas.values()]
+
+    def add(self, name: str, schema: ResolvedSchema) -> None:
+        """Register a new schema."""
+        self._schemas[name] = schema
 
     async def _has_reducto(self) -> bool:
         from agent_platform.server.storage.errors import IntegrationNotFoundError
@@ -76,7 +129,7 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         do we have the ability to use Documents rather than the choice to add
         Document tools?
         """
-        doc_int_agent_setting = self.kernel.agent.extra.get("document_intelligence", "")
+        doc_int_agent_setting = self.kernel.agent.extra.get("document_intelligence", "v2.1")
 
         if doc_int_agent_setting != "v2.1":
             logger.warning(
@@ -89,6 +142,48 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         has_reducto = await self._has_reducto()
         logger.info("Documents enabled check result", has_reducto=has_reducto)
         return has_reducto
+
+    @staticmethod
+    def _resolve_sdm_schemas(sdms: Sequence[SemanticDataModel]) -> dict[str, ResolvedSchema]:
+        """Convert SDM schema info into a dict of ResolvedSchema keyed by lowercased name."""
+        from agent_platform.core.semantic_data_model.schemas import Schema
+
+        result: dict[str, ResolvedSchema] = {}
+        for sdm in sdms:
+            if not sdm.schemas:
+                continue
+            schema: Schema
+            for schema in sdm.schemas:
+                doc_ext = schema.document_extraction
+                resolved = ResolvedSchema(
+                    name=schema.name,
+                    json_schema=schema.json_schema,
+                    system_prompt=(doc_ext.system_prompt if doc_ext and doc_ext.system_prompt else ""),
+                    extraction_config=(doc_ext.configuration if doc_ext and doc_ext.configuration else {}),
+                    source="sdm",
+                    extraction_enabled=doc_ext is not None,
+                )
+                result[schema.name] = resolved
+        return result
+
+    async def _collect_sdm_schemas(self, storage: BaseStorage) -> None:
+        """Re-fetch SDM schemas and merge with existing generated schemas.
+
+        SDM schemas are fetched fresh each step. Previously generated schemas
+        (source="generated") are preserved and take priority on name collisions.
+        """
+        sdm_infos = await storage.list_semantic_data_models(
+            agent_id=self.kernel.agent.agent_id,
+            thread_id=self.kernel.thread_state.thread_id,
+        )
+
+        # Rebuild: SDM schemas first, then overlay generated (there should be no conflicts)
+        sdm_schemas = self._resolve_sdm_schemas([sdm_info["semantic_data_model"] for sdm_info in sdm_infos])
+        generated = {k: v for k, v in self._schemas.items() if v.source == "generated"}
+        sdm_schemas.update(generated)
+
+        # Save the updated dict of Schemas (not threadsafe but we're not getting called concurrently)
+        self._schemas = sdm_schemas
 
     async def step_initialize(self, *, state: DocumentArchState, storage: BaseStorage | None = None) -> None:
         """Initialize documents for the current step.
@@ -110,7 +205,10 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
             return
 
         storage = StorageService.get_instance() if storage is None else storage
-        self._documents = await self.documents_in_context(storage)
+        self._documents = await self._documents_in_context(storage)
+
+        # Collect all schemas (SDM + previously generated)
+        await self._collect_sdm_schemas(storage)
 
         logger.info(
             "Documents found in context",
@@ -124,6 +222,7 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
             tid=self.kernel.thread_state.thread_id,
             storage=storage,
             kernel=self.kernel,
+            schema_registry=self,
         )
 
         # Register tools only if we have documents
@@ -180,8 +279,8 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         prompt = dedent("""
         ## Documents Available
         The following documents have been uploaded and are available for parsing and analysis.
-        Use the `parse_document` tool to get the content from a document.
-        Use the `generate_schema` tool to create a JSON schema from a document.
+        Use the `parse_document` tool to create a textual representation of a document.
+        Use the `generate_schema` tool to create a schema based on a document.
         Use the `extract_document` tool to extract structured data from a document using a schema.
 
         """)
@@ -189,26 +288,28 @@ class AgentServerDocumentsInterface(DocumentsInterface, UsesKernelMixin):
         prompt += "\n\n"
         prompt += dedent("""
         **Tips for working with documents:**
-        - Use `parse_document(file_name="filename.pdf")` to get the content from
-          a document. If force_reload is False, the result will pulled from cache.
+        - Use `parse_document(file_name="filename.pdf")` to summarize a document or answer
+          general questions about a document. If force_reload is False, the result will pulled from cache.
           After *each* `parse_document` call, you must respond with:
           - A short summary of what the document contains.
           - For each table found give it a title if it doesn't have one, highlight it, then describe it in one sentence.
           Make sure tables that extend to multiple pages are counted as one table.
-        - After parsing, you can create data frames from the content using
-          `create_data_frame_from_json`.
         - Use `generate_schema(file_name="filename.pdf")` to automatically generate
-          a JSON schema describing the document's structure.
+          a JSON schema describing the document's structure that can be used with `extract_document`.
           If force_reload is False, the result will pulled from cache.
-        - Use `extract_document(extraction_schema={...}, file_name="filename.pdf")` to
-          extract structured data matching your schema.
-          If the input parameters are the same, the result will pulled from cache.
+        - Use `extract_document(schema_name="My Schema", file_name="filename.pdf")` to
+          extract structured JSON data from the file using the Schema with the provided name.
+          The returned data will conform to the shape of the given Schema.
+          If force_reload is False and input parameters are the same, the result
+          will pulled from cache.
         - The content includes text, tables, figures, and document structure.
+        - After extracting, you can create data frames from the content using
+          `create_data_frame_from_json`.
         """)
 
         return prompt
 
-    async def documents_in_context(self, storage: BaseStorage | None) -> list[UploadedFile]:
+    async def _documents_in_context(self, storage: BaseStorage | None) -> list[UploadedFile]:
         from agent_platform.server.storage.option import StorageService
 
         storage = StorageService.get_instance() if storage is None else storage
@@ -247,11 +348,63 @@ class _DocumentTools:
         tid: str,
         storage: BaseStorage,
         kernel: Kernel,
+        schema_registry: SchemaRegistry,
     ):
         self._user = user
         self._tid = tid
         self._storage = storage
         self._kernel = kernel
+        self._schema_registry = schema_registry
+
+    async def _generate_schema_name(self, file_name: str) -> str:
+        """Generate a unique schema name using an LLM call + timestamp suffix.
+
+        The LLM produces a short 5-15 char descriptive name from the filename,
+        and a timestamp is appended for uniqueness.
+        """
+        import re
+        from datetime import datetime
+
+        from agent_platform.core.prompts import Prompt, PromptTextContent, PromptUserMessage
+        from agent_platform.core.responses.content import ResponseTextContent
+
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+
+        try:
+            platform, model = await self._kernel.get_platform_and_model(model_type="llm")
+            prompt = Prompt(
+                system_instruction=(
+                    "Generate a single short name (5-15 characters) for a document schema. "
+                    "Use only lowercase letters, numbers, and underscores. "
+                    "The name should describe the document type. "
+                    "Output only the name, nothing else."
+                ),
+                messages=[
+                    PromptUserMessage(
+                        content=[
+                            PromptTextContent(text=f"Filename: {file_name}"),
+                        ]
+                    ),
+                ],
+                temperature=0.2,
+                max_output_tokens=200,
+            )
+            response = await platform.generate_response(prompt, model)
+            text_parts = [
+                content.text.strip() for content in response.content if isinstance(content, ResponseTextContent)
+            ]
+            raw_name = "".join(text_parts).strip()
+            # Sanitize: keep only lowercase alphanumeric + underscores, truncate to 15 chars
+            clean_name = re.sub(r"[^a-z0-9_]", "", raw_name.lower())[:15]
+            if len(clean_name) < 3:
+                raise ValueError("LLM returned too short a name")
+            return f"{clean_name}_{timestamp}"
+        except Exception:
+            # Fallback: use filename stem
+            from pathlib import Path
+
+            stem = re.sub(r"[^a-z0-9_]", "", Path(file_name).stem.lower())[:15] or "schema"
+            return f"{stem}_{timestamp}"
 
     async def parse_document(
         self,
@@ -398,18 +551,9 @@ class _DocumentTools:
         The generated schema is automatically cached in thread storage. Subsequent calls
         with the same file_ref will return the cached result unless force_reload is True.
 
-        Args:
-            file_ref: The filename of the document to analyze
-            model_schema: Optional reference schema to guide the structure (JSON string)
-            start_page: Optional starting page for analysis (1-indexed, PDF/TIFF only)
-            end_page: Optional ending page for analysis (1-indexed, PDF/TIFF only)
-            user_prompt: Optional additional instructions for schema generation
-            force_reload: If True, bypass cache and re-generate the schema
-
         Returns:
-            The generated JSON Schema.
+            The generated JSON Schema as a dict.
         """
-        from agent_platform.core.errors.base import PlatformHTTPError
         from agent_platform.server.storage.errors import IntegrationNotFoundError
 
         try:
@@ -418,18 +562,12 @@ class _DocumentTools:
             try:
                 reducto_integration = await self._storage.get_integration_by_kind("reducto")
             except IntegrationNotFoundError:
-                return {
-                    "error_code": "reducto_not_configured",
-                    "message": ("Reducto integration is not configured. Please configure it first."),
-                }
+                raise Exception("Reducto integration is not configured. Please configure it first.") from None
 
             from agent_platform.core.integrations.settings.reducto import ReductoSettings
 
             if not isinstance(reducto_integration.settings, ReductoSettings):
-                return {
-                    "error_code": "invalid_reducto_config",
-                    "message": "Reducto integration has invalid settings",
-                }
+                raise Exception("Reducto integration has invalid settings")
 
             reducto_settings = reducto_integration.settings
 
@@ -468,35 +606,43 @@ class _DocumentTools:
                     chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
                 ),
             ) as di_service:
-                # Generate schema using DIService with automatic caching
+                import asyncio
+
                 doc = await di_service.document_v2.new_document(file_name)
-                schema = await di_service.document_v2.generate_schema(
-                    doc,
-                    force_reload=force_reload,
-                    start_page=start_page,
-                    end_page=end_page,
-                    user_prompt=user_prompt,
+
+                # Run schema generation and name generation in parallel
+                raw_schema, schema_name = await asyncio.gather(
+                    di_service.document_v2.generate_schema(
+                        doc,
+                        force_reload=force_reload,
+                        start_page=start_page,
+                        end_page=end_page,
+                        user_prompt=user_prompt,
+                    ),
+                    self._generate_schema_name(file_name),
                 )
 
-                return schema
-
-        except PlatformHTTPError as e:
-            return {
-                "error_code": str(e.response.code),
-                "message": e.response.message,
-            }
+                self._schema_registry.add(
+                    schema_name,
+                    ResolvedSchema(name=schema_name, json_schema=raw_schema, source="generated"),
+                )
+                return {"schema_name": schema_name}
         except Exception as e:
             logger.exception("Error generating schema", error=e, file_name=file_name)
-            return {
-                "error_code": "schema_generation_error",
-                "message": f"Failed to generate schema: {e!s}",
-            }
+            raise e
 
     async def extract_document(
         self,
-        extraction_schema: Annotated[
+        schema_name: Annotated[
             str,
-            "The JSONSchema as a JSON string which describes the desired extracted output from the file.",
+            """The name of the schema to use for extraction.
+
+            The schema name is either:
+            1. The schema_name returned by a previous generate_schema call
+            2. The name of a Schema in a Semantic Data Model
+
+            Do NOT pass a raw JSON schema. Use generate_schema first to get a named schema.
+            """,
         ],
         file_name: Annotated[
             str,
@@ -521,125 +667,110 @@ class _DocumentTools:
     ) -> dict[str, Any]:
         """Extract structured data from a document using a JSON Schema.
 
-        This tool extracts data from a document (PDF, DOCX, etc.) according to a provided
-        JSON Schema (as a JSON string).
+        This tool extracts data from a document (PDF, DOCX, etc.) using a schema referenced
+        by name from an SDM or from a previous generate_schema tool result.
 
         The extracted result is automatically cached in thread storage. Subsequent calls
         with the same parameters will return the cached result unless force_reload is True or the
         parameters are different.
 
-        Args:
-            extraction_schema: JSON Schema as a JSON string describing the desired output structure
-            file_ref: The filename of the document to extract from (required)
-            start_page: Optional starting page for extraction (1-indexed)
-            end_page: Optional ending page for extraction (1-indexed)
-            system_prompt: Optional system prompt to help guide extraction
-            force_reload: If True, bypass cache and re-extract the document
-
         Returns:
             A dictionary containing the extracted data matching the provided schema
         """
-        from agent_platform.core.errors.base import PlatformHTTPError
+        from sema4ai_docint import build_di_service
+        from sema4ai_docint.services.persistence import ChatFilePersistenceService
+        from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
+
+        from agent_platform.core.integrations.settings.reducto import ReductoSettings
+        from agent_platform.core.utils import SecretString
+        from agent_platform.server.document_intelligence import DirectKernelTransport
+        from agent_platform.server.file_manager import FileManagerService
         from agent_platform.server.storage.errors import IntegrationNotFoundError
 
+        if not schema_name:
+            raise ValueError("schema_name is required")
+
+        extraction_config: dict[str, Any] | None = None
+
         try:
-            # Validate and parse extraction schema
-            if not extraction_schema:
-                return {
-                    "error_code": "invalid_input",
-                    "message": "extraction_schema is required and must describe an object",
-                }
+            resolved = self._schema_registry.get(schema_name)
+        except KeyError:
+            available_names = self._schema_registry.list_names()
+            available_str = ", ".join(f"'{n}'" for n in available_names) if available_names else "none"
+            raise ValueError(
+                f"No schema named '{schema_name}' was found. "
+                f"Available schemas: {available_str}. "
+                "You can use the generate_schema tool to create a new schema from a document."
+            ) from None
 
-            import json
-
-            try:
-                schema_dict = json.loads(extraction_schema)
-            except json.JSONDecodeError as e:
-                return {
-                    "error_code": "invalid_schema",
-                    "message": f"extraction_schema is not valid JSON: {e!s}",
-                }
-
-            kernel = self._kernel
-            # Get Reducto integration configuration to extract API key
-            try:
-                reducto_integration = await self._storage.get_integration_by_kind("reducto")
-            except IntegrationNotFoundError:
-                return {
-                    "error_code": "reducto_not_configured",
-                    "message": ("Reducto integration is not configured. Please configure it first."),
-                }
-
-            from agent_platform.core.integrations.settings.reducto import ReductoSettings
-
-            if not isinstance(reducto_integration.settings, ReductoSettings):
-                return {
-                    "error_code": "invalid_reducto_config",
-                    "message": "Reducto integration has invalid settings",
-                }
-
-            reducto_settings = reducto_integration.settings
-
-            from agent_platform.core.utils import SecretString
-
-            # Extract API key
-            api_key = (
-                reducto_settings.api_key.get_secret_value()
-                if isinstance(reducto_settings.api_key, SecretString)
-                else str(reducto_settings.api_key)
+        if not resolved.extraction_enabled:
+            raise ValueError(
+                f"Schema '{resolved.name}' was found but it is not enabled for use "
+                "with Document Intelligence. Please enable document extraction on this "
+                "schema in the Semantic Data Model configuration."
             )
 
-            from agent_platform.server.document_intelligence import DirectKernelTransport
-            from agent_platform.server.file_manager import FileManagerService
+        schema = resolved.json_schema
+        if resolved.system_prompt:
+            system_prompt = resolved.system_prompt
+        if resolved.extraction_config:
+            extraction_config = resolved.extraction_config
 
-            file_manager = FileManagerService.get_instance(self._storage)
-            transport = DirectKernelTransport(
-                storage=self._storage,
-                file_manager=file_manager,
-                thread_id=kernel.thread.thread_id,
-                agent_id=kernel.agent.agent_id,
-                user_id=self._user.user_id,
-                server_context=kernel.ctx,
+        # Sanity check -- Reducto requires a top-level object or array
+        if schema.get("type") not in ("object", "array"):
+            raise ValueError("The top-level element of the JSON schema must be of type 'object' or 'array'.")
+
+        kernel = self._kernel
+
+        # Load the Reducto configuration
+        try:
+            reducto_integration = await self._storage.get_integration_by_kind("reducto")
+        except IntegrationNotFoundError:
+            raise ValueError("Reducto integration is not configured. Please configure it first.") from None
+
+        if not isinstance(reducto_integration.settings, ReductoSettings):
+            raise ValueError("Reducto integration has invalid settings")
+
+        reducto_settings = reducto_integration.settings
+
+        api_key = (
+            reducto_settings.api_key.get_secret_value()
+            if isinstance(reducto_settings.api_key, SecretString)
+            else str(reducto_settings.api_key)
+        )
+
+        file_manager = FileManagerService.get_instance(self._storage)
+        transport = DirectKernelTransport(
+            storage=self._storage,
+            file_manager=file_manager,
+            thread_id=kernel.thread.thread_id,
+            agent_id=kernel.agent.agent_id,
+            user_id=self._user.user_id,
+            server_context=kernel.ctx,
+        )
+
+        async with build_di_service(
+            datasource=None,
+            sema4_api_key=api_key,
+            agent_server_transport=transport,
+            persistence_service=ChatFilePersistenceService(
+                chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
+            ),
+        ) as di_service:
+            doc = await di_service.document_v2.new_document(file_name)
+            result = await di_service.document_v2.extract_document(
+                doc,
+                schema,
+                force_reload=force_reload,
+                extraction_config=extraction_config,
+                start_page=start_page,
+                end_page=end_page,
+                prompt=system_prompt,
             )
 
-            # Build DIService with file-based persistence (same as parse_document)
-            from sema4ai_docint import build_di_service
-            from sema4ai_docint.services.persistence import ChatFilePersistenceService
-            from sema4ai_docint.services.persistence.file import AgentServerChatFileAccessor
+            # Do not return the citations from this tool. We include them in the caching layer of
+            # DIService, but they are bloat in the context of the agent.
+            if result.citations is not None:
+                result.citations = None
 
-            async with build_di_service(
-                datasource=None,
-                sema4_api_key=api_key,
-                agent_server_transport=transport,
-                persistence_service=ChatFilePersistenceService(
-                    chat_file_accessor=AgentServerChatFileAccessor(self._tid, transport),
-                ),
-            ) as di_service:
-                # Extract using DIService with automatic caching
-                doc = await di_service.document_v2.new_document(file_name)
-                result = await di_service.document_v2.extract_document(
-                    doc,
-                    schema_dict,
-                    force_reload=force_reload,
-                    start_page=start_page,
-                    end_page=end_page,
-                    prompt=system_prompt,
-                )
-
-                return result.model_dump()
-
-        except PlatformHTTPError as e:
-            return {
-                "error_code": str(e.response.code),
-                "message": e.response.message,
-            }
-        except Exception as e:
-            logger.exception(
-                "Error extracting from document",
-                error=e,
-                file_name=file_name,
-            )
-            return {
-                "error_code": "extraction_error",
-                "message": f"Failed to extract from document: {e!s}",
-            }
+            return result.model_dump()

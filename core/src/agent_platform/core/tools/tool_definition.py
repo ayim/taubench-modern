@@ -114,6 +114,7 @@ class ToolDefinition:
             # Build the param schema
             # We'll rely on `build_param_schema` to introspect type hints & metadata
             param_schema = build_param_schema(
+                tool_name,
                 param_name,
                 type_hints[param_name] if param.annotation is not param.empty else Any,
                 allow_omitted_description=False,

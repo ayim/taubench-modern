@@ -30,6 +30,12 @@ PendingToolCall = tuple[ToolDefinition, ResponseToolUseContent]
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)
 
 
+def _is_dataclass_instance(obj: object) -> bool:
+    from dataclasses import is_dataclass
+
+    return is_dataclass(obj) and not isinstance(obj, type)
+
+
 class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
     """Manages building and execution of agent actions,
     internal tools, and CA-defined tools."""
@@ -111,6 +117,11 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     error_message = error_and_result.error
                     result_output = error_and_result.result
 
+                elif _is_dataclass_instance(result):
+                    from dataclasses import asdict
+
+                    result_output = asdict(result)
+
                 # Handles all primitive types that action servers can return
                 elif result is None or isinstance(result, str | int | float | bool):
                     logger.info(f"Result is a primitive type: {type(result)}.")
@@ -121,6 +132,7 @@ class AgentServerToolsInterface(ToolsInterface, UsesKernelMixin):
                     error_message = "Received a malformed result from the tool"
                     result_output = result
             except Exception as e:
+                logger.exception("Tool execution failed", tool=tool_def.name)
                 # httpx.ReadTimeout and similar exceptions stringify to an empty string,
                 # so provide a meaningful fallback description.
                 error_message = str(e).strip()

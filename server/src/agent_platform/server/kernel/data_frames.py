@@ -329,9 +329,8 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             # Add SQL generation tools
             if self._sql_strategy and (data_frames or previous_state == "enabled" or self._semantic_data_models):
                 sql_tools = self._sql_strategy.get_tools()
-                if sql_tools:
-                    for tool in sql_tools:
-                        data_frame_tools._data_frame_tools[tool.name] = tool
+                for tool in sql_tools:
+                    data_frame_tools._data_frame_tools[tool.name] = tool
 
             # Add dynamic tools for each verified query with uniqueness check
             if self._verified_queries:
@@ -535,6 +534,7 @@ class AgentServerDataFramesInterface(DataFramesInterface, UsesKernelMixin):
             self._semantic_data_models,
             self._data_connection_id_to_engine,
         )
+
         return summarize_data_models(models_and_engines)
 
     @property

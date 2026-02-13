@@ -151,6 +151,7 @@ def unwrap_annotated_and_optional(
 
 def build_dataclass_schema(
     cls: type[Any],
+    tool_name: str,
     annotated_description: str | None = None,
     is_nullable: bool = False,
 ) -> dict[str, Any]:
@@ -161,20 +162,25 @@ def build_dataclass_schema(
       - call build_param_schema for each
       - mark 'required' if field has no default
     """
+    import typing
     from dataclasses import fields
+
+    # Resolve stringified annotations (from `from __future__ import annotations`)
+    resolved_hints = typing.get_type_hints(cls, include_extras=True)
 
     properties: dict[str, Any] = {}
     required: list[str] = []
 
     for field in fields(cls):
         field_name = field.name
-        field_type = field.type
+        field_type = resolved_hints.get(field_name, field.type)
         # is_required if BOTH default and default_factory are missing
         if field.default is MISSING and field.default_factory is MISSING:
             # This logic might need refinement for your use case
             required.append(field_name)
 
         sub_schema = build_param_schema(
+            tool_name,
             field_name,
             field_type,
             # typically dataclass fields can skip an explicit description
@@ -200,6 +206,7 @@ def build_dataclass_schema(
 
 
 def build_param_schema(
+    tool_name: str,
     param_name: str,
     hint: Any,
     allow_omitted_description: bool = False,
@@ -220,6 +227,7 @@ def build_param_schema(
     if is_dataclass(unwrapped_type):
         return build_dataclass_schema(
             cls=cast(type[Any], unwrapped_type),
+            tool_name=tool_name,
             annotated_description=annotated_description,
             is_nullable=is_nullable,
         )
@@ -266,10 +274,10 @@ def build_param_schema(
             raise ValueError(
                 f"Parameter '{param_name}' uses a multi-type or zero-type "
                 f"tuple/list '{unwrapped_type}'. Only list[X], tuple[X, ...], "
-                "or no-arg list/tuple are supported.",
+                f"or no-arg list/tuple are supported. (tool={tool_name})",
             )
         # Build the items schema recursively
-        items_schema = build_param_schema(f"{param_name}_item", item_type, True)
+        items_schema = build_param_schema(tool_name, f"{param_name}_item", item_type, allow_omitted_description=True)
         schema = {
             "type": ["array", "null"] if is_nullable else "array",
             "items": items_schema,
@@ -312,8 +320,19 @@ def build_param_schema(
         )
         return schema
 
-    # 6) Otherwise, reject
+    # 6) If it's a dict type (dict, dict[str, Any], etc.) => JSON object
+    if unwrapped_type is dict or get_origin(unwrapped_type) is dict:
+        schema: dict[str, Any] = {"type": ["object", "null"] if is_nullable else "object"}
+        _apply_description(
+            schema,
+            annotated_description,
+            param_name,
+            allow_omitted_description,
+        )
+        return schema
+
+    # 7) Otherwise, reject
     raise ValueError(
         f"Parameter '{param_name}' has an unsupported type '{unwrapped_type}'. "
-        "Please use a dataclass, enum, list/tuple, str/int/float/bool, or None.",
+        f"Please use a dataclass, enum, list/tuple, str/int/float/bool, or None. (tool={tool_name})",
     )

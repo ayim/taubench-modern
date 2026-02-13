@@ -74,7 +74,7 @@ async def test_documents_in_context_filters_by_mime_type():
 
     mock_storage.get_thread_files = AsyncMock(return_value=[mock_pdf, mock_image, mock_json, mock_video])
 
-    documents = await interface.documents_in_context(mock_storage)
+    documents = await interface._documents_in_context(mock_storage)
 
     # Only PDF and PNG should be included
     assert len(documents) == 2

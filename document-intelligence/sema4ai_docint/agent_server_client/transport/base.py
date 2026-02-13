@@ -233,6 +233,9 @@ class TransportBase(ABC):
         Raises:
             ConnectionError: If the request fails
         """
+        # Reduce reasoning if not otherwise specified.
+        payload.setdefault("minimize_reasoning", True)
+
         response = self.request(
             path="prompts/generate",
             method="POST",

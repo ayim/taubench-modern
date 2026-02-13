@@ -501,7 +501,7 @@ class AgentServerClient:
                 ],
                 "tools": [],
                 "temperature": temperature,
-                "max_output_tokens": 10240,
+                "max_output_tokens": 4000,
             },
         }
 

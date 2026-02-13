@@ -121,11 +121,25 @@ Note: It's possible to use an url such as 'data-frame://<data_frame_name>' to ge
 
 ## Semantic Data Models (tables available to be used in the `data_frames_create_from_sql` tool):
 
+Semantic Data Models (SDM) contain metadata that describes the structure
+of tabular and hiearchical data. These SDMs contain do not contain the actual
+data but can be used to derive how to best query the underlying data sources
+or how to use other tools to create structured data from unstructured sources.
+
+Tables describe tabular data that can be queried with SQL. Tables can be derived
+from relational databases (data-connections) or from tabular files (CSV, Excel).
+
+Schemas describe hierarchical data like JSON. Some Schemas can be used for extracting
+structured data from unstructured documents (PDFs, text files, Excel files). Schemas contain
+a JSONSchema and implicitly validate JSON data as conforming to the Schema's structure.
+
+Available Semantic Data Models:
 ### Model: test_model
 SQL dialect: duckdb
 Description: Test semantic data model: test_model
 Table: test_entity
  Description: A test entity
+
 
 
 **Choose Semantic Data Model for Query**

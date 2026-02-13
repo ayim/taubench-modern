@@ -331,9 +331,6 @@ def get_semantic_data_models_with_engines(
             model_data = semantic_data_model_and_refs.semantic_data_model_info["semantic_data_model"]
             model = SemanticDataModel.model_validate(model_data)
 
-            if not model.tables:
-                continue  # No tables, so skip
-
             engine = infer_engine_for_semantic_model(
                 semantic_data_model_and_refs.references, data_connection_id_to_engine
             )
@@ -352,7 +349,23 @@ def summarize_data_models(models_and_engines: Sequence[tuple[SemanticDataModel, 
     if not models_and_engines:
         return "No semantic data models available."
 
-    return "\n".join(summarize_data_model(model, engine) for model, engine in models_and_engines)
+    summaries = [summarize_data_model(model, engine) for model, engine in models_and_engines]
+    return f"""\
+Semantic Data Models (SDM) contain metadata that describes the structure
+of tabular and hiearchical data. These SDMs contain do not contain the actual
+data but can be used to derive how to best query the underlying data sources
+or how to use other tools to create structured data from unstructured sources.
+
+Tables describe tabular data that can be queried with SQL. Tables can be derived
+from relational databases (data-connections) or from tabular files (CSV, Excel).
+
+Schemas describe hierarchical data like JSON. Some Schemas can be used for extracting
+structured data from unstructured documents (PDFs, text files, Excel files). Schemas contain
+a JSONSchema and implicitly validate JSON data as conforming to the Schema's structure.
+
+Available Semantic Data Models:
+{"\n".join(summaries)}
+"""
 
 
 def summarize_data_model(
@@ -465,6 +478,13 @@ def summarize_data_model(
         if formatted_rels:
             result.append("\n**Available Relationships:**\n")
             result.append(formatted_rels)
+
+    # Render Schema metadata (not their content)
+    model_dict.pop("schemas", None)
+    if model.schemas:
+        result.append("\n**Schemas:**\n")
+        for schema in model.schemas:
+            result.append(schema.as_prompt())
 
     # Handle what we haven't added yet (other fields)
     for k, v in model_dict.items():

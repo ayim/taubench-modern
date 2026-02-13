@@ -153,6 +153,25 @@ class Schema(BaseModel):
         description="If present, this schema can be populated via document extraction.",
     )
 
+    _AS_PROMPT_TEMPLATE = """\
+Schema Name: {{ name }}
+Description: {{ description }}
+Supports Document Extraction: {{ 'yes' if document_extraction else 'no' }}"""
+
+    def as_prompt(self) -> str:
+        """Return a human-readable string describing this schema suitable for LLM prompts."""
+        from jinja2 import Template
+
+        # We render schema metadata but specifically don't dump the entire object into the prompt
+        # Validations aren't relevant to the LLM as we expose no tools to the LLM.
+        template = Template(self._AS_PROMPT_TEMPLATE)
+        return template.render(
+            name=self.name,
+            description=self.description,
+            transformations=self.transformations,
+            document_extraction=self.document_extraction,
+        )
+
     @field_validator("name", "description", mode="before")
     @classmethod
     def strip_string_fields(cls, v: str) -> str:
