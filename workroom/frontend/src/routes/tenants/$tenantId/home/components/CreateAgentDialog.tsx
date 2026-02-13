@@ -12,10 +12,10 @@ import { DEFAULT_NEW_AGENT_RUNBOOK } from '~/lib/constants';
 import { useAgentsQuery, useDeployAgentMutation } from '~/queries/agents';
 import { useTenantContext } from '~/lib/tenantContext';
 
+import { GlobalConfigType, useGlobalConfig } from '~/hooks/useGlobalConfig';
 import { AgentUploadForm } from './AgentUploadForm';
 import { AgentName } from './components/AgentName';
 import { CreateAgentFormSchema } from './components/context';
-import { LLM } from './components/LLM';
 
 type Props = {
   setAgentPackageUploadData: (data: {
@@ -32,6 +32,7 @@ export const CreateAgentDialog: FC<Props> = ({ setAgentPackageUploadData }) => {
   const { addSnackbar } = useSnackbar();
   const navigate = useNavigate();
   const { data: agents, isLoading: isLoadingAgents } = useAgentsQuery({});
+  const defaultLLMPlatformId = useGlobalConfig(GlobalConfigType.defaultLLMPlatformId);
 
   const form = useForm<CreateAgentFormSchema>({
     resolver: zodResolver(CreateAgentFormSchema),
@@ -46,11 +47,11 @@ export const CreateAgentDialog: FC<Props> = ({ setAgentPackageUploadData }) => {
     if (agents && open) {
       form.reset({
         name: generateUniqueName(agents.map((agent) => agent.name)),
-        llmId: '',
+        llmId: defaultLLMPlatformId,
         mode: 'conversational',
       });
     }
-  }, [agents, open]);
+  }, [agents, defaultLLMPlatformId, open]);
 
   const { watch, setValue } = form;
   const { mode } = watch();
@@ -98,9 +99,16 @@ export const CreateAgentDialog: FC<Props> = ({ setAgentPackageUploadData }) => {
 
   return (
     <>
-      <Button icon={IconPlus} round onClick={() => setOpen(true)}>
+      <Button
+        icon={IconPlus}
+        round
+        onClick={() => setOpen(true)}
+        disabled={!defaultLLMPlatformId}
+        disabledTooltip="No default LLM platform configured"
+      >
         Agent
       </Button>
+
       <Dialog open={open} onClose={() => setOpen(false)} width={980}>
         <Form onSubmit={onSubmit} busy={isDeployingAgent}>
           <FormProvider {...form}>
@@ -110,7 +118,6 @@ export const CreateAgentDialog: FC<Props> = ({ setAgentPackageUploadData }) => {
             <Dialog.Content>
               <Form.Fieldset>
                 <AgentName />
-                <LLM />
               </Form.Fieldset>
 
               <Typography fontWeight="medium" mb="$8">

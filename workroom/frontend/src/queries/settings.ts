@@ -9,10 +9,16 @@ export const getGetConfigQueryKey = () => ['config'];
 export const getGetConfigQueryOptions = createSparQueryOptions()(({ agentAPIClient }) => ({
   queryKey: getGetConfigQueryKey(),
   queryFn: async () => {
-    return agentAPIClient.agentFetch('get', '/api/v2/config/', {
+    const result = await agentAPIClient.agentFetch('get', '/api/v2/config/', {
       params: {},
       errorMsg: 'Config Not Found',
     });
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    return result.data;
   },
 }));
 

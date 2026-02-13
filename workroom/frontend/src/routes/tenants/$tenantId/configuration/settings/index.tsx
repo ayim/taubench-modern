@@ -28,11 +28,7 @@ export const Route = createFileRoute('/tenants/$tenantId/configuration/settings/
       }),
     );
 
-    if (!config.success) {
-      throw new Error(config.message);
-    }
-
-    return { config: config.data };
+    return { config };
   },
   component: Settings,
 });

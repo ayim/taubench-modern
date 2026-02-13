@@ -77,6 +77,7 @@ export const SchemaForm: FC<Props> = ({ initialSchema, schemaIndex, onFormDataCh
         const result = await validateSchema({ json_schema: parsed });
         setValidationErrors(result.errors || []);
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Schema validation request failed:', error);
       } finally {
         setIsValidating(false);

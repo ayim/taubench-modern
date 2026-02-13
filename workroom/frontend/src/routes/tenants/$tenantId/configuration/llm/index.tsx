@@ -7,7 +7,8 @@ import { LLMsTable, LLMTableItem } from '~/components/platforms/llms/components/
 import { type ListPlatformsResponse, useDeleteLLMMutation } from '~/queries/platforms';
 import { getAllowedModelFromPlatform } from '~/lib/utils';
 import { usePlatformsQuery } from '~/queries/llms';
-import { useConfigQuery, useSetDefaultLLMMutation } from '~/queries/settings';
+import { useSetDefaultLLMMutation } from '~/queries/settings';
+import { useGlobalConfig, GlobalConfigType } from '~/hooks/useGlobalConfig';
 
 export const Route = createFileRoute('/tenants/$tenantId/configuration/llm/')({
   component: RouteComponent,
@@ -23,13 +24,7 @@ function RouteComponent() {
 
   const deleteMutation = useDeleteLLMMutation();
   const { data } = usePlatformsQuery({});
-  const { data: configData } = useConfigQuery({});
-
-  const defaultPlatformId = useMemo(() => {
-    if (!configData || !configData.success) return '';
-    const entry = configData.data.find((c) => c.config_type === 'DEFAULT_LLM_PLATFORM_PARAMS_ID');
-    return entry?.config_value ?? '';
-  }, [configData]);
+  const defaultLLMPlatformId = useGlobalConfig(GlobalConfigType.defaultLLMPlatformId);
 
   const setDefaultMutation = useSetDefaultLLMMutation();
   const setDefaultMutateRef = useRef(setDefaultMutation.mutate);
@@ -51,9 +46,9 @@ function RouteComponent() {
   // Auto-select first LLM as default if none is set or stored value is stale
   const autoSelectRan = useRef(false);
   useEffect(() => {
-    if (autoSelectRan.current || items.length === 0 || configData === undefined) return;
+    if (autoSelectRan.current || items.length === 0) return;
 
-    const matchesExisting = items.some((item) => item.id === defaultPlatformId);
+    const matchesExisting = items.some((item) => item.id === defaultLLMPlatformId);
 
     if (!matchesExisting) {
       autoSelectRan.current = true;
@@ -61,7 +56,7 @@ function RouteComponent() {
 
       setDefaultMutateRef.current(firstItem.id, {
         onSuccess: () => {
-          if (defaultPlatformId) {
+          if (defaultLLMPlatformId) {
             addSnackbar({
               message: `The previous default LLM is no longer available. ${firstItem.name} has been set as the new default.`,
               variant: 'default',
@@ -70,7 +65,7 @@ function RouteComponent() {
         },
       });
     }
-  }, [items, defaultPlatformId, configData, addSnackbar]);
+  }, [items, defaultLLMPlatformId, addSnackbar]);
 
   const handleSetDefault = useCallback(
     (item: LLMTableItem) => {
@@ -119,7 +114,7 @@ function RouteComponent() {
     <>
       <LLMsTable
         items={items}
-        defaultPlatformId={defaultPlatformId}
+        defaultPlatformId={defaultLLMPlatformId}
         onSetDefault={handleSetDefault}
         onCreate={() => navigate({ to: '/tenants/$tenantId/configuration/llm/new', params: { tenantId } })}
         onEdit={(i) =>
