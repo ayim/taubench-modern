@@ -1,6 +1,6 @@
 import { Box, Button, Typography } from '@sema4ai/components';
 import { IconCloseSmall, IconDbSchema, IconPencil } from '@sema4ai/icons';
-import { FC } from 'react';
+import { FC, KeyboardEvent } from 'react';
 
 import { SchemaFormItem } from '../../form';
 
@@ -14,6 +14,13 @@ export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema, onEditSchema })
   if (schemas.length === 0) {
     return null;
   }
+
+  const handleRowKeyDown = (e: KeyboardEvent, index: number) => {
+    if (onEditSchema && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onEditSchema(index);
+    }
+  };
 
   return (
     <Box py="$24">
@@ -32,7 +39,10 @@ export const SchemaList: FC<Props> = ({ schemas, onRemoveSchema, onEditSchema })
             backgroundColor="background.panels"
             p="$8"
             onClick={onEditSchema ? () => onEditSchema(index) : undefined}
-            as={onEditSchema ? 'button' : 'div'}
+            style={onEditSchema ? { cursor: 'pointer' } : undefined}
+            role={onEditSchema ? 'button' : undefined}
+            tabIndex={onEditSchema ? 0 : undefined}
+            onKeyDown={onEditSchema ? (e: KeyboardEvent) => handleRowKeyDown(e, index) : undefined}
           >
             <Box flex="1" display="flex" alignItems="center" gap="$8" px="$8">
               <IconDbSchema />

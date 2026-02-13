@@ -560,6 +560,34 @@ configuration/api-keys/$id.tsx
 - Cancel: `variant="secondary"`
 - Delete/destructive actions: `variant="destructive"`
 
+### HTML Semantics & Accessibility
+
+**Never nest interactive elements.** A `<button>`, `<a>`, or element with `as="button"` must not contain other buttons, links, or form controls. Browsers handle nested interactive elements unpredictably — `stopPropagation` does not reliably prevent the outer element from activating.
+
+When a clickable container needs inner action buttons, use a `<div>` with `role="button"`, `tabIndex={0}`, an `onClick` handler, and a `onKeyDown` handler for Enter/Space:
+
+```typescript
+// Bad - nested interactive elements
+<Box as="button" onClick={handleEdit}>
+  <Typography>{name}</Typography>
+  <Button icon={IconTrash} onClick={(e) => { e.stopPropagation(); handleDelete(); }} />
+</Box>
+
+// Good - div with ARIA role, inner buttons use stopPropagation
+<Box
+  role="button"
+  tabIndex={0}
+  onClick={handleEdit}
+  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleEdit(); } }}
+  style={{ cursor: 'pointer' }}
+>
+  <Typography>{name}</Typography>
+  <Button icon={IconTrash} onClick={(e) => { e.stopPropagation(); handleDelete(); }} />
+</Box>
+```
+
+For simple cases with no inner actions, `as="button"` on `Box`/`Card` is fine.
+
 ### Styling
 
 Use theme tokens over hardcoded values: `theme.colors.*`, `theme.fonts.*` instead of `#1a1a1a`, `monospace`.
