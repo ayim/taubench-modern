@@ -3,6 +3,7 @@ import { IconPlusSmall } from '@sema4ai/icons';
 import { ReactNode, useState } from 'react';
 import { useParams } from '@tanstack/react-router';
 
+import { UserRole, useUserRole } from '~/hooks/useUserRole';
 import { useAgentSemanticDataQuery, useAgentSemanticDataValidationQuery } from '~/queries/semanticData';
 import { useFeatureFlag, FeatureFlag } from '../../../../hooks';
 import { SemanticDataConfiguration } from '../../../SemanticData/SemanticDataConfiguration';
@@ -22,7 +23,7 @@ export const SemanticData = ({ titleBadge }: Props) => {
   const { data: semanticDataModelsWithValidation } = useAgentSemanticDataValidationQuery({ agentId, threadId });
   const { enabled: isSemanticDataModelsAvailable } = useFeatureFlag(FeatureFlag.semanticDataModels);
   const { enabled: isChatInteractive } = useFeatureFlag(FeatureFlag.agentChatInput);
-  const { enabled: canCreateAgents } = useFeatureFlag(FeatureFlag.canCreateAgents);
+  const hasAdminRole = useUserRole(UserRole.Admin);
 
   const semanticDataModels = semanticDataModelsWithValidation || semanticDataModelsWithoutValidation;
 
@@ -34,7 +35,7 @@ export const SemanticData = ({ titleBadge }: Props) => {
     return null;
   }
 
-  if (!canCreateAgents && (!semanticDataModels || semanticDataModels.length === 0)) {
+  if (!hasAdminRole && (!semanticDataModels || semanticDataModels.length === 0)) {
     return null;
   }
 
@@ -42,12 +43,12 @@ export const SemanticData = ({ titleBadge }: Props) => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb="$4">
         <Box display="flex" alignItems="center" gap="$4">
-          <Typography variant="body-medium" fontWeight="bold">
+          <Typography variant="body-medium" fontWeight="medium">
             Semantic Data Models
           </Typography>
           {titleBadge || null}
         </Box>
-        {canCreateAgents && (
+        {hasAdminRole && (
           <Button
             disabled={!isChatInteractive}
             onClick={onToggleEditModel}

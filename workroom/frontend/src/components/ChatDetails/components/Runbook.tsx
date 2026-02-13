@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useFormContext } from 'react-hook-form';
-import { Box, Button, Label, Progress } from '@sema4ai/components';
+import { Box, Button, Progress, Typography } from '@sema4ai/components';
 import { IconShare } from '@sema4ai/icons';
 import { useParams } from '@tanstack/react-router';
 
 import { useAgentDetailsQuery } from '~/queries/agents';
 import { RunbookDialog } from '~/components/RunbookEditor';
-import { FeatureFlag, useFeatureFlag } from '~/hooks/useFeatureFlag';
-import { AgentDetailsSchema } from './context';
+import { useUserRole, UserRole } from '~/hooks/useUserRole';
+import { useAgentDetailsContext } from './context';
 
 export const Runbook = () => {
   const { agentId = '' } = useParams({ strict: false });
   const [isRunbookDialogOpen, setIsRunbookDialogOpen] = useState(false);
-  const { enabled: canConfigureAgents } = useFeatureFlag(FeatureFlag.canConfigureAgents);
-  const { setValue } = useFormContext<AgentDetailsSchema>();
+  const hasAdminRole = useUserRole(UserRole.Admin);
+  const { updateAgent } = useAgentDetailsContext();
   const { data, isLoading } = useAgentDetailsQuery({ agentId });
   const [runbook, setRunbook] = useState<string | undefined>('');
 
@@ -27,12 +26,12 @@ export const Runbook = () => {
     setIsRunbookDialogOpen(true);
   };
 
-  const onCloseRunbookDialog = (value?: string) => {
+  const onCloseRunbookDialog = async (value?: string) => {
     setIsRunbookDialogOpen(false);
 
-    if (value) {
+    if (value && value !== runbook) {
       setRunbook(value);
-      setValue('runbook', value, { shouldDirty: true });
+      updateAgent({ runbook: value });
     }
   };
 
@@ -42,14 +41,14 @@ export const Runbook = () => {
 
   return (
     <Box display="flex" flexDirection="column" gap="$8">
-      <Label>Runbook</Label>
+      <Typography fontWeight="medium">Runbook</Typography>
       <Box>
         <Button disabled={isLoading} iconAfter={IconShare} variant="outline" onClick={onOpenRunbookDialog} round>
-          {canConfigureAgents ? 'Edit Runbook' : 'View Runbook'}
+          {hasAdminRole ? 'Edit Runbook' : 'View Runbook'}
         </Button>
       </Box>
       {isRunbookDialogOpen && runbook && (
-        <RunbookDialog readOnly={!canConfigureAgents} onClose={onCloseRunbookDialog} value={runbook} />
+        <RunbookDialog readOnly={!hasAdminRole} onClose={onCloseRunbookDialog} value={runbook} />
       )}
     </Box>
   );

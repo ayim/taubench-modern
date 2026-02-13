@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ConversationGuidesView } from '~/components/ConversationGuides/components/View/View';
+
+import { ConversationGuides } from '~/components/ConversationGuides';
 import { Sidebar } from '~/components/Sidebar';
 
 export const Route = createFileRoute('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides/')({
@@ -11,7 +12,7 @@ function RouteComponent() {
 
   return (
     <Sidebar name="thread-sidebar">
-      <ConversationGuidesView agentId={agentId} editMode="readOnly" />
+      <ConversationGuides agentId={agentId} />
     </Sidebar>
   );
 }

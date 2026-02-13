@@ -1,15 +1,12 @@
-/* eslint-disable camelcase */
 import { useMemo } from 'react';
-import { useFormContext } from 'react-hook-form';
 import { Select } from '@sema4ai/components';
 
 import { useAgentArchitecturesQuery } from '~/queries/agents';
-import { AgentDetailsSchema } from './context';
+import { useAgentDetailsContext } from './context';
 
 export const Architecture = () => {
   const { data: architectures, isLoading } = useAgentArchitecturesQuery({});
-  const { watch, setValue } = useFormContext<AgentDetailsSchema>();
-  const { agent_architecture } = watch();
+  const { agent, updateAgent } = useAgentDetailsContext();
 
   const items = useMemo(() => {
     return (
@@ -24,13 +21,13 @@ export const Architecture = () => {
   const onChange = (value: string) => {
     const architecture = architectures?.find((curr) => curr.name === value);
     if (architecture) {
-      setValue('agent_architecture', { name: architecture.name, version: architecture.version }, { shouldDirty: true });
+      updateAgent({ agent_architecture: { name: architecture.name, version: architecture.version } });
     }
   };
 
   return (
     <Select
-      value={agent_architecture?.name}
+      value={agent.agent_architecture?.name}
       items={items}
       disabled={isLoading}
       label="Architecture"

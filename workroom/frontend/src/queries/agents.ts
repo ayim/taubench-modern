@@ -1,11 +1,10 @@
-import { Agent } from '@sema4ai/agent-server-interface';
+import { Agent, components } from '@sema4ai/agent-server-interface';
 
 import { createSparQueryOptions, createSparQuery, createSparMutation, QueryError, ResourceType } from './shared';
 import { AgentPackageInspectionResponse } from './agentPackageInspection';
 import { agentPackageSecretsToHeaderEntries } from '../utils/actionPackages';
 import { AgentDeploymentFormSchema } from '../components/AgentDeploymentForm/context';
 import { formHeadersToApiHeaders } from '../components/MCPServers/schemas/mcpFormSchema';
-import { AgentDetailsSchema } from '../components/ChatDetails/components/context';
 
 /**
  * List Agents query
@@ -54,7 +53,11 @@ export const agentQueryOptions = createSparQueryOptions<{ agentId: string }>()((
       });
     }
 
-    return response.data;
+    return {
+      ...response.data,
+      platform_params_ids: response.data.platform_params_ids ?? [],
+      mcp_server_ids: response.data.mcp_server_ids ?? [],
+    };
   },
 }));
 
@@ -160,33 +163,67 @@ export const searchAgentsByMetadataQueryOptions = createSparQueryOptions<{ metad
 
 export const useSearchAgentsByMetadataQuery = createSparQuery(searchAgentsByMetadataQueryOptions);
 
+type DocIntelligence = 'v2' | 'v2.1' | null;
+
 /**
  * Update Agent mutation
  */
-export const useUpdateAgentMutation = createSparMutation<{ agentId: string }, { payload: AgentDetailsSchema }>()(
-  ({ agentAPIClient, queryClient, agentId }) => ({
-    mutationFn: async ({ payload }) => {
-      const response = await agentAPIClient.agentFetch('put', '/api/v2/agents/{aid}', {
-        params: { path: { aid: agentId } },
-        body: payload,
+export const useUpdateAgentMutation = createSparMutation<
+  { agentId: string },
+  { payload: Partial<components['schemas']['UpsertAgentPayload']> }
+>()(({ agentAPIClient, queryClient, agentId }) => ({
+  mutationFn: async ({ payload }) => {
+    const agentResponse = await agentAPIClient.agentFetch('get', '/api/v2/agents/{aid}', {
+      params: { path: { aid: agentId } },
+    });
+
+    if (!agentResponse.success) {
+      throw new QueryError(agentResponse.message || 'Failed to fetch agent', {
+        code: agentResponse.code,
+        resource: ResourceType.Agent,
       });
+    }
 
-      if (!response.success) {
-        throw new QueryError(response.message || 'Failed to update agent', {
-          code: response.code,
-          resource: ResourceType.Agent,
-        });
-      }
+    const agent = agentResponse.data;
 
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: agentsQueryKey() });
-      queryClient.invalidateQueries({ queryKey: agentQueryKey(agentId) });
-      queryClient.invalidateQueries({ queryKey: agentDetailsQueryKey(agentId) });
-    },
-  }),
-);
+    const body = {
+      name: payload.name ?? agent.name,
+      version: payload.version ?? agent.version,
+      description: payload.description ?? agent.description,
+      public: payload.public ?? agent.public,
+      mode: payload.mode ?? agent.mode,
+      agent_architecture: payload.agent_architecture ?? agent.agent_architecture,
+      platform_params_ids: payload.platform_params_ids ?? agent.platform_params_ids ?? [],
+      mcp_server_ids: payload.mcp_server_ids ?? agent.mcp_server_ids ?? [],
+      document_intelligence:
+        payload.extra?.document_intelligence !== undefined
+          ? (payload.extra?.document_intelligence as DocIntelligence)
+          : ((agent.extra?.document_intelligence as DocIntelligence) ?? null),
+      question_groups: payload.question_groups ?? agent.question_groups ?? [],
+      runbook: payload.runbook,
+      extra: { ...agent.extra, ...payload.extra },
+    };
+
+    const response = await agentAPIClient.agentFetch('put', '/api/v2/agents/{aid}', {
+      params: { path: { aid: agentId } },
+      body,
+    });
+
+    if (!response.success) {
+      throw new QueryError(response.message || 'Failed to update agent', {
+        code: response.code,
+        resource: ResourceType.Agent,
+      });
+    }
+
+    return response.data;
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: agentsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: agentQueryKey(agentId) });
+    queryClient.invalidateQueries({ queryKey: agentDetailsQueryKey(agentId) });
+  },
+}));
 /**
  * Delete Agent OAuth provider connection
  */

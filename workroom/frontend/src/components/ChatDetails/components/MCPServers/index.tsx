@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react';
-import { useFormContext } from 'react-hook-form';
 import { Box, Button, Divider, Tooltip, Typography } from '@sema4ai/components';
 import { IconMcp, IconPlusSmall, IconStatusError } from '@sema4ai/icons';
 import { AgentCard } from '@sema4ai/layouts';
 import { useParams } from '@tanstack/react-router';
 
 import { useMcpServersQuery } from '~/queries/mcpServers';
-import { FeatureFlag, useFeatureFlag } from '~/hooks';
+import { UserRole, useUserRole } from '~/hooks/useUserRole';
 import { useAgentDetailsQuery } from '~/queries/agents';
-import { ConfigurationDialog } from './components/ConfigurationDialog';
 
-import { AgentDetailsSchema } from '../context';
+import { ConfigurationDialog } from './components/ConfigurationDialog';
+import { useAgentDetailsContext } from '../context';
 
 type MCPServer = NonNullable<ReturnType<typeof useAgentDetailsQuery>['data']>['mcp_servers'][number];
 
@@ -43,11 +42,11 @@ export const MCPServers = () => {
   const { agentId = '' } = useParams({ strict: false });
   const { data: agentDetails } = useAgentDetailsQuery({ agentId });
   const { data: allMCPServers = [] } = useMcpServersQuery({});
-  const { enabled: canConfigureAgents } = useFeatureFlag(FeatureFlag.canConfigureAgents);
+  const hasAdminRole = useUserRole(UserRole.Admin);
   const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
-  const { watch } = useFormContext<AgentDetailsSchema>();
+  const { agent } = useAgentDetailsContext();
 
-  const activeMCPServerIds = watch('mcp_server_ids');
+  const activeMCPServerIds = agent.mcp_server_ids;
 
   const mcpServers = useMemo(() => {
     if ((!agentDetails && !allMCPServers) || !activeMCPServerIds) {
@@ -74,7 +73,7 @@ export const MCPServers = () => {
       .sort((a, b) => (a.status === 'online' ? -1 : 1) - (b.status === 'online' ? -1 : 1));
   }, [allMCPServers, activeMCPServerIds, agentDetails]);
 
-  if (!canConfigureAgents && mcpServers.length === 0) {
+  if (!hasAdminRole && mcpServers.length === 0) {
     return null;
   }
 
@@ -83,11 +82,11 @@ export const MCPServers = () => {
       <Box display="flex" flexDirection="column">
         <Box display="flex" justifyContent="space-between" alignItems="center" mb="$4">
           <Box display="flex" alignItems="center" gap="$4">
-            <Typography variant="body-medium" fontWeight="bold">
+            <Typography variant="body-medium" fontWeight="medium">
               MCP Servers
             </Typography>
           </Box>
-          {canConfigureAgents && (
+          {hasAdminRole && (
             <Button
               variant="outline"
               size="small"

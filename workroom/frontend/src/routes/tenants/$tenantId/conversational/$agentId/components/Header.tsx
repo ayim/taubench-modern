@@ -36,19 +36,17 @@ export const Header = () => {
     <ThreadHeader>
       {!isMobile && (
         <>
-          {agent.question_groups && agent.question_groups.length > 0 && (
-            <Tooltip text="Conversation Guides" placement="bottom">
-              <RouterSideNavigationLink
-                icon={<IconMap />}
-                round
-                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides', {
-                  tenantId,
-                  agentId,
-                  threadId,
-                })}
-              />
-            </Tooltip>
-          )}
+          <Tooltip text="Conversation Guides" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconMap />}
+              round
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
+            />
+          </Tooltip>
 
           {features.agentEvals.enabled && (
             <Tooltip text="Evaluations" placement="bottom">
@@ -140,19 +138,17 @@ export const Header = () => {
           >
             Data Frames
           </RouterMenuLink>
-          {agent.question_groups && agent.question_groups.length > 0 && (
-            <Tooltip text="Conversation Guides" placement="bottom">
-              <RouterSideNavigationLink
-                icon={<IconMap />}
-                round
-                {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides', {
-                  tenantId,
-                  agentId,
-                  threadId,
-                })}
-              />
-            </Tooltip>
-          )}
+          <Tooltip text="Conversation Guides" placement="bottom">
+            <RouterSideNavigationLink
+              icon={<IconMap />}
+              round
+              {...resolveLink('/tenants/$tenantId/conversational/$agentId/$threadId/conversation-guides', {
+                tenantId,
+                agentId,
+                threadId,
+              })}
+            />
+          </Tooltip>
           {features.agentEvals.enabled && (
             <RouterMenuLink
               icon={IconChemicalBottle}

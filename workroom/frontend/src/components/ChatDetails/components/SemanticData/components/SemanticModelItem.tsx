@@ -13,9 +13,10 @@ import {
   useExportSemanticDataModelQuery,
   useUpdateSemanticDataModelMutation,
 } from '~/queries/semanticData';
+import { UserRole, useUserRole } from '~/hooks/useUserRole';
 import { RenameDialog } from '~/components/dialogs/RenameDialog';
 import { SemanticDataConfiguration } from '../../../../SemanticData/SemanticDataConfiguration';
-import { useFeatureFlag, FeatureFlag, useMessageStream } from '../../../../../hooks';
+import { useMessageStream } from '../../../../../hooks';
 import { downloadFile } from '../../../../../lib/utils';
 import {
   parseSemanticModelErrors,
@@ -58,8 +59,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
   const { mutateAsync: exportSemanticDataModel } = useExportSemanticDataModelQuery({});
   const { addSnackbar } = useSnackbar();
   const { sendMessage } = useMessageStream({ agentId, threadId });
-  const { enabled: canConfigureAgents } = useFeatureFlag(FeatureFlag.canConfigureAgents);
-  const { enabled: canCreateAgents } = useFeatureFlag(FeatureFlag.canCreateAgents);
+  const hasAdminRole = useUserRole(UserRole.Admin);
   const [initialStep, setInitialStep] = useState<ConfigurationStep | undefined>(undefined);
 
   // Determine data source info for analytics
@@ -164,7 +164,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
       return {
         level: 'error' as const,
         title: 'Connection Failed',
-        description: `Unable to connect to the data source. ${canConfigureAgents ? 'Please check your configuration settings.' : 'Please contact your admin to update the connection details.'}`,
+        description: `Unable to connect to the data source. ${hasAdminRole ? 'Please check your configuration settings.' : 'Please contact your admin to update the connection details.'}`,
       };
     }
 
@@ -193,7 +193,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
             placement="top"
             error={connectionError}
             action={
-              canConfigureAgents && (
+              hasAdminRole && (
                 <Button flex={1} round onClick={onToggleEditModelDataConnection}>
                   Configure Connection
                 </Button>
@@ -219,7 +219,7 @@ export const SemanticModelItem: FC<Props> = ({ model }) => {
           />
         )}
       </Box>
-      {canCreateAgents && (
+      {hasAdminRole && (
         <Menu trigger={<Button variant="outline" size="small" icon={IconDotsHorizontal} round aria-label="Actions" />}>
           <Menu.Item onClick={onToggleEditModel}>View</Menu.Item>
           <Menu.Item onClick={onToggleEditModel}>Edit</Menu.Item>

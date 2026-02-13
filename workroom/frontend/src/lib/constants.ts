@@ -5,6 +5,8 @@ export const EXTERNAL_LINKS = {
   NAMED_QUERIES: 'https://sema4.ai/docs/ent-edition/named-queries',
   SEMANTIC_DATA_MODELS: 'https://sema4.ai/docs/solutions/semantic-data',
   AGENT_DEPLOYMENT_GUIDE: 'https://sema4.ai/docs/work-with-agents/intro-to-work-room',
+  DOCUMENT_INTELLIGENCE: 'https://sema4.ai/docs/solutions/document-intelligence',
+  DATA_FRAMES: 'https://sema4.ai/docs/solutions/data-frames',
 };
 
 export const NEW_CHAT_STARTING_MSG = 'Hi! How can I help you today?';

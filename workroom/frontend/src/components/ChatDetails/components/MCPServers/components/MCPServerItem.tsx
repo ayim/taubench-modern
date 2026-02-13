@@ -13,7 +13,7 @@ import { styled } from '@sema4ai/theme';
 
 import { useMcpServerCapabilitiesQuery, useMcpServersQuery } from '~/queries/mcpServers';
 import { useFormContext } from 'react-hook-form';
-import { AgentDetailsSchema } from '../../context';
+import { MCPConfigurationSchema } from './context';
 
 type Props = {
   mcpServer: NonNullable<ReturnType<typeof useMcpServersQuery>['data']>[number];
@@ -30,7 +30,7 @@ export const MCPServerItem: FC<Props> = ({ mcpServer }) => {
     { enabled: isOpen },
   );
 
-  const { watch, setValue } = useFormContext<AgentDetailsSchema>();
+  const { watch, setValue } = useFormContext<MCPConfigurationSchema>();
   const selectedMCPServerIds = watch('mcp_server_ids');
 
   const active = selectedMCPServerIds?.includes(mcpServer.mcp_server_id);

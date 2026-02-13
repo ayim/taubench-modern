@@ -1,80 +1,52 @@
-import { Box, Button, Progress, useSnackbar } from '@sema4ai/components';
-import { FC, useEffect } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm } from 'react-hook-form';
-import { styled } from '@sema4ai/theme';
+import { FC, useMemo } from 'react';
+import { Box, Progress, useSnackbar } from '@sema4ai/components';
+import { components } from '@sema4ai/agent-server-interface';
 
 import { Accordion } from '~/components/Accordion';
 import { useAgentQuery, useUpdateAgentMutation } from '~/queries/agents';
-import { useFeatureFlag, FeatureFlag } from '~/hooks';
+import { UserRole, useUserRole } from '~/hooks/useUserRole';
 
-import { AgentDetailsSchema, getDefaultValues } from './components/context';
 import { AgentName } from './components/AgentName';
-import { AgentVersion } from './components/AgentVersion';
 import { ConversationStarter } from './components/ConversationStarter';
 import { LLM } from './components/LLM';
 import { MCPServers } from './components/MCPServers';
 import { Runbook } from './components/Runbook';
 import { SemanticData } from './components/SemanticData';
-
-const Actions = styled.div`
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  gap: ${({ theme }) => theme.space.$8};
-  justify-content: flex-start;
-  flex-direction: row-reverse;
-  background: ${({ theme }) => theme.colors.background.primary.color};
-  padding: ${({ theme }) => theme.space.$24};
-  margin-top: ${({ theme }) => theme.space.$40};
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  height: 100%;
-  overflow-y: auto;
-`;
+import { AgentDetailsContext } from './components/context';
+import { Endpoints } from './components/Endpoints';
+import { DocumentIntelligence } from './components/DocumentIntelligence';
+import { DataFrames } from './components/DataFrames';
 
 export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   const { addSnackbar } = useSnackbar();
-  const { enabled: isAgentDetailsEnabled } = useFeatureFlag(FeatureFlag.agentDetails);
-  const { enabled: canConfigureAgents } = useFeatureFlag(FeatureFlag.canConfigureAgents);
-  const { mutateAsync: updateAgent, isPending: isUpdatingAgent } = useUpdateAgentMutation({ agentId });
+  const hasAdminRole = useUserRole(UserRole.Admin);
   const { data: agent, isLoading: isAgentLoading } = useAgentQuery({ agentId });
+  const { mutateAsync: updateAgent, isPending: isUpdatingAgent } = useUpdateAgentMutation({ agentId });
 
-  const agentDetailsForm = useForm<AgentDetailsSchema>({
-    resolver: zodResolver(AgentDetailsSchema),
-  });
+  const agentDetailsContextValue = useMemo(
+    () =>
+      agent
+        ? {
+            agent,
+            updateAgent: async (payload: Partial<components['schemas']['UpsertAgentPayload']>) => {
+              await updateAgent(
+                { payload },
+                {
+                  onSuccess: () => {
+                    addSnackbar({ message: 'Agent updated successfully', variant: 'success' });
+                  },
+                  onError: (error) => {
+                    addSnackbar({ message: error.message, variant: 'danger' });
+                  },
+                },
+              );
+            },
+          }
+        : null,
+    [agent],
+  );
 
-  const {
-    formState: { isDirty: isFormChanged },
-  } = agentDetailsForm;
-
-  useEffect(() => {
-    if (agent) {
-      agentDetailsForm.reset(getDefaultValues(agent));
-    }
-  }, [agent]);
-
-  const onSubmit = agentDetailsForm.handleSubmit(async (data) => {
-    await updateAgent(
-      { payload: data },
-      {
-        onSuccess: () => {
-          addSnackbar({ message: 'Agent updated successfully', variant: 'success' });
-        },
-        onError: (error) => {
-          addSnackbar({ message: error.message, variant: 'danger' });
-        },
-      },
-    );
-  });
-
-  if (!isAgentDetailsEnabled) return null;
-
-  if (isAgentLoading || !agent) {
+  if (isAgentLoading || !agent || !agentDetailsContextValue) {
     return (
       <Box display="flex" height="100%" justifyContent="center" alignItems="center">
         <Progress />
@@ -83,33 +55,29 @@ export const ChatDetails: FC<{ agentId: string }> = ({ agentId }) => {
   }
 
   return (
-    <FormProvider {...agentDetailsForm}>
-      <Form onSubmit={onSubmit}>
+    <Box height="100%" overflow="auto">
+      {isUpdatingAgent && <Progress variant="page" />}
+      <AgentDetailsContext.Provider value={agentDetailsContextValue}>
         <Box display="flex" flexDirection="column" gap="$24" p="$8" flex="1">
           <AgentName />
           <Runbook />
           <SemanticData />
           <LLM />
           <MCPServers />
-          {canConfigureAgents && (
+          {hasAdminRole && (
             <Box>
               <Accordion title="Advanced Options" size="small">
                 <Box display="flex" flexDirection="column" gap="$24">
-                  <AgentVersion />
+                  <DocumentIntelligence />
+                  <DataFrames />
+                  <Endpoints />
                   <ConversationStarter />
                 </Box>
               </Accordion>
             </Box>
           )}
         </Box>
-        {isFormChanged && (
-          <Actions>
-            <Button type="submit" loading={isUpdatingAgent} round>
-              Update Agent
-            </Button>
-          </Actions>
-        )}
-      </Form>
-    </FormProvider>
+      </AgentDetailsContext.Provider>
+    </Box>
   );
 };
