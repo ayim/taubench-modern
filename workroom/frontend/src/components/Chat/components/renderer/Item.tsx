@@ -105,8 +105,18 @@ export const MessageContentItemRenderer: FC<Props> = ({
   switch (content.kind) {
     case 'thought': {
       const isThinkingDone = content.complete;
+      const durationSeconds =
+        typeof content.extras?.duration_seconds === 'number' ? content.extras.duration_seconds : undefined;
+      const startedAt = typeof content.extras?.started_at === 'string' ? content.extras.started_at : undefined;
       return (
-        <Thinking key={content.content_id} complete={isThinkingDone} platform={platform}>
+        <Thinking
+          key={content.content_id}
+          complete={isThinkingDone}
+          platform={platform}
+          durationSeconds={durationSeconds}
+          startedAt={startedAt}
+          messageComplete={message.complete}
+        >
           {content.thought}
         </Thinking>
       );

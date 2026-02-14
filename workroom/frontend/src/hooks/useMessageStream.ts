@@ -95,7 +95,21 @@ class StreamManager {
       complete: true,
     } satisfies ThreadMessage;
 
+    // Placeholder agent message to show pulsing indicator immediately
+    const placeholderAgentMessage = {
+      message_id: `placeholder-${uuidv4()}`,
+      content: [],
+      role: 'agent',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      agent_metadata: {},
+      server_metadata: {},
+      commited: false,
+      complete: false,
+    } satisfies ThreadMessage;
+
     this.messagesMap[threadId].push(userMessage);
+    this.messagesMap[threadId].push(placeholderAgentMessage);
 
     this.emitMessage(threadId);
     const ws = await startWebsocketStream(agentId);
@@ -130,7 +144,25 @@ class StreamManager {
 
       switch (streamingDelta.event_type) {
         case 'message_begin': {
-          this.messagesMap[threadId].push({ message_id: streamingDelta.message_id } as ThreadMessage);
+          // Update placeholder message_id if it exists, otherwise push new message
+          const messages = this.messagesMap[threadId];
+          const placeholderIndex = messages.findIndex((m) => m.message_id.startsWith('placeholder-'));
+          if (placeholderIndex !== -1) {
+            // Update message_id in place to preserve React component identity
+            messages[placeholderIndex].message_id = streamingDelta.message_id;
+          } else {
+            messages.push({
+              message_id: streamingDelta.message_id,
+              content: [],
+              role: 'agent',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              agent_metadata: {},
+              server_metadata: {},
+              commited: false,
+              complete: false,
+            } as ThreadMessage);
+          }
           break;
         }
         case 'message_content': {

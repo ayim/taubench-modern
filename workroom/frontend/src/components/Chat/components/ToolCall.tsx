@@ -78,10 +78,12 @@ export const getActionGroupStateDetails = ({
   messageContent,
   messageComplete,
   platform,
+  durationSeconds,
 }: {
   messageContent: ThreadContent[];
   messageComplete: boolean;
   platform?: string;
+  durationSeconds?: number;
 }): { state: ActionState; title: string } => {
   const groupedContent = getGroupedActions(messageContent);
   const lastThinkingItem = groupedContent.thinking[groupedContent.thinking.length - 1];
@@ -99,7 +101,13 @@ export const getActionGroupStateDetails = ({
   if (groupedContent.thinking.length === messageContent.length || shouldShowThinking) {
     return {
       state: isStreamingFinished ? 'done' : 'in_progress',
-      title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: lastThinkingItem.complete }),
+      title: formatThoughtTitle({
+        text: lastThinkingItem.thought,
+        platform,
+        complete: lastThinkingItem.complete,
+        durationSeconds: isStreamingFinished ? durationSeconds : undefined,
+        messageComplete,
+      }),
     };
   }
 
@@ -214,6 +222,16 @@ export const ToolCall: FC<Props> = ({ content }) => {
   );
 };
 
+const getTotalThinkingDuration = (messageContent: ThreadContent[]): number | undefined => {
+  const durations = messageContent
+    .filter((item): item is ThreadThoughtContent => item.kind === 'thought')
+    .map((item) => (typeof item.extras?.duration_seconds === 'number' ? item.extras.duration_seconds : 0))
+    .filter((d) => d > 0);
+
+  if (durations.length === 0) return undefined;
+  return durations.reduce((sum, d) => sum + d, 0);
+};
+
 export const ToolCallGroup: FC<{
   children: ReactNode;
   messageContent: ThreadContent[];
@@ -221,9 +239,12 @@ export const ToolCallGroup: FC<{
   platform?: string;
 }> = ({ children, messageContent, messageComplete, platform }) => {
   const groupActionRef = useRef<ChatActionRefType>(null);
+
+  const durationSeconds = useMemo(() => getTotalThinkingDuration(messageContent), [messageContent]);
+
   const { state, title } = useMemo(
-    () => getActionGroupStateDetails({ messageContent, messageComplete, platform }),
-    [messageContent, messageComplete, platform],
+    () => getActionGroupStateDetails({ messageContent, messageComplete, platform, durationSeconds }),
+    [messageContent, messageComplete, platform, durationSeconds],
   );
 
   const onExpandGroup = () => groupActionRef.current?.setExpanded(true);

@@ -1,5 +1,4 @@
 import { FC, memo, useMemo } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { ThreadMessage } from '@sema4ai/agent-server-interface';
 import { Banner } from '@sema4ai/components';
 import { IconAlert } from '@sema4ai/icons';
@@ -22,13 +21,17 @@ export const getGroupedMessageContent = (messageContent: ThreadMessageContent, m
    * If message stream started with empty content show thinking state as placeholder
    */
   if (messageContent.length === 0 && !messageComplete) {
+    // Wrap in nested array so ToolCallGroup renders (shows pulsing indicator immediately)
+    // Use stable placeholder ID to prevent component remounting on re-renders
     return [
-      {
-        kind: 'thought' as const,
-        thought: '',
-        complete: false,
-        content_id: uuidv4(),
-      },
+      [
+        {
+          kind: 'thought' as const,
+          thought: '',
+          complete: false,
+          content_id: 'placeholder-thought',
+        },
+      ],
     ];
   }
 
@@ -68,7 +71,17 @@ export const getGroupedMessageContent = (messageContent: ThreadMessageContent, m
       acc.push(content);
       return acc;
     }, [])
-    .map((content) => (Array.isArray(content) && content.length === 1 ? content[0] : content));
+    .map((content) => {
+      // Keep single thought/tool_call items as arrays so ToolCallGroup renders (shows pulsing indicator)
+      if (Array.isArray(content) && content.length === 1) {
+        const item = content[0];
+        if (item.kind === 'thought' || item.kind === 'tool_call') {
+          return content;
+        }
+        return item;
+      }
+      return content;
+    });
 };
 
 const Renderer: FC<{
@@ -85,18 +98,25 @@ const Renderer: FC<{
   const messagePlatform = message.agent_metadata?.platform;
   const platform = typeof messagePlatform === 'string' ? messagePlatform : undefined;
 
+  // Use stable key prefix for streaming messages to prevent remounts during streaming
+  const keyPrefix = message.complete ? message.message_id : 'streaming';
+
+  // Keys use stable prefix + index to prevent component remounting during streaming
+  // eslint-disable-next-line react/no-array-index-key
   const renderedMessageContent = groupedMessageContent.map((processedContent, groupIndex) => {
     if (Array.isArray(processedContent)) {
       return (
         <ToolCallGroup
-          key={`group-${processedContent[0].content_id}`}
+          // eslint-disable-next-line react/no-array-index-key
+          key={`group-${keyPrefix}-${groupIndex}`}
           messageContent={processedContent}
           messageComplete={message.complete}
           platform={platform}
         >
           {processedContent.map((processedContentItem, itemIndex) => (
             <MessageContentItemRenderer
-              key={`group-item-${processedContentItem.content_id}`}
+              // eslint-disable-next-line react/no-array-index-key
+              key={`group-item-${keyPrefix}-${groupIndex}-${itemIndex}`}
               message={message}
               messageContentItem={processedContentItem}
               streaming={streaming}
@@ -113,7 +133,8 @@ const Renderer: FC<{
     }
     return (
       <MessageContentItemRenderer
-        key={`group-item-${processedContent.content_id}`}
+        // eslint-disable-next-line react/no-array-index-key
+        key={`item-${keyPrefix}-${groupIndex}`}
         message={message}
         messageContentItem={processedContent}
         streaming={streaming}
