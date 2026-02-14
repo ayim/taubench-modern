@@ -45,7 +45,7 @@ class ThreadThoughtContent(ThreadMessageContent):
         # started and know thoughts are coming, but we don't have any yet
 
         # Record start time for duration tracking (only if not already set from deserialization)
-        if "started_at" not in self.extras:
+        if isinstance(self.extras, dict) and "started_at" not in self.extras:
             self.extras["started_at"] = datetime.now(UTC).isoformat()
 
     def mark_complete(self) -> None:
