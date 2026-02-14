@@ -100,7 +100,8 @@ export const Thinking: FC<Props> = ({ complete, children, platform, durationSeco
   const effectiveDuration = durationSeconds ?? liveDuration;
 
   const thought = useMemo(
-    () => formatThoughtTitle({ text: children, platform, complete, durationSeconds: effectiveDuration, messageComplete }),
+    () =>
+      formatThoughtTitle({ text: children, platform, complete, durationSeconds: effectiveDuration, messageComplete }),
     [children, platform, complete, effectiveDuration, messageComplete],
   );
   const content = useMemo(() => formatContent(children), [children]);
