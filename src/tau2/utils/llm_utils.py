@@ -716,10 +716,16 @@ def _parse_bedrock_response(response: dict, model: str) -> AssistantMessage:
             completion_tokens=usage["completion_tokens"]
         )
     except Exception as e:
-        logger.debug(f"Could not calculate cost via litellm: {e}, using estimate")
-        # Fallback: Estimate cost (Bedrock Sonnet 4.5 pricing)
-        # Input: $3/1M tokens, Output: $15/1M tokens
-        cost = (usage["prompt_tokens"] * 3 / 1_000_000) + (usage["completion_tokens"] * 15 / 1_000_000)
+        logger.debug(f"Could not calculate cost via litellm: {e}, falling back to model_cost lookup")
+        # Fallback: look up per-token costs from litellm's model_cost registry
+        cost = 0.0
+        cost_entry = litellm.model_cost.get(litellm_model, {})
+        input_cost_per_token = cost_entry.get("input_cost_per_token", 0)
+        output_cost_per_token = cost_entry.get("output_cost_per_token", 0)
+        if input_cost_per_token or output_cost_per_token:
+            cost = (usage["prompt_tokens"] * input_cost_per_token) + (usage["completion_tokens"] * output_cost_per_token)
+        else:
+            logger.warning(f"No cost data found for model '{litellm_model}' in litellm.model_cost; cost will be 0")
     
     return AssistantMessage(
         role="assistant",
@@ -1172,6 +1178,8 @@ def generate(
 
     Returns: An AssistantMessage (or UserMessage in some edge cases).
     """
+    _ensure_configured()
+
     if kwargs.get("num_retries") is None:
         kwargs["num_retries"] = DEFAULT_MAX_RETRIES
 
