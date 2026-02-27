@@ -111,16 +111,6 @@ class ParticipantMessageBase(BaseModel):
     raw_data: Optional[dict] = Field(
         description="The raw data of the message.", default=None
     )
-    
-    # Provider-facing raw fields for verbatim replay
-    raw_content_blocks: Optional[list[dict]] = Field(
-        default=None,
-        description="Anthropic content array verbatim. Includes thinking, redacted_thinking, text, tool_use, image, document blocks. Replay exactly when sending history back."
-    )
-    raw_output_items: Optional[list[dict]] = Field(
-        default=None,
-        description="OpenAI Responses API output array verbatim. Includes reasoning, message, function_call items. Replay exactly for multi-turn correctness."
-    )
 
     def validate(self):  # NOTE: It would be better to do this in the Pydantic model
         """
@@ -178,6 +168,16 @@ class AssistantMessage(ParticipantMessageBase):
     """
 
     role: AssistantRole = Field(description="The role of the message sender.")
+
+    # Provider-facing raw fields for verbatim replay (assistant-only)
+    raw_content_blocks: Optional[list[dict]] = Field(
+        default=None,
+        description="Anthropic content array verbatim. Includes thinking, redacted_thinking, text, tool_use, image, document blocks. Replay exactly when sending history back."
+    )
+    raw_output_items: Optional[list[dict]] = Field(
+        default=None,
+        description="OpenAI Responses API output array verbatim. Includes reasoning, message, function_call items. Replay exactly for multi-turn correctness."
+    )
 
 
 class UserMessage(ParticipantMessageBase):
