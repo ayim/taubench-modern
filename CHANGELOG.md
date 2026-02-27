@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0](https://github.com/ayim/taubench-modern/compare/v0.3.0...v0.4.0) (2026-02-27)
+
+
+### Features
+
+* add auto-discovery for community-contributed experimental domains ([#160](https://github.com/ayim/taubench-modern/issues/160)) ([c2139e8](https://github.com/ayim/taubench-modern/commit/c2139e8840af55148e17e18b6938b3f6a0aaacc6))
+
+
+### Bug Fixes
+
+* Move raw_content_blocks/raw_output_items to AssistantMessage only ([1eaff8c](https://github.com/ayim/taubench-modern/commit/1eaff8cc43f5812e531f23120837de596522a324))
+* update leaderboard submission validation and clarify submission types ([#155](https://github.com/ayim/taubench-modern/issues/155)) ([917227c](https://github.com/ayim/taubench-modern/commit/917227cedf029f1a659e339a860c738a530fd20e))
+* Use litellm model_cost registry for Bedrock cost fallback ([09d8696](https://github.com/ayim/taubench-modern/commit/09d86963b1bc7f5937c2253f76b86d2a2eff5552))
+
 ## [0.3.0](https://github.com/ayim/taubench-modern/compare/v0.2.0...v0.3.0) (2026-01-26)
 
 
