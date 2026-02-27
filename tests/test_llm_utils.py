@@ -128,6 +128,7 @@ class TestAnthropicParsing:
         mock_response = MagicMock()
         mock_response.content = "Hello, world!"
         mock_response.tool_calls = None
+        mock_response.thinking_blocks = None
         
         result = parse_anthropic_response(
             response_message=mock_response,
@@ -149,7 +150,9 @@ class TestAnthropicParsing:
         
         mock_response = MagicMock()
         mock_response.content = content_blocks
-        
+        mock_response.thinking_blocks = None
+        mock_response.tool_calls = None
+
         result = parse_anthropic_response(
             response_message=mock_response,
             cost=0.002,
@@ -171,7 +174,9 @@ class TestAnthropicParsing:
         
         mock_response = MagicMock()
         mock_response.content = content_blocks
-        
+        mock_response.thinking_blocks = None
+        mock_response.tool_calls = None
+
         result = parse_anthropic_response(
             response_message=mock_response,
             cost=0.003,
@@ -196,7 +201,9 @@ class TestAnthropicParsing:
         
         mock_response = MagicMock()
         mock_response.content = content_blocks
-        
+        mock_response.thinking_blocks = None
+        mock_response.tool_calls = None
+
         result = parse_anthropic_response(
             response_message=mock_response,
             cost=0.001,

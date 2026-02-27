@@ -39,76 +39,70 @@ from tau2.environment.tool import Tool
 
 # litellm._turn_on_debug()
 
-# Patch litellm's ValidUserMessageContentTypes to allow Anthropic-style tool_result blocks
-# This is needed for Bedrock Claude models which require Anthropic message format
-# but litellm validates all messages as OpenAI format first
-try:
-    from litellm.types.llms.openai import ValidUserMessageContentTypes
-    if "tool_result" not in ValidUserMessageContentTypes:
-        ValidUserMessageContentTypes.append("tool_result")
-        logger.debug("Patched litellm ValidUserMessageContentTypes to include 'tool_result'")
-except ImportError:
-    logger.warning("Could not patch litellm ValidUserMessageContentTypes - Bedrock Claude may fail with tool_result messages")
 
-if USE_LANGFUSE:
-    # set callbacks
-    litellm.success_callback = ["langfuse"]
-    litellm.failure_callback = ["langfuse"]
+# =============================================================================
+# Lazy configuration — runs once on first generate() call, not at import time
+# =============================================================================
 
-# Configure Azure OpenAI
-# LiteLLM will automatically use Azure OpenAI when:
-# 1. Model name starts with "azure/" prefix
-# 2. Environment variables or config values are set: AZURE_API_KEY, AZURE_API_BASE, AZURE_API_VERSION
-# Example model name: "azure/gpt-4" or "azure/gpt-4o" (where "gpt-4" is your deployment name)
-
-# Use environment variables if set, otherwise use config values
-azure_api_key = os.getenv("AZURE_API_KEY", AZURE_API_KEY)
-azure_api_base = os.getenv("AZURE_API_BASE", AZURE_API_BASE)
-azure_api_version = os.getenv("AZURE_API_VERSION", AZURE_API_VERSION)
-
-# Set Azure OpenAI environment variables for LiteLLM
-os.environ["AZURE_API_KEY"] = azure_api_key
-os.environ["AZURE_API_BASE"] = azure_api_base
-os.environ["AZURE_API_VERSION"] = azure_api_version
-
-logger.info("Azure OpenAI configuration set. Models with 'azure/' prefix will use Azure OpenAI.")
-logger.info(f"Azure OpenAI endpoint: {azure_api_base}")
-logger.info(f"Azure OpenAI API version: {azure_api_version}")
-logger.info(f"Azure region: {AZURE_REGION}")
-
-# Note: For direct OpenAI API calls (e.g., gpt-5.2), set OPENAI_API_KEY environment variable
-# LiteLLM will automatically use OpenAI API when model name doesn't start with "azure/"
-if os.getenv("OPENAI_API_KEY"):
-    logger.info("OpenAI API key detected. Direct OpenAI models (e.g., gpt-5.2) will use OpenAI API.")
-else:
-    logger.warning("OPENAI_API_KEY not set. Direct OpenAI models (e.g., gpt-5.2) may fail without API key.")
+_configured = False
 
 
-if LLM_CACHE_ENABLED:
-    if DEFAULT_LLM_CACHE_TYPE == "redis":
-        logger.info(f"LiteLLM: Using Redis cache at {REDIS_HOST}:{REDIS_PORT}")
-        litellm.cache = Cache(
-            type=DEFAULT_LLM_CACHE_TYPE,
-            host=REDIS_HOST,
-            port=REDIS_PORT,
-            password=REDIS_PASSWORD,
-            namespace=f"{REDIS_PREFIX}:{REDIS_CACHE_VERSION}:litellm",
-            ttl=REDIS_CACHE_TTL,
-        )
-    elif DEFAULT_LLM_CACHE_TYPE == "local":
-        logger.info("LiteLLM: Using local cache")
-        litellm.cache = Cache(
-            type="local",
-            ttl=REDIS_CACHE_TTL,
-        )
+def _ensure_configured():
+    """Configure litellm, Azure, caching, and Langfuse on first use."""
+    global _configured
+    if _configured:
+        return
+    _configured = True
+
+    if USE_LANGFUSE:
+        litellm.success_callback = ["langfuse"]
+        litellm.failure_callback = ["langfuse"]
+
+    # Azure OpenAI: use env vars if set, otherwise fall back to config values
+    azure_api_key = os.getenv("AZURE_API_KEY", AZURE_API_KEY)
+    azure_api_base = os.getenv("AZURE_API_BASE", AZURE_API_BASE)
+    azure_api_version = os.getenv("AZURE_API_VERSION", AZURE_API_VERSION)
+
+    os.environ["AZURE_API_KEY"] = azure_api_key
+    os.environ["AZURE_API_BASE"] = azure_api_base
+    os.environ["AZURE_API_VERSION"] = azure_api_version
+
+    logger.info("Azure OpenAI configuration set. Models with 'azure/' prefix will use Azure OpenAI.")
+    logger.info(f"Azure OpenAI endpoint: {azure_api_base}")
+    logger.info(f"Azure OpenAI API version: {azure_api_version}")
+    logger.info(f"Azure region: {AZURE_REGION}")
+
+    if os.getenv("OPENAI_API_KEY"):
+        logger.info("OpenAI API key detected. Direct OpenAI models (e.g., gpt-5.2) will use OpenAI API.")
     else:
-        raise ValueError(
-            f"Invalid cache type: {DEFAULT_LLM_CACHE_TYPE}. Should be 'redis' or 'local'"
-        )
-    litellm.enable_cache()
-else:
-    logger.info("LiteLLM: Cache is disabled")
-    litellm.disable_cache()
+        logger.warning("OPENAI_API_KEY not set. Direct OpenAI models (e.g., gpt-5.2) may fail without API key.")
+
+    # Cache
+    if LLM_CACHE_ENABLED:
+        if DEFAULT_LLM_CACHE_TYPE == "redis":
+            logger.info(f"LiteLLM: Using Redis cache at {REDIS_HOST}:{REDIS_PORT}")
+            litellm.cache = Cache(
+                type=DEFAULT_LLM_CACHE_TYPE,
+                host=REDIS_HOST,
+                port=REDIS_PORT,
+                password=REDIS_PASSWORD,
+                namespace=f"{REDIS_PREFIX}:{REDIS_CACHE_VERSION}:litellm",
+                ttl=REDIS_CACHE_TTL,
+            )
+        elif DEFAULT_LLM_CACHE_TYPE == "local":
+            logger.info("LiteLLM: Using local cache")
+            litellm.cache = Cache(
+                type="local",
+                ttl=REDIS_CACHE_TTL,
+            )
+        else:
+            raise ValueError(
+                f"Invalid cache type: {DEFAULT_LLM_CACHE_TYPE}. Should be 'redis' or 'local'"
+            )
+        litellm.enable_cache()
+    else:
+        logger.info("LiteLLM: Cache is disabled")
+        litellm.disable_cache()
 
 
 # =============================================================================
@@ -1252,13 +1246,11 @@ def generate(
     # Add allowed OpenAI params (reasoning, reasoning_effort for o-series models)
     kwargs["allowed_openai_params"] = ["tool_choice"]
     
-    # Use appropriate message conversion based on provider
-    # Both direct Anthropic and Bedrock Claude use Anthropic-style messages
-    # (tool_result content blocks, thinking blocks, etc.)
-    if is_anthropic:
-        litellm_messages = to_litellm_messages_anthropic(messages)
-    else:
-        litellm_messages = to_litellm_messages(messages)
+    # Use standard OpenAI-format messages for all litellm calls.
+    # litellm handles OpenAI-to-Anthropic translation internally (anthropic_messages_pt).
+    # Note: extended thinking multi-turn replay requires the Bedrock boto3 path above,
+    # which uses its own message converter (_convert_messages_for_bedrock).
+    litellm_messages = to_litellm_messages(messages)
     
     tool_schemas = [tool.openai_schema for tool in tools] if tools else None
     if tool_schemas and tool_choice is None:
