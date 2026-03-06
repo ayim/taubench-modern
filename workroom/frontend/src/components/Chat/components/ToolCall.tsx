@@ -99,12 +99,7 @@ export const getActionGroupStateDetails = ({
   if (groupedContent.thinking.length === messageContent.length || shouldShowThinking) {
     return {
       state: isStreamingFinished ? 'done' : 'in_progress',
-      title: formatThoughtTitle({
-        text: lastThinkingItem.thought,
-        platform,
-        complete: lastThinkingItem.complete,
-        messageComplete,
-      }),
+      title: formatThoughtTitle({ text: lastThinkingItem.thought, platform, complete: lastThinkingItem.complete }),
     };
   }
 

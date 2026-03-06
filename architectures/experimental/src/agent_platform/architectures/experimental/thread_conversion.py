@@ -34,8 +34,6 @@ async def _agent_thread_contents_to_prompt_contents(
                     embedded_response = thought_content.extras.copy()
                     embedded_response.pop("kind", None)
                     embedded_response.pop("metadata", None)
-                    embedded_response.pop("started_at", None)
-                    embedded_response.pop("duration_seconds", None)
                     prompt_agent_contents.append(
                         PromptReasoningContent(**embedded_response),
                     )

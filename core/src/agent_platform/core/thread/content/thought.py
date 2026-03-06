@@ -1,6 +1,5 @@
 import json
 from dataclasses import dataclass, field, fields
-from datetime import UTC, datetime
 from typing import Any
 
 from agent_platform.core.thread.content.base import ThreadMessageContent
@@ -43,27 +42,6 @@ class ThreadThoughtContent(ThreadMessageContent):
         # We used to check for empty thoughts, but there's a few valid use
         # cases for empty thoughts... like when we're streaming and we just
         # started and know thoughts are coming, but we don't have any yet
-
-        # Record start time for duration tracking (only if not already set from deserialization)
-        if isinstance(self.extras, dict) and "started_at" not in self.extras:
-            self.extras["started_at"] = datetime.now(UTC).isoformat()
-
-    def mark_complete(self) -> None:
-        """Used to indicate that the content has finished streaming.
-
-        Also calculates and stores the thinking duration in extras.
-        """
-        # Calculate duration BEFORE setting complete so both are available in same stream update
-        started_at_str = self.extras.get("started_at")
-        if started_at_str and "duration_seconds" not in self.extras:
-            try:
-                started_at = datetime.fromisoformat(started_at_str)
-                duration = (datetime.now(UTC) - started_at).total_seconds()
-                self.extras["duration_seconds"] = round(duration)
-            except (ValueError, TypeError):
-                pass  # Invalid timestamp, skip duration calculation
-
-        self.complete = True
 
     def as_text_content(self) -> str:
         """Converts the text content to a text content component."""

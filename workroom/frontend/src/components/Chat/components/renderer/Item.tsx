@@ -106,12 +106,7 @@ export const MessageContentItemRenderer: FC<Props> = ({
     case 'thought': {
       const isThinkingDone = content.complete;
       return (
-        <Thinking
-          key={content.content_id}
-          complete={isThinkingDone}
-          platform={platform}
-          messageComplete={message.complete}
-        >
+        <Thinking key={content.content_id} complete={isThinkingDone} platform={platform}>
           {content.thought}
         </Thinking>
       );

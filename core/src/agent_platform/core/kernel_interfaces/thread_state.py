@@ -226,8 +226,7 @@ class ThreadMessageWithThreadState:
         if self._message.commited:
             raise ValueError("Cannot add content to a committed message")
         as_thought_content = ThreadThoughtContent(thought=thought)
-        if complete:
-            as_thought_content.mark_complete()
+        as_thought_content.complete = complete
         self._message.content.append(as_thought_content)
 
     def clear_thoughts(self) -> None:
@@ -329,11 +328,9 @@ class ThreadMessageWithThreadState:
                 self._message.content[index_of_last_thought_content],
             )
             as_thought_content.thought += thought
-            if complete:
-                # Merge extras before marking complete to preserve timing data
-                if extras:
-                    as_thought_content.extras.update(extras)
-                as_thought_content.mark_complete()
+            as_thought_content.complete = complete
+            if complete and extras:
+                as_thought_content.extras = extras
 
     def update_tool_use(
         self,

@@ -5,7 +5,6 @@ interface Props {
   complete: boolean;
   platform: string | undefined;
   children: string;
-  messageComplete?: boolean;
 }
 
 /**
@@ -41,16 +40,12 @@ export const formatThoughtTitle = ({
   text,
   platform,
   complete,
-  messageComplete,
 }: {
   text: string;
   platform: string | undefined;
   complete: boolean;
-  messageComplete?: boolean;
 }): string => {
-  // Show "Thinking" while streaming, "Thought" when fully done
-  const isFullyDone = complete && (messageComplete ?? true);
-  const result = isFullyDone ? 'Thought' : 'Thinking';
+  const result = complete ? 'Thought' : 'Thinking';
 
   const parsedPlatform = platform?.toLowerCase();
   if (parsedPlatform === 'openai') {
@@ -64,14 +59,14 @@ const formatContent = (content: string) => {
   return content.replace(END_OF_LINE_REGEX, '');
 };
 
-export const Thinking: FC<Props> = ({ complete, children, platform, messageComplete }) => {
+export const Thinking: FC<Props> = ({ complete, children, platform }) => {
   const thought = useMemo(
-    () => formatThoughtTitle({ text: children, platform, complete, messageComplete }),
-    [children, platform, complete, messageComplete],
+    () => formatThoughtTitle({ text: children, platform, complete }),
+    [children, platform, complete],
   );
   const content = useMemo(() => formatContent(children), [children]);
   return (
-    <Chat.Thinking streaming={!complete || !messageComplete} title={thought}>
+    <Chat.Thinking streaming={!complete} title={thought}>
       {content}
     </Chat.Thinking>
   );
